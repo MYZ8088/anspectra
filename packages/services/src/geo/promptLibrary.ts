@@ -13,6 +13,10 @@ import { z } from "zod";
 import { env } from "../env.js";
 import { aihubmix } from "../llm/index.js";
 import {
+	createOpenAiCompatibleGenerator,
+	generateStructuredOutput,
+} from "../llm/structuredOutput.js";
+import {
 	type BrandPromptProfile,
 	GEO_DECISION_STAGES,
 	GEO_PROMPT_GROUPS,
@@ -132,14 +136,6 @@ const ClassificationResponseSchema = z.object({
 	),
 });
 
-function parseClassificationJson(raw: string) {
-	const cleaned = raw
-		.trim()
-		.replace(/^```(?:json)?\s*/i, "")
-		.replace(/\s*```$/i, "");
-	return ClassificationResponseSchema.parse(JSON.parse(cleaned));
-}
-
 export async function classifyCustomPromptDimensions(args: {
 	workspaceId: string;
 	prompts: string[];
@@ -164,29 +160,40 @@ export async function classifyCustomPromptDimensions(args: {
 		})),
 	});
 	try {
-		const response = await aihubmix.chat.completions.create({
-			model: env.AIHUBMIX_ANALYSIS_MODEL,
-			temperature: 0,
-			response_format: { type: "json_object" },
-			messages: [
-				{
-					role: "system",
-					content:
-						"Classify GEO prompts. Return only JSON {items:[{index,intent,decisionStage,locale,brandExposure,confidence}]}. intent must be information, recommendation, comparison, transaction, risk, price, alternative, scenario, or brand_validation. decisionStage must be awareness, screening, evaluation, purchase, implementation, or review. brandExposure is aided only when the target brand is explicit in the prompt.",
-				},
-				{
-					role: "user",
-					content: JSON.stringify({
-						brand: profile.brandName,
-						aliases: profile.aliases,
-						prompts: prompts.map((prompt, index) => ({ index, prompt })),
-					}),
-				},
-			],
+		const models = [
+			env.AIHUBMIX_ANALYSIS_MODEL,
+			env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
+		]
+			.map((model) => model.trim())
+			.filter(
+				(model, index, values) => model && values.indexOf(model) === index,
+			);
+		const generators = models.map((model) =>
+			createOpenAiCompatibleGenerator({
+				client: aihubmix,
+				provider: "AIHubMix",
+				model,
+				maxTokens: 4096,
+				timeoutMs: 120_000,
+			}),
+		);
+		const execution = await generateStructuredOutput({
+			schema: ClassificationResponseSchema,
+			schemaName: "geo_prompt_classification",
+			systemPrompt:
+				"Classify GEO prompts using the required schema. intent must be information, recommendation, comparison, transaction, risk, price, alternative, scenario, or brand_validation. decisionStage must be awareness, screening, evaluation, purchase, implementation, or review. brandExposure is aided only when the target brand is explicit in the prompt. Keep every supplied index exactly once and do not create prompts.",
+			userPrompt: JSON.stringify({
+				brand: profile.brandName,
+				aliases: profile.aliases,
+				prompts: prompts.map((prompt, index) => ({ index, prompt })),
+			}),
+			generators,
+			repairGenerator: generators.at(-1),
+			repairInstructions:
+				"Preserve every original item index. Do not add, remove, or rewrite prompts.",
+			errorMessage: "Prompt classifier returned invalid structured JSON",
 		});
-		const content = response.choices[0]?.message?.content;
-		if (!content) return fallback();
-		const parsed = parseClassificationJson(content);
+		const parsed = execution.data;
 		const byIndex = new Map(parsed.items.map((item) => [item.index, item]));
 		if (prompts.some((_prompt, index) => !byIndex.has(index)))
 			return fallback();
@@ -719,7 +726,9 @@ export async function migrateLegacyPrompts(workspaceId: string) {
 			),
 		);
 
-	const legacy = await fetchLegacyClickHousePrompts(workspaceId).catch(() => []);
+	const legacy = await fetchLegacyClickHousePrompts(workspaceId).catch(
+		() => [],
+	);
 	if (legacy.length === 0)
 		return {
 			imported: 0,
@@ -780,9 +789,7 @@ export async function migrateLegacyPrompts(workspaceId: string) {
 		await db
 			.insert(schema.workspacePrompts)
 			.values({
-				...(/^[0-9a-f-]{36}$/i.test(legacyRow.id)
-					? { id: legacyRow.id }
-					: {}),
+				...(/^[0-9a-f-]{36}$/i.test(legacyRow.id) ? { id: legacyRow.id } : {}),
 				workspaceId,
 				origin: "legacy",
 				prompt,

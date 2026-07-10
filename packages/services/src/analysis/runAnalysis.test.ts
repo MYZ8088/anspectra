@@ -35,6 +35,14 @@ describe("parseAnalysisOutput", () => {
 		expect(result.competitors[0]?.domain).toBe("");
 	});
 
+	it("repairs common JSON syntax errors before schema validation", () => {
+		const malformed = JSON.stringify(validAnalysis)
+			.replace('"geoScore"', "geoScore")
+			.replace(/}$/, ",}");
+		const result = parseAnalysisOutput(malformed);
+		expect(result.geoScore.overall).toBe(72);
+	});
+
 	it("rejects incomplete or truncated JSON", () => {
 		expect(() => parseAnalysisOutput('{"geoScore":{"overall":72}')).toThrow(
 			"Invalid JSON returned",

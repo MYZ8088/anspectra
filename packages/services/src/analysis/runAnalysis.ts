@@ -1,4 +1,4 @@
-import { ExternalServiceError, ValidationError } from "@answerloom/errors";
+import { ValidationError } from "@answerloom/errors";
 import type {
 	AnalysisInputSingle,
 	BrandAnalysisResult,
@@ -6,6 +6,14 @@ import type {
 import { z } from "zod";
 import { env } from "../env.js";
 import { aihubmix, chatgpt, claude } from "../llm/index.js";
+import {
+	type StructuredModelGenerator,
+	type StructuredOutputAttempt,
+	type StructuredParseMode,
+	createOpenAiCompatibleGenerator,
+	generateStructuredOutput,
+	parseStructuredOutput,
+} from "../llm/structuredOutput.js";
 import { analysisPrompt } from "./analysisPrompt.js";
 
 const systemPrompt =
@@ -17,20 +25,14 @@ const systemPrompt =
 
 const AIHUBMIX_ANALYSIS_TIMEOUT_MS = 180_000;
 const AIHUBMIX_ANALYSIS_MAX_TOKENS = 8192;
-const AIHUBMIX_FALLBACK_TIMEOUT_MS = 180_000;
-
-type AihubmixAttemptResult = {
-	text: string;
-	model: string;
-	finishReason?: string | null;
-	reasoningLength: number;
-};
 
 export type AnalysisExecution = {
 	result: BrandAnalysisResult;
 	rawOutputs: string[];
 	model: string;
 	attemptCount: number;
+	attempts: StructuredOutputAttempt[];
+	parseMode: StructuredParseMode;
 };
 
 const boundedScore = z.coerce.number().min(0).max(100);
@@ -165,203 +167,100 @@ const analysisResultSchema = z.object({
 		.default(defaultScorecard),
 });
 
-function extractBalancedJsonObject(text: string): string | null {
-	const start = text.indexOf("{");
-	if (start < 0) return null;
-	let depth = 0;
-	let inString = false;
-	let escaped = false;
-	for (let index = start; index < text.length; index += 1) {
-		const character = text[index];
-		if (inString) {
-			if (escaped) escaped = false;
-			else if (character === "\\") escaped = true;
-			else if (character === '"') inString = false;
-			continue;
-		}
-		if (character === '"') {
-			inString = true;
-			continue;
-		}
-		if (character === "{") depth += 1;
-		if (character === "}") {
-			depth -= 1;
-			if (depth === 0) return text.slice(start, index + 1);
-		}
-	}
-	return null;
-}
-
 export function parseAnalysisOutput(text: string): BrandAnalysisResult {
-	const trimmed = text.trim().replace(/^\uFEFF/, "");
-	const candidates = [trimmed, extractBalancedJsonObject(trimmed)].filter(
-		(value, index, values): value is string =>
-			Boolean(value) && values.indexOf(value) === index,
-	);
-	let lastError: unknown;
-	for (const candidate of candidates) {
-		try {
-			const parsed = analysisResultSchema.parse(JSON.parse(candidate));
-			return parsed as BrandAnalysisResult;
-		} catch (error) {
-			lastError = error;
-		}
-	}
-	throw new ValidationError(
-		"Invalid JSON returned from LLM during analysis.",
-		{
+	try {
+		return parseStructuredOutput({
 			rawOutput: text,
-			parseError:
-				lastError instanceof Error
-					? lastError.message.slice(0, 1_000)
-					: "unknown",
-		},
-		lastError,
-	);
-}
-
-function shouldRetryAihubmixWithFallback(
-	result: AihubmixAttemptResult,
-): boolean {
-	return (
-		result.text.trim().length === 0 &&
-		result.reasoningLength > 0 &&
-		env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL.trim().length > 0 &&
-		env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL !== result.model
-	);
-}
-
-async function runWithOpenAI(
-	prompt: string,
-	responseLength: number,
-): Promise<string> {
-	try {
-		const response = await chatgpt.responses.create({
-			model: "gpt-4.1",
-			temperature: 0,
-			input: [
-				{ role: "system", content: systemPrompt },
-				{ role: "user", content: prompt },
-			],
-			text: { format: { type: "json_object" } },
-		});
-		return response.output_text?.trim() || "";
-	} catch (err) {
-		throw new ExternalServiceError(
-			"ChatGPT",
-			"Failed to analyze response.",
-			502,
-			{ responseLength },
-			err,
+			schema: analysisResultSchema,
+			errorMessage: "Invalid JSON returned from LLM during analysis.",
+		}).data as BrandAnalysisResult;
+	} catch (error) {
+		if (error instanceof ValidationError) throw error;
+		throw new ValidationError(
+			"Invalid JSON returned from LLM during analysis.",
+			{ rawOutput: text },
+			error,
 		);
 	}
 }
 
-async function runWithClaude(
-	prompt: string,
-	responseLength: number,
-): Promise<string> {
-	try {
-		const response = await claude.messages.create({
-			model: "claude-sonnet-4-6",
-			max_tokens: 4096,
-			temperature: 0,
-			system: systemPrompt,
-			messages: [{ role: "user", content: prompt }],
-		});
-		const block = response.content[0];
-		return block?.type === "text" ? block.text.trim() : "";
-	} catch (err) {
-		throw new ExternalServiceError(
-			"Claude",
-			"Failed to analyze response.",
-			502,
-			{ responseLength },
-			err,
-		);
-	}
-}
-
-async function runWithAihubmix(
-	prompt: string,
-	responseLength: number,
-	forceFallback = false,
-): Promise<AihubmixAttemptResult> {
-	async function attempt(args: {
-		model: string;
-		timeoutMs: number;
-		maxTokens: number;
-	}): Promise<AihubmixAttemptResult> {
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), args.timeoutMs);
-
-		try {
-			const response = await aihubmix.chat.completions.create(
-				{
-					model: args.model,
-					temperature: 0,
-					max_tokens: args.maxTokens,
-					response_format: { type: "json_object" },
-					messages: [
-						{ role: "system", content: systemPrompt },
-						{ role: "user", content: prompt },
-					],
-				},
-				{
-					signal: controller.signal,
-					timeout: args.timeoutMs,
-				},
+function createClaudeGenerator(): StructuredModelGenerator {
+	return {
+		provider: "Anthropic",
+		model: "claude-sonnet-4-6",
+		strictSchema: false,
+		async generate(request) {
+			const response = await claude.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+				temperature: 0,
+				system: request.systemPrompt,
+				messages: [{ role: "user", content: request.userPrompt }],
+				tools: [
+					{
+						name: "submit_structured_analysis",
+						description:
+							"Return the completed brand analysis using the required schema.",
+						input_schema: request.jsonSchema as {
+							type: "object";
+							properties?: unknown;
+							required?: string[];
+						},
+						strict: true,
+					},
+				],
+				tool_choice: { type: "tool", name: "submit_structured_analysis" },
+			});
+			const toolBlock = response.content.find(
+				(block) =>
+					block.type === "tool_use" &&
+					block.name === "submit_structured_analysis",
 			);
-			const choice = response.choices[0];
-			const message = choice?.message as
-				| {
-						content?: string | null;
-						reasoning_content?: string | null;
-				  }
-				| undefined;
+			const hasToolBlock = toolBlock?.type === "tool_use";
+			const text = hasToolBlock
+				? JSON.stringify(toolBlock.input)
+				: response.content
+						.filter((block) => block.type === "text")
+						.map((block) => block.text)
+						.join("\n");
 			return {
-				text: message?.content?.trim() || "",
-				model: args.model,
-				finishReason: choice?.finish_reason,
-				reasoningLength: message?.reasoning_content?.length ?? 0,
+				text,
+				finishReason: response.stop_reason,
+				responseFormat: hasToolBlock ? "tool" : "json_object",
 			};
-		} finally {
-			clearTimeout(timeout);
-		}
-	}
+		},
+	};
+}
 
-	try {
-		const primary = await attempt({
-			model: forceFallback
-				? env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL
-				: env.AIHUBMIX_ANALYSIS_MODEL,
-			timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
-			maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
-		});
-		if (forceFallback || !shouldRetryAihubmixWithFallback(primary)) {
-			return primary;
-		}
-
-		const fallback = await attempt({
-			model: env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-			timeoutMs: AIHUBMIX_FALLBACK_TIMEOUT_MS,
-			maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
-		});
-		return fallback;
-	} catch (err) {
-		throw new ExternalServiceError(
-			"AIHubMix",
-			"Failed to analyze response.",
-			502,
-			{
-				model: env.AIHUBMIX_ANALYSIS_MODEL,
-				fallbackModel: env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-				promptLength: prompt.length,
-				responseLength,
-				timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
-			},
-			err,
-		);
+function analysisGenerators(): StructuredModelGenerator[] {
+	switch (env.ANALYSIS_LLM_PROVIDER) {
+		case "claude":
+			return [createClaudeGenerator()];
+		case "aihubmix":
+			return [env.AIHUBMIX_ANALYSIS_MODEL, env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL]
+				.map((model) => model.trim())
+				.filter(
+					(model, index, models) => model && models.indexOf(model) === index,
+				)
+				.map((model) =>
+					createOpenAiCompatibleGenerator({
+						client: aihubmix,
+						provider: "AIHubMix",
+						model,
+						maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+						timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
+					}),
+				);
+		default:
+			return [
+				createOpenAiCompatibleGenerator({
+					client: chatgpt,
+					provider: "OpenAI",
+					model: "gpt-4.1",
+					maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+					timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
+				}),
+			];
 	}
 }
 
@@ -369,64 +268,25 @@ export async function runAnalysisDetailed(
 	input: AnalysisInputSingle,
 ): Promise<AnalysisExecution> {
 	const prompt = analysisPrompt(input);
-
-	let text: string;
-	let model: string;
-	switch (env.ANALYSIS_LLM_PROVIDER) {
-		case "claude":
-			text = await runWithClaude(prompt, input.response.length);
-			model = "claude-sonnet-4-6";
-			break;
-		case "aihubmix": {
-			const primary = await runWithAihubmix(prompt, input.response.length);
-			text = primary.text;
-			model = primary.model;
-			try {
-				return {
-					result: parseAnalysisOutput(text),
-					rawOutputs: [text],
-					model,
-					attemptCount: 1,
-				};
-			} catch (primaryError) {
-				const fallbackModel = env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL.trim();
-				if (!fallbackModel || fallbackModel === primary.model)
-					throw primaryError;
-				const fallback = await runWithAihubmix(
-					prompt,
-					input.response.length,
-					true,
-				);
-				try {
-					return {
-						result: parseAnalysisOutput(fallback.text),
-						rawOutputs: [text, fallback.text],
-						model: fallback.model,
-						attemptCount: 2,
-					};
-				} catch (fallbackError) {
-					throw new ValidationError(
-						"Invalid JSON returned from both AIHubMix analysis attempts.",
-						{
-							rawOutputs: [text, fallback.text],
-							models: [primary.model, fallback.model],
-							attemptCount: 2,
-						},
-						fallbackError,
-					);
-				}
-			}
-		}
-		default:
-			text = await runWithOpenAI(prompt, input.response.length);
-			model = "gpt-4.1";
-			break;
-	}
+	const generators = analysisGenerators();
+	const execution = await generateStructuredOutput({
+		schema: analysisResultSchema,
+		schemaName: "brand_analysis",
+		systemPrompt,
+		userPrompt: prompt,
+		generators,
+		repairGenerator: generators.at(-1),
+		repairInstructions:
+			"For an absent brand, use zero scores, empty arrays, not_mentioned, and null rank values. Do not infer claims that are not present in the source answer.",
+		errorMessage: "Invalid JSON returned from LLM during analysis.",
+	});
 	return {
-		result: parseAnalysisOutput(text),
-		rawOutputs: [text],
-		model,
-		attemptCount: 1,
+		result: execution.data as BrandAnalysisResult,
+		rawOutputs: execution.rawOutputs,
+		model: execution.model,
+		attemptCount: execution.attemptCount,
+		attempts: execution.attempts,
+		parseMode: execution.parseMode,
 	};
 }
 

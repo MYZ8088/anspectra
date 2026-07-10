@@ -81,3 +81,5 @@ export const aihubmix = new Proxy({} as ChatGptClient, {
 		return instance[prop];
 	},
 });
+
+export * from "./structuredOutput.js";

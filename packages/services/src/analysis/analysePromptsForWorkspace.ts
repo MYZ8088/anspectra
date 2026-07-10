@@ -143,7 +143,11 @@ export async function analysePromptsForWorkspace(args: {
 					analysis_json: analysisJson,
 					analysis_model: execution.model,
 					template_version: "yao-six-layer-analysis-v1",
-					raw_output: JSON.stringify(execution.rawOutputs),
+					raw_output: JSON.stringify({
+						rawOutputs: execution.rawOutputs,
+						attempts: execution.attempts,
+						parseMode: execution.parseMode,
+					}),
 					status: "completed",
 					error: "",
 					attempt_count: execution.attemptCount,
@@ -160,6 +164,9 @@ export async function analysePromptsForWorkspace(args: {
 						? [metadata.rawOutput]
 						: [];
 				const models = Array.isArray(metadata?.models) ? metadata.models : [];
+				const attempts = Array.isArray(metadata?.attempts)
+					? metadata.attempts
+					: [];
 				analysisV2Rows.push({
 					id: uuidv4(),
 					sample_id: resp.id,
@@ -170,7 +177,7 @@ export async function analysePromptsForWorkspace(args: {
 					analysis_json: "",
 					analysis_model: String(models.at(-1) ?? ""),
 					template_version: "yao-six-layer-analysis-v1",
-					raw_output: JSON.stringify(rawOutputs),
+					raw_output: JSON.stringify({ rawOutputs, attempts }),
 					status: "failed",
 					error: errorMessage,
 					attempt_count:

@@ -1,310 +1,226 @@
-# AnswerLoom — Open-source GEO & AI Visibility Tracker
-
-**AnswerLoom** is the open-source tool for tracking how your brand appears in AI-generated responses. It monitors ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview — not via model APIs, but through the actual product UIs the same way a real user would. Free to run. Fully self-hosted. MIT licensed.
-
-> **Keywords:** GEO · generative engine optimization · AI visibility tracking · AI brand monitoring · open-source GEO tool · self-hosted AI tracker · ChatGPT brand tracking · Perplexity brand tracking
-
 <p align="center">
-  <img src="docs/images/hero-icon.png" alt="AnswerLoom dashboard showing AI visibility, rank, sources, and prompt analytics" width="100%" />
+  <img src="assets/brand/answerloom-lockup.svg" alt="AnswerLoom" width="420" />
 </p>
 
-AnswerLoom monitors how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It is open source, MIT licensed, and costs nothing to run on your own machine or VPS.
+<p align="center">
+  Measure what AI products actually answer, turn the evidence into content improvements, and retest the same questions over time.
+</p>
 
-**It doesn't call the model API.** It opens the actual ChatGPT, Gemini, Perplexity, Claude, and AI Overview interfaces in a real browser, the same way a user would, and captures exactly what gets rendered: the full response, inline citations, recommended sources, and how your brand is positioned relative to competitors. API responses omit all of this. AnswerLoom captures what users actually see.
+<p align="center">
+  <strong>Official Web monitoring</strong> · <strong>Evidence-led optimization</strong> · <strong>Matched retesting</strong>
+</p>
 
-**That is the core differentiator.** AnswerLoom is built for GEO measurement against production chat surfaces, not benchmark-style API output. The answer visible in ChatGPT, Gemini, Perplexity, Claude, or Google AI Overview is often not the same as the raw API completion for the same prompt. The UI layer can add or suppress citations, reorder recommendations, inject product-specific formatting, and change how competitors and sources are presented. If you care about what users actually see, you need the UI response, not just the API response. The same distinction is discussed in Surfer's write-up on [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
+<p align="center">
+  <img src="apps/web/src/app/opengraph-image.png" alt="AnswerLoom Monitor and brand profile" width="100%" />
+</p>
 
-**After capturing responses, AnswerLoom uses OpenAI or Anthropic to analyze them.** Once a prompt run completes, the captured responses are sent to the LLM of your choice (OpenAI GPT or Claude) using your own API key. The LLM extracts GEO scores, sentiment, visibility, rank position, competitor mentions, citation sources, and the AI perception breakdown you see in the dashboard. You bring your own key. The call goes directly from your machine to OpenAI or Anthropic. Nothing passes through any third-party server.
+AnswerLoom is a local-first, open-source GEO workflow for measuring and improving how a brand appears in consumer AI answers. Its first-class providers are **Doubao, DeepSeek, Yuanbao, and Qwen**. Collection happens through each provider's real, signed-in Web interface rather than a model API, so the recorded answer reflects the surface a user actually sees.
 
-**Your data stays on your machine.** Responses, analytics, and auth sessions are stored in a PostgreSQL and ClickHouse instance you own and control, whether running locally via Docker or on your own VPS. No data is ever sent to an external server.
+The product loop is:
 
-**You use your own provider accounts.** AnswerLoom authenticates to ChatGPT, Gemini, Perplexity, Claude, and Google using your own existing logins. No shared credentials. No scraped accounts. Your sessions, stored locally.
+`brand profile → website audit → prompt library → official Web baseline → diagnosis → content optimization → human approval → publishing → T+7/T+14/T+30 retesting`
 
-[Project docs](docs/) · [Local app](http://localhost:3000)
+> **Beta status:** the complete workflow is represented in the application and data model, but real AI Web collection is inherently subject to provider UI changes, session expiry, and human verification. AnswerLoom does not bypass CAPTCHAs. Publisher connectors and long-running four-provider operation should be verified against your own accounts and deployment before production use.
 
-Public landing, documentation, and app URLs are configurable through environment
-variables. The self-host flow in this repo deploys the app runtime.
+## What Works Today
 
----
+- **Four official Web providers:** Doubao, DeepSeek, Tencent Yuanbao, and Qwen.
+- **Persistent Camoufox identity:** one long-lived browser profile per provider preserves cookies, local storage, locale, screen settings, and browser identity across runs.
+- **Isolated samples:** every baseline prompt starts a fresh conversation and records its conversation URL or ID.
+- **Human challenge recovery:** login expiry, QR login, image or slider verification, security confirmation, and UI changes pause the affected sample as `waiting_human`; completed samples remain saved.
+- **Yao Full GEO Pack v1.1:** 54 versioned prompts per locale, covering nine intents across six decision stages, plus deterministic entity coverage extensions.
+- **Custom prompts:** user-created and imported prompts remain separate from system templates, diagnostics, and legacy imports.
+- **Traceable analysis:** visibility, factuality, evidence, stability, competition, and governance are calculated from captured Web answers.
+- **Optimization workflow:** opportunities, fact-constrained content drafts, quality gates, human approval, and WordPress, GEOFlow, or GitHub PR publisher connectors.
+- **Matched retesting:** a selected formal baseline is frozen and reused for T+7, T+14, and T+30 observations.
+- **Durable JSON handling:** strict JSON Schema, local repair, fallback models, one bounded model repair pass, and complete attempt logs.
+
+## Detection Tiers
+
+| Tier | Prompt coverage per locale | Rounds | Intended use |
+|---|---:|---:|---|
+| Quick | 18 core prompts | 1 | Provider and early visibility scan |
+| Standard | 54 core prompts plus required coverage extensions | 2 | Formal baseline |
+| Deep | 54 core prompts plus required coverage extensions | 3 | Multi-day stability measurement |
+
+The planned sample count is:
+
+`prompt count × rounds × selected providers`
+
+Each prompt hash receives a checkpoint before a formal run starts. Failed samples remain in the denominator, and a baseline below 90% completion is presented as provisional.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  A["Brand profile and website"] --> B["Site audit and fact ledger"]
+  B --> C["Yao preset and custom prompts"]
+  C --> D["Local collector"]
+  D --> E["Persistent Camoufox profiles"]
+  E --> F["Doubao · DeepSeek · Yuanbao · Qwen"]
+  F --> G["PostgreSQL and ClickHouse"]
+  G --> H["Structured LLM analysis"]
+  H --> I["Opportunities"]
+  I --> J["Fact-constrained content review"]
+  J --> K["WordPress · GEOFlow · GitHub PR"]
+  K --> L["T+7 · T+14 · T+30 retests"]
+  L --> G
+```
+
+The Web console owns workspaces, prompt sets, runs, reports, content, and schedules. The local collector owns provider browser profiles and only makes outbound requests. Provider cookies and browser profiles are not uploaded by the normal collector flow.
 
 ## Quick Start
 
-**Requirements:** Node.js 20+, pnpm 10+, Docker
+### Requirements
 
-**WSL is not supported for Camoufox browser automation.** AnswerLoom depends on Camoufox opening real provider browser windows for auth and UI capture. Run the local setup from native macOS, native Linux, or native Windows instead of inside WSL. WSL/WSLg may show a Camoufox taskbar icon without a usable login window, which prevents choosing the provider account reliably.
+- Node.js 20 or newer
+- pnpm 10
+- Docker Desktop or a compatible Docker engine
+- Native macOS, Windows, or Linux desktop for real Web collection
 
-If you don't have pnpm: `npm install -g pnpm@latest`
+WSL is not supported for interactive Camoufox provider sessions. A browser icon can appear under WSLg without a reliable login window.
+
+### Install and run
 
 ```bash
-# From your AnswerLoom checkout:
+git clone https://github.com/MYZ8088/answerloom.git
 cd answerloom
 cp .env.example .env
 ```
 
-Open `.env` and set your LLM API key. This is the only value you must provide. Everything else is auto-configured:
+Configure one analysis provider in `.env`:
 
 ```bash
-# Pick one:
-OPENAI_API_KEY=sk-...
-
-# or, to use Claude instead:
-ANTHROPIC_API_KEY=sk-ant-...
-ANALYSIS_LLM_PROVIDER=claude
-
-# or, to use AIHubMix DeepSeek V4 Pro instead:
-AIHUBMIX_API_KEY=...
+# Recommended for the current local setup
+AIHUBMIX_API_KEY=your-key
 AIHUBMIX_ANALYSIS_MODEL=deepseek-v4-pro
+AIHUBMIX_ANALYSIS_FALLBACK_MODEL=gpt-4.1-mini
 ANALYSIS_LLM_PROVIDER=aihubmix
 ```
 
-Then start the app:
+OpenAI and Anthropic are also supported:
+
+```bash
+OPENAI_API_KEY=your-key
+ANALYSIS_LLM_PROVIDER=openai
+
+# or
+ANTHROPIC_API_KEY=your-key
+ANALYSIS_LLM_PROVIDER=claude
+```
+
+Start the local stack:
 
 ```bash
 pnpm local
 ```
 
-Opens at [http://localhost:3000](http://localhost:3000). On first run the script auto-generates secrets, starts Postgres / ClickHouse / Redis, runs migrations, and bootstraps the browser runtime. Sign up with email. Google OAuth is optional and not required.
+`pnpm local` installs workspace dependencies, provisions the pinned Camoufox virtual environment when needed, starts PostgreSQL, ClickHouse, and Redis, applies migrations, then starts the Web app and collector. Open [http://localhost:3000](http://localhost:3000).
 
-Once you're in, go to `/providers` to connect your AI provider accounts, then add prompts and run.
+### First run
 
----
+1. Create or sign in to an AnswerLoom account.
+2. Open **Providers** and log in to each official Web provider in the Camoufox window.
+3. Open **Monitor**, scan the target website, review the suggested brand profile, and confirm the required fields.
+4. Preview the complete prompt matrix, choose providers and a detection tier, then start the baseline.
+5. Resolve any item shown under **Human action required** in the original provider window and resume it from the application.
 
-## Docs and Self-Hosting
+Provider sessions normally survive restarts. A provider must be logged in again only when its own cookie expires, it requests a new QR scan, or it presents another account challenge.
 
-For VPS deployment, recurring scheduling, provider auth transfer, and all configuration options, see the **[project docs](docs/)**.
+## Reliable Structured Output
 
-The landing site is deployed separately on Vercel, and the docs are deployed separately on Mintlify. `pnpm self-host` is only for the app stack. On machines where the published app images are not available for the current architecture yet, it automatically falls back to a local Docker build.
+AIHubMix, OpenAI, and Anthropic do not always return usable JSON even when instructed to do so. AnswerLoom applies the same bounded strategy to answer analysis, content generation, and custom-prompt classification:
 
----
+1. Request a strict JSON Schema response when the selected model supports it.
+2. Fall back to JSON Object mode only when the endpoint rejects strict schema mode.
+3. Extract JSON from prose or Markdown fences and repair common syntax defects locally.
+4. Validate every candidate with Zod; syntactically valid but schema-invalid data is rejected.
+5. Ask the configured fallback model for a fresh result.
+6. If both generation attempts fail, run one final repair pass that is instructed to preserve meaning and never invent facts.
+7. Persist the raw outputs, model names, finish reasons, parse mode, attempt count, and validation errors when recovery is exhausted.
 
-## Features
+There is no unbounded retry loop, and invalid output is never silently accepted as analysis.
 
-- **5 providers:** ChatGPT, Gemini, Perplexity, Claude, Google AI Overview
-- **UI-first capture:** browser automation against real product interfaces, not the API. What users see is what you get.
-- **GEO scoring:** visibility, sentiment, rank position, and recommendation type, tracked per prompt over time
-- **Competitor co-mentions:** see which brands appear alongside yours and how they're framed
-- **Citation tracking:** which domains and articles AI products are citing for your category
-- **AI perception analysis:** how models characterize your pricing, key claims, and brand positioning
-- **Your own LLM key:** response analysis uses your OpenAI or Anthropic key, called directly from your infrastructure
-- **ClickHouse analytics:** high-volume time-series storage built for prompt tracking at scale
-- **Self-hosted, free forever:** full stack deploys to any VPS with a single command
+## GEO Workflow
 
----
+### 1. Profile and audit
 
-<img width="100%" alt="AnswerLoom Dashboard" src="https://github.com/user-attachments/assets/d5438aff-67bc-4556-baa8-939906a59c02" />
+A formal baseline requires a confirmed brand name, official domain, category, product, audience, region, and competitor. The website audit records public page snapshots, technical signals, and a source-backed fact ledger. Unverified prices, customers, certifications, rankings, cases, and performance claims cannot enter publishable content.
 
-**Your overall GEO score, top competitor, rank position, and most-cited sources in one view.** The dashboard shows your visibility score across all AI models, which competitor co-appears most often alongside your brand, your average rank position across all prompts, and which domains the AI products cite when your category comes up.
+### 2. Prompt library
 
----
+System templates, workspace instances, user custom prompts, diagnostics, and legacy imports have distinct provenance. Editing a prompt after it enters a baseline creates a new version and hash; historical runs retain the original text.
 
-<img width="100%" alt="AnswerLoom Prompt Responses" src="https://github.com/user-attachments/assets/09fae3f5-4e3c-4920-9d19-c32d9a1da0d5" />
+### 3. Official Web baseline
 
-**The actual AI response, scored.** Every captured response is tagged with a GEO score, sentiment score, visibility percentage, and rank position. The perception panel on the right extracts how the model is framing your brand: what it says your pricing signal is, what you're best known for, and what specific claims it repeats most often about you.
+The collector submits prompts to real provider pages with per-provider concurrency of one. It rejects prompt echoes, login pages, verification pages, error states, and empty responses. A page with no extractable citation is stored as `not_exposed`, which does not mean the provider used no sources.
 
----
+### 4. Diagnosis and optimization
 
-<img width="100%" alt="AnswerLoom Source Intelligence" src="https://github.com/user-attachments/assets/caace32a-1e68-44e8-9b71-f582e9dc9de0" />
+Captured answers become evidence-linked opportunities such as factual errors, content gaps, weak evidence, poor extractability, competitor pressure, technical page issues, or missing off-site sources. Content drafts include Markdown, HTML, FAQ, JSON-LD, claim mappings, and evidence gaps, then pass explicit quality gates before human approval.
 
-**Which sources drive your AI presence and how you compare.** The left panel shows every article and domain being cited about your brand, with the exact article title so you know why that domain ranks. The competitor chart on the right tracks your position against rivals across three dimensions: Presence (are you mentioned), Recommendation (are you recommended), and Sentiment (how positively you're framed).
+### 5. Publish and retest
 
----
+Publishing requires an approved revision and an explicitly selected formal baseline. AnswerLoom stores intervention metadata and schedules matched retests. Experiment views compare prompt-level before and after answers, treatment and control cohorts, sample size, and confidence. Results are described as observational unless the evidence supports a stronger conclusion.
 
-<img width="100%" alt="AnswerLoom Analytics" src="https://github.com/user-attachments/assets/aac7d04b-e7b9-4e58-b780-2afd33b6c960" />
+## Data and Privacy
 
-**Per-prompt breakdown, not aggregated averages.** Every prompt you track gets its own row: GEO score, sentiment, visibility percentage, and rank position. You can see exactly which queries you own and which ones you're losing, and track how both change over time.
+- Provider cookies, local storage, and persistent browser profiles stay under `.answerloom-storage/` on the collector machine.
+- PostgreSQL, ClickHouse, Redis, captured answers, and reports run locally by default.
+- Captured answer text and supplied brand context are sent to the analysis provider you configure: AIHubMix, OpenAI, or Anthropic.
+- Publisher credentials are encrypted with `PUBLISHER_ENCRYPTION_KEY` before storage.
+- AnswerLoom does not solve or bypass provider CAPTCHAs.
 
----
+Review your provider terms, privacy obligations, and applicable laws before collecting or publishing data.
 
-## Why There Is No Cloud Version
+## Useful Commands
 
-AnswerLoom is built around collecting responses from the real logged-in chat interfaces of ChatGPT, Gemini, Perplexity, Claude, and Google. That means the product depends on authenticated browser sessions tied to your own provider accounts.
+| Command | Purpose |
+|---|---|
+| `pnpm local` | Start the local data services, Web app, and collector |
+| `pnpm collector` | Start only the local collector against an existing control plane |
+| `pnpm camoufox:setup` | Create or repair the pinned Camoufox runtime |
+| `pnpm camoufox:doctor` | Verify Python, Camoufox, browser, GeoIP, and executable paths |
+| `pnpm test` | Run Vitest tests |
+| `pnpm typecheck` | Type-check every workspace package |
+| `pnpm build` | Create production builds |
+| `pnpm self-host` | Start the self-hosted Docker control plane |
 
-AnswerLoom does not use logged-out sessions for GEO tracking because logged-out experiences are materially worse for measuring what real users actually see:
+## Current Limitations
 
-- they are more likely to trigger bot detection or rate limits
-- they often return shorter, stripped-down answers
-- they frequently hide or reduce citations and source cards
-- they can gate richer UI features behind login
-
-That matters because GEO is not just about "did the model mention me". It is also about how your brand is framed, which competitors are shown beside you, and which sources the product actually surfaces to users. Logged-out experiences are thinner and less representative of what real signed-in users see.
-
-That is why we do not offer a hosted cloud product with shared sessions. AnswerLoom is designed to run with your own accounts, your own browser sessions, your own proxy setup when needed, and your own infrastructure. It is the more reliable and more accurate way to measure AI visibility without pretending API output or stripped-down logged-out pages are equivalent to the real user experience.
-
----
-
-## Why UI-First Instead Of APIs
-
-Most GEO tooling talks about "tracking ChatGPT" or "tracking Gemini" while actually querying model APIs. That is not the same thing.
-
-AnswerLoom uses the real chat UIs because those interfaces are where end users see:
-
-- inline citations and source cards
-- recommendation ordering
-- brand comparisons and product framing
-- provider-specific formatting and UI-level post-processing
-
-Those layers are critical to GEO analysis and are exactly the layers that often differ from API output. AnswerLoom captures the rendered answer first, then runs analysis on top of that captured UI response.
-
----
-
-## Why Camoufox Instead Of Chrome
-
-AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
-
-That is a deliberate product decision, not an implementation accident.
-
-AI chat products aggressively defend their web apps against scripted access. In practice, stock Chrome / Chromium automation and generic Playwright browser profiles are much more likely to hit one or more of these failure modes:
-
-- sign-in loops
-- forced verification or bot checks
-- repeated session invalidation
-- blank or degraded responses
-- UI flows that work manually but fail under automation
-
-The main issue is not just "browser compatibility". It is the combination of:
-
-- automation fingerprints
-- browser fingerprint consistency
-- session reputation
-- IP reputation
-
-Camoufox gives AnswerLoom a browser runtime that is materially better suited for authenticated UI collection against anti-bot-protected chat products. It reduces fingerprint mismatch and makes provider sessions more stable than standard Chrome-style automation in this use case.
-
-Credit to the Camoufox project for making that possible. AnswerLoom builds on their work rather than pretending this is solved by plain Playwright + Chrome alone.
-
----
-
-## Why Proxies Are Required On VPS
-
-Local runs are usually fine without a proxy because requests come from a normal residential or office IP.
-
-VPS environments are different. Most VPS providers expose datacenter IP ranges, and those ranges are commonly flagged, rate-limited, challenged, or blocked by AI chat products. Even if login works once, ongoing UI automation from a datacenter IP is much less reliable.
-
-That is why self-hosted VPS runs require a residential proxy:
-
-- the VPS still runs the worker and schedule
-- browser traffic exits through a residential IP
-- provider sites see a normal-looking client origin instead of a datacenter address
-
-Without that proxy layer, provider access from a VPS is often unstable or blocked outright.
-
-For ThorData specifically, whitelist your VPS IP first, then generate the endpoint with `Whitelisted IPs`, `API Link`, and `Sticky session`. Use a valid target-audience country where the providers are supported, and save that generated API link as `THORDATA_PROXY_API_URL`. The full walkthrough is in the [self-hosted docs](docs/self-hosted-setup.mdx).
-
----
+- Provider DOM and anti-abuse behavior can change without notice. Human verification remains a normal recoverable state.
+- First-time provider login requires visible browser interaction on the collector machine.
+- Long-running reliability still depends on account health, the user's network, machine uptime, and provider rate limits.
+- WordPress, GEOFlow, and GitHub publishing behavior must be validated against the target installation before production use.
+- VPS browser collection is not the default architecture. The recommended deployment keeps the control plane hosted and the signed-in collector on the user's desktop.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Web app | Next.js 15, React 19, tRPC, Drizzle ORM |
-| Browser worker | Camoufox, Playwright, BullMQ |
-| Analytics DB | ClickHouse |
-| Relational DB | PostgreSQL 16 |
-| Queue | Redis |
-| Auth | Better Auth |
-| Response analysis | OpenAI or Anthropic (your key) |
+| Web application | Next.js 15, React 19, tRPC |
+| Relational data | PostgreSQL, Drizzle ORM |
+| Samples and analytics | ClickHouse |
+| Queue and events | Redis, BullMQ |
+| Browser collector | Camoufox, Playwright Core |
+| Structured analysis | AIHubMix, OpenAI, or Anthropic |
+| Validation | Zod, JSON Schema, jsonrepair |
 
----
+## Documentation
 
-## Contributing
+- [Getting started](docs/getting-started.mdx)
+- [Local setup](docs/local-setup.mdx)
+- [Environment variables](docs/environment-variables.mdx)
+- [Self-hosted setup](docs/self-hosted-setup.mdx)
+- [Troubleshooting](docs/troubleshooting.mdx)
+- [API reference](docs/api-reference.mdx)
 
-I'm relatively new to open source. This is one of my first public projects, and I'd genuinely love help from the community. Whether it's fixing a bug, adding a new provider, improving the docs, or just telling me what's confusing, please open an issue or a PR. Every contribution means a lot.
+## Attribution
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+AnswerLoom's prompt taxonomy and Web-sampling quality gates were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills). The pinned methodology is distributed under its MIT terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
----
-
-## Acknowledgements
-
-| Project | Use | License |
-|---|---|---|
-| [Camoufox](https://github.com/daijro/camoufox) | Anti-fingerprint Firefox-based browser used for all provider sessions | MPL-2.0 |
-| [Playwright](https://github.com/microsoft/playwright) | Browser automation and page control | Apache-2.0 |
-| [BullMQ](https://github.com/taskforcesh/bullmq) | Redis-backed job queue for provider workers | MIT |
-| [ClickHouse](https://github.com/ClickHouse/ClickHouse) | Analytics and time-series storage | Apache-2.0 |
-| [Drizzle ORM](https://github.com/drizzle-team/drizzle-orm) | TypeScript ORM | Apache-2.0 |
-| [Better Auth](https://github.com/better-auth/better-auth) | Authentication framework | MIT |
-| [Turndown](https://github.com/mixmark-io/turndown) | HTML to Markdown conversion | MIT |
-
----
-
-## How Scoring Works
-
-Once a response is captured, it is sent to your LLM (OpenAI or Anthropic) with a structured analysis prompt. The LLM reads the raw response text and produces the metrics you see in the dashboard. The full prompt is in [`packages/services/src/analysis/analysisPrompt.ts`](packages/services/src/analysis/analysisPrompt.ts).
-
-Every metric is grounded in the actual text of the AI response. The analysis LLM is instructed to quote the passage that justifies each score before assigning it. If no passage exists, the conservative default is used.
-
-### GEO Score (0 to 100)
-
-The headline number. A weighted average of four equal components:
-
-| Component | Weight | What it measures |
-|---|---|---|
-| Visibility | 25% | How prominently the brand surfaces in the response |
-| Rank | 25% | Absolute position across the full response (#1 = 100, #2 = 80, #3 = 65 …) |
-| Sentiment | 25% | How positively the brand is described |
-| Recommendation | 25% | Whether the brand is actively recommended |
-
-### Visibility (0 to 100)
-
-How much "space" the brand occupies for someone reading the response. Calculated across five dimensions:
-
-- **Coverage** (25%): what proportion of the response discusses the brand
-- **Placement** (25%): where the brand first appears (opening = higher score)
-- **Structural Prominence** (20%): whether it appears in a heading, numbered list, or top-3 slot
-- **Frequency** (15%): how many times the brand is referenced
-- **Contextual Framing** (15%): whether the brand is the direct answer vs. a passing mention
-
-### Sentiment (0 to 100)
-
-How the response frames the brand. 50 is neutral. The scale:
-
-| Range | Meaning |
-|---|---|
-| 0 to 20 | Actively warned against |
-| 21 to 40 | Notable drawbacks highlighted |
-| 41 to 59 | Factual, no evaluative language |
-| 60 to 80 | Favorable with some caveats |
-| 81 to 100 | Explicit superlatives ("best", "excellent") with no caveats |
-
-A brand not mentioned scores 50. Absence is neutral, not negative.
-
-### Recommendation Type
-
-- **top_pick:** named as the overall #1 choice with clear superlative language
-- **strong_alternative:** top 3 absolute rank with favorable language, or 4+ with explicitly strong praise
-- **conditional:** recommended only for specific use cases or audiences
-- **mentioned_only:** described but not recommended
-- **discouraged:** explicitly warned against
-- **not_mentioned:** absent from the response
-
-### Rank Position
-
-The brand's absolute position in the reading order of the full response, not its local rank within a sub-category. If a response has "Best for SMBs: 1. X, 2. Y" and "Best for Enterprise: 1. Z", Z's absolute rank is 3, not 1.
-
----
-
-If you spot a scoring inaccuracy or think the methodology could be improved, open an issue in your configured AnswerLoom repository or submit a change against [`analysisPrompt.ts`](packages/services/src/analysis/analysisPrompt.ts).
-
----
-
-## Telemetry
-
-AnswerLoom collects anonymous usage telemetry to help understand how many people are running the project.
-
-**What is collected:**
-- A one-way SHA-256 hash of your internal user ID. This cannot be reversed to an email address or any personal information
-- Event type: whether a new account was created (`user_signed_up`) or an existing user is active (`user_active`)
-- Timestamp of the event
-
-**What is NOT collected:** email addresses, names, IP addresses, prompt data, responses, scores, or any other information related to your usage of the tool.
-
-The hash is consistent per user (so we can count unique users and MAU), but it is not linked to any identity outside your local database. It is computationally infeasible to reverse.
-
-Data is sent to [PostHog](https://posthog.com) and is used solely to track the number of active self-hosted instances. No data is sold or shared.
-
----
+Camoufox, Playwright, ClickHouse, PostgreSQL, Redis, BullMQ, Drizzle, Better Auth, and other dependencies retain their respective licenses.
 
 ## License
 
-MIT
+[MIT](LICENSE)

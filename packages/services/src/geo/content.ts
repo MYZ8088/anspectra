@@ -4,6 +4,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../env.js";
 import { aihubmix } from "../llm/index.js";
+import {
+	type StructuredOutputResult,
+	createOpenAiCompatibleGenerator,
+	generateStructuredOutput,
+} from "../llm/structuredOutput.js";
 
 const ClaimMapEntrySchema = z.object({
 	claim: z.string().min(1),
@@ -62,62 +67,36 @@ export type ContentQualityReport = {
 	checkedAt: string;
 };
 
-function parseJsonObject(raw: string): unknown {
-	const trimmed = raw
-		.trim()
-		.replace(/^```(?:json)?\s*/i, "")
-		.replace(/\s*```$/, "");
-	try {
-		return JSON.parse(trimmed);
-	} catch {
-		const start = trimmed.indexOf("{");
-		const end = trimmed.lastIndexOf("}");
-		if (start < 0 || end <= start)
-			throw new ValidationError("Content model returned invalid JSON");
-		try {
-			return JSON.parse(trimmed.slice(start, end + 1));
-		} catch (error) {
-			throw new ValidationError(
-				"Content model returned invalid JSON",
-				{ rawOutput: raw.slice(0, 4_000) },
-				error,
-			);
-		}
-	}
-}
-
-async function generateContentJson(prompt: string): Promise<ContentDraft> {
+async function generateContentJson(
+	prompt: string,
+): Promise<StructuredOutputResult<ContentDraft>> {
 	const models = [
 		env.AIHUBMIX_ANALYSIS_MODEL,
 		env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-	].filter((model, index, values) => model && values.indexOf(model) === index);
-	let lastError: unknown;
-	for (const model of models) {
-		try {
-			const completion = await aihubmix.chat.completions.create({
-				model,
-				temperature: 0,
-				messages: [
-					{
-						role: "system",
-						content:
-							"You are a conservative GEO content editor. Use only supplied verified facts. Return one valid JSON object with title, directAnswer, structuredSummary, markdown, html, jsonLd, factIds, claimMap, atomicFacts, evidenceGaps, faq, qualityReport. Never invent prices, customers, certifications, rankings, case studies, metrics, or outcomes. Unsupported material belongs only in evidenceGaps and must not appear in markdown, HTML, FAQ, or JSON-LD. Comparisons must state genuine competitor strengths without unsupported disparagement.",
-					},
-					{ role: "user", content: prompt },
-				],
-				response_format: { type: "json_object" },
-			});
-			const content = completion.choices[0]?.message?.content;
-			if (!content)
-				throw new ValidationError(`Content model ${model} returned no content`);
-			return ContentDraftSchema.parse(parseJsonObject(content));
-		} catch (error) {
-			lastError = error;
-		}
-	}
-	throw lastError instanceof Error
-		? lastError
-		: new ValidationError("Content generation failed");
+	]
+		.map((model) => model.trim())
+		.filter((model, index, values) => model && values.indexOf(model) === index);
+	const generators = models.map((model) =>
+		createOpenAiCompatibleGenerator({
+			client: aihubmix,
+			provider: "AIHubMix",
+			model,
+			maxTokens: 8192,
+			timeoutMs: 180_000,
+		}),
+	);
+	return generateStructuredOutput({
+		schema: ContentDraftSchema,
+		schemaName: "geo_content_draft",
+		systemPrompt:
+			"You are a conservative GEO content editor. Use only supplied verified facts. Return one content draft matching the required schema. Never invent prices, customers, certifications, rankings, case studies, metrics, or outcomes. Unsupported material belongs only in evidenceGaps and must not appear in markdown, HTML, FAQ, or JSON-LD. Comparisons must state genuine competitor strengths without unsupported disparagement.",
+		userPrompt: prompt,
+		generators,
+		repairGenerator: generators.at(-1),
+		repairInstructions:
+			"Do not add publishable claims while repairing. Any unsupported material must remain only in evidenceGaps.",
+		errorMessage: "Content model returned invalid structured JSON",
+	});
 }
 
 function eligibleFact(fact: BrandFact, now = new Date()) {
@@ -356,7 +335,7 @@ export async function createContentDraft(args: {
 	const prohibitedFacts = facts
 		.filter((fact) => !eligibleFact(fact))
 		.map((fact) => `${fact.subject} — ${fact.predicate}: ${fact.value}`);
-	const rawGenerated = await generateContentJson(
+	const generation = await generateContentJson(
 		JSON.stringify({
 			opportunity: {
 				type: opportunity.type,
@@ -403,7 +382,7 @@ export async function createContentDraft(args: {
 			],
 		}),
 	);
-	const generated = normalizeGeneratedDraft(rawGenerated, verifiedFacts);
+	const generated = normalizeGeneratedDraft(generation.data, verifiedFacts);
 	const draftRevision = {
 		markdown: generated.markdown,
 		html: generated.html,
@@ -441,7 +420,7 @@ export async function createContentDraft(args: {
 				sourceContent: args.sourceContent ?? null,
 				...draftRevision,
 				qualityReport,
-				model: env.AIHUBMIX_ANALYSIS_MODEL,
+				model: generation.model,
 				templateVersion: "yao-12x8-content-refiner-v1",
 				createdBy: args.createdBy ?? null,
 			})
