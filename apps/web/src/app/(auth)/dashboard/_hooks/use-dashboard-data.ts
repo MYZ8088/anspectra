@@ -1,11 +1,11 @@
-import type { AnalysisRecord, BrandAnalysisResult } from "@oneglanse/types";
+import type { AnalysisRecord, BrandAnalysisResult } from "@answerloom/types";
 import {
 	buildSourceOccurrenceKey,
 	compareDashboardCompetitors,
 	filterAnalysisRecords,
 	getDomain,
 	removeUrlParams,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import { useMemo } from "react";
 import type { CompetitorData, DashboardMetrics } from "../_utils/types";
 

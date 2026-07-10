@@ -1,17 +1,19 @@
-import { toErrorMessage } from "@oneglanse/errors";
+import { toErrorMessage } from "@answerloom/errors";
+import { db, schema } from "@answerloom/db";
 import type {
 	ModelResult,
 	Provider,
 	Source,
 	StorePromptResponsesArgs,
-} from "@oneglanse/types";
-import { formatDateToClickHouse } from "@oneglanse/utils";
+} from "@answerloom/types";
+import { formatDateToClickHouse } from "@answerloom/utils";
 import { v4 as uuidv4 } from "uuid";
+import { and, eq, inArray } from "drizzle-orm";
 import { insertClickHouseWithFallback } from "./lib/insertClickHouseWithFallback.js";
 
 export async function storePromptResponses(
 	args: StorePromptResponsesArgs,
-): Promise<void> {
+): Promise<string[]> {
 	const { results, userId, workspaceId, promptRunAt } = args;
 
 	const values: Array<{
@@ -55,7 +57,7 @@ export async function storePromptResponses(
 		}
 	}
 
-	if (values.length === 0) return;
+	if (values.length === 0) return [];
 
 	await insertClickHouseWithFallback("analytics.prompt_responses", values, {
 		throwOnAllFailed: true,
@@ -74,4 +76,110 @@ export async function storePromptResponses(
 			});
 		},
 	});
+
+	const promptIds = [...new Set(values.map((value) => value.prompt_id))];
+	const [run, promptRows, checkpointRows] = await Promise.all([
+		args.runId
+			? db.query.collectionRuns.findFirst({
+					where: eq(schema.collectionRuns.id, args.runId),
+				})
+			: null,
+		promptIds.length
+			? db.query.monitorPrompts.findMany({
+					where: inArray(schema.monitorPrompts.id, promptIds),
+				})
+			: [],
+		args.runId && promptIds.length
+			? db.query.sampleCheckpoints.findMany({
+					where: and(
+						eq(schema.sampleCheckpoints.runId, args.runId),
+						inArray(schema.sampleCheckpoints.promptId, promptIds),
+					),
+				})
+			: [],
+	]);
+	const promptById = new Map(promptRows.map((prompt) => [prompt.id, prompt]));
+	const checkpointByKey = new Map(
+		checkpointRows.map((checkpoint) => [
+			`${checkpoint.provider}:${checkpoint.promptId}`,
+			checkpoint,
+		]),
+	);
+	const v2Values = values.map((value) => {
+		const sourceResult = (
+			Object.entries(results) as [Provider, ModelResult[Provider]][]
+		)
+			.flatMap(([provider, result]) =>
+				result.status === "fulfilled"
+					? result.data.map((item) => ({ provider, item }))
+					: [],
+			)
+			.find(
+				(entry) =>
+					entry.provider === value.model_provider &&
+					entry.item.promptId === value.prompt_id,
+				);
+		const promptMetadata = promptById.get(value.prompt_id);
+		const checkpoint = checkpointByKey.get(
+			`${value.model_provider}:${value.prompt_id}`,
+		);
+		return {
+			...value,
+			legacy_response_id: value.id,
+			run_id: args.runId ?? null,
+			checkpoint_id: args.checkpointId ?? checkpoint?.id ?? null,
+			prompt_set_id: args.promptSetId ?? run?.promptSetId ?? null,
+			series_id: run?.seriesId ?? null,
+			prompt_group: promptMetadata?.promptGroup ?? "",
+			prompt_hash: promptMetadata?.promptHash ?? "",
+			prompt_origin: promptMetadata?.origin ?? "legacy",
+			decision_stage: promptMetadata?.decisionStage ?? "",
+			locale: promptMetadata?.locale ?? "",
+			brand_exposure: promptMetadata?.brandExposure ?? "",
+			repeat_index: args.repeatIndex ?? 0,
+			source_exposure:
+				sourceResult?.item.sourceExposure ??
+					(value.sources.length > 0 ? "exposed" : "not_exposed"),
+			requested_mode: checkpoint?.requestedMode ?? "default",
+			actual_mode: checkpoint?.actualMode ?? checkpoint?.requestedMode ?? "default",
+			conversation_id: sourceResult?.item.conversationId ?? null,
+			conversation_url: sourceResult?.item.conversationUrl ?? null,
+			conversation_isolation:
+				sourceResult?.item.conversationIsolation ?? "fresh",
+			evidence_level: "live_web",
+			account_state: "authenticated",
+			region: "",
+			network_fingerprint: "",
+			status: "completed",
+			error_code: null,
+			error_message: null,
+		};
+	});
+	await insertClickHouseWithFallback("analytics.answer_samples_v2", v2Values, {
+		throwOnAllFailed: false,
+	});
+	const citations = v2Values.flatMap((value) =>
+		value.sources.map((source, sourceIndex) => ({
+			id: uuidv4(),
+			sample_id: value.id,
+			workspace_id: value.workspace_id,
+			model_provider: value.model_provider,
+			source_index: sourceIndex,
+			title: source.title,
+			cited_text: source.cited_text,
+			url: source.url,
+			domain: source.domain,
+			support_level: "unreviewed",
+		})),
+	);
+	if (citations.length > 0) {
+		await insertClickHouseWithFallback(
+			"analytics.sample_citations",
+			citations,
+			{
+				throwOnAllFailed: false,
+			},
+		);
+	}
+	return values.map((value) => value.id);
 }

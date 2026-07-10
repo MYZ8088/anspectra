@@ -1,5 +1,5 @@
 {
-	"name": "@oneglanse/landing",
+	"name": "@answerloom/landing",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -11,8 +11,8 @@
 		"lint": "biome check ."
 	},
 	"dependencies": {
-		"@oneglanse/ui": "workspace:*",
-		"@oneglanse/utils": "workspace:*",
+		"@answerloom/ui": "workspace:*",
+		"@answerloom/utils": "workspace:*",
 		"@vercel/analytics": "^2.0.1",
 		"lucide-react": "^0.544.0",
 		"next": "^15.5.5",

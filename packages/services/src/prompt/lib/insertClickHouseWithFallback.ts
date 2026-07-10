@@ -1,5 +1,5 @@
-import { clickhouse } from "@oneglanse/db";
-import { DatabaseError, toErrorMessage } from "@oneglanse/errors";
+import { clickhouse } from "@answerloom/db";
+import { DatabaseError, toErrorMessage } from "@answerloom/errors";
 
 type InsertFallbackOptions<T extends Record<string, unknown>> = {
 	throwOnAllFailed?: boolean;

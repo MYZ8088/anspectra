@@ -1,6 +1,6 @@
-# @oneglanse/ui
+# @answerloom/ui
 
-Shared React component library for OneGlanse apps.
+Shared React component library for AnswerLoom apps.
 
 ## Responsibilities
 
@@ -20,14 +20,14 @@ Shared React component library for OneGlanse apps.
 Main barrel: `src/index.ts`.
 
 Notable export path:
-- `@oneglanse/ui/styles/shared.css`
+- `@answerloom/ui/styles/shared.css`
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/ui build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/ui typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/ui build` | Compile TypeScript |
+| `pnpm --filter @answerloom/ui typecheck` | TypeScript checks |
 
 ## Dependencies and Peers
 
@@ -39,12 +39,12 @@ Notable export path:
 ## Usage
 
 ```tsx
-import { Button, Table, BrandComparisonChart } from "@oneglanse/ui";
-import "@oneglanse/ui/styles/shared.css";
+import { Button, Table, BrandComparisonChart } from "@answerloom/ui";
+import "@answerloom/ui/styles/shared.css";
 ```
 
 ## Contribution Guidance
 
-- Keep components presentation-focused; business logic belongs in `apps/web` or `@oneglanse/services`.
+- Keep components presentation-focused; business logic belongs in `apps/web` or `@answerloom/services`.
 - Prefer expanding existing primitives over adding one-off variants.
 - Export new components through `src/index.ts` to keep imports consistent.

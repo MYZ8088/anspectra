@@ -1,5 +1,5 @@
-import type { Provider } from "@oneglanse/types";
-import { PROVIDER_SUBMIT_BTN_SELECTORS } from "@oneglanse/utils";
+import type { Provider } from "@answerloom/types";
+import { PROVIDER_SUBMIT_BTN_SELECTORS } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 
 export async function findEnabledSendButton(

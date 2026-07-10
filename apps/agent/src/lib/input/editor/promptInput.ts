@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
-import { logger } from "@oneglanse/utils";
+import { ExternalServiceError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 import {
 	clickLocatorLikeUser,
@@ -8,23 +8,26 @@ import {
 	randomBetween,
 } from "../../browser/humanBehavior.js";
 import { clearEditorInput } from "./clearInput.js";
+import { findActiveEditorCandidate } from "./findEditor.js";
 
 export function normalizePromptValue(text: string): string {
 	return text
 		.replace(/\r\n/g, "\n")
 		.replace(/\u00a0/g, " ")
-		.replace(/[\u200b-\u200d\ufeff]/g, "")
+		.replace(/\u200b|\u200c|\u200d|\ufeff/g, "")
 		.trim();
 }
 
 async function focusEditorTarget(page: Page, input: Locator): Promise<void> {
-	await input.scrollIntoViewIfNeeded().catch(() => null);
+	await input
+		.scrollIntoViewIfNeeded({ timeout: 3_000 })
+		.catch(() => null);
 	await clickLocatorLikeUser(page, input, {
 		timeout: 3000,
 		delay: randomBetween(25, 80),
 	}).catch(() => null);
 	await page.waitForTimeout(randomBetween(40, 120));
-	await input.focus().catch(() => null);
+	await input.focus({ timeout: 3_000 }).catch(() => null);
 	await page.waitForTimeout(randomBetween(30, 90));
 }
 
@@ -32,16 +35,24 @@ async function prepareEditorForPrompt(
 	page: Page,
 	input: Locator,
 	provider: Provider,
-): Promise<void> {
-	const count = await input.count().catch(() => 0);
+): Promise<Locator> {
+	let activeInput = input;
+	const count = await activeInput.count().catch(() => 0);
 	if (count === 0) {
-		throw new ExternalServiceError(
-			provider,
-			`Editor not ready for ${provider}: input locator is missing`,
-		);
+		activeInput = (
+			await findActiveEditorCandidate(page, provider).catch(() => null)
+		)?.locator as Locator;
+		if (!activeInput || (await activeInput.count().catch(() => 0)) === 0) {
+			throw new ExternalServiceError(
+				provider,
+				`Editor not ready for ${provider}: input locator is missing`,
+			);
+		}
 	}
 
-	const state = await input.getEditableState().catch(() => null);
+	const state = await activeInput
+		.getEditableState({ timeout: 3_000 })
+		.catch(() => null);
 	if (
 		!(
 			state?.connected &&
@@ -56,15 +67,17 @@ async function prepareEditorForPrompt(
 		);
 	}
 
-	await focusEditorTarget(page, input);
+	await focusEditorTarget(page, activeInput);
 
-	const existingValue = await input.readInputValue().catch(() => "");
+	const existingValue = await activeInput
+		.readInputValue({ timeout: 3_000 })
+		.catch(() => "");
 	if (normalizePromptValue(existingValue).length === 0) {
-		await focusEditorTarget(page, input);
-		return;
+		await focusEditorTarget(page, activeInput);
+		return activeInput;
 	}
 
-	const cleared = await clearEditorInput(page, input, {
+	const cleared = await clearEditorInput(page, activeInput, {
 		clickTimeoutMs: 3000,
 		waitAfterMs: randomBetween(40, 120),
 	});
@@ -75,7 +88,9 @@ async function prepareEditorForPrompt(
 		);
 	}
 
-	const remainingValue = await input.readInputValue().catch(() => "");
+	const remainingValue = await activeInput
+		.readInputValue({ timeout: 3_000 })
+		.catch(() => "");
 	if (normalizePromptValue(remainingValue).length > 0) {
 		throw new ExternalServiceError(
 			provider,
@@ -83,7 +98,8 @@ async function prepareEditorForPrompt(
 		);
 	}
 
-	await focusEditorTarget(page, input);
+	await focusEditorTarget(page, activeInput);
+	return activeInput;
 }
 
 async function insertPromptOnce(
@@ -93,7 +109,7 @@ async function insertPromptOnce(
 	strategy: "directSet" | "pacedPaste",
 ): Promise<void> {
 	if (strategy === "directSet") {
-		await input.setInputValue(prompt);
+		await input.setInputValue(prompt, { timeout: 3_000 });
 		await page.waitForTimeout(randomBetween(40, 120));
 		return;
 	}
@@ -108,7 +124,9 @@ async function waitForPromptValue(
 	timeoutMs: number,
 ): Promise<string> {
 	const deadline = Date.now() + timeoutMs;
-	let lastValue = await input.readInputValue().catch(() => "");
+	let lastValue = await input
+		.readInputValue({ timeout: 3_000 })
+		.catch(() => "");
 
 	while (Date.now() < deadline) {
 		if (normalizePromptValue(lastValue) === expectedValue) {
@@ -116,7 +134,9 @@ async function waitForPromptValue(
 		}
 
 		await page.waitForTimeout(randomBetween(80, 140));
-		lastValue = await input.readInputValue().catch(() => "");
+		lastValue = await input
+			.readInputValue({ timeout: 3_000 })
+			.catch(() => "");
 	}
 
 	return lastValue;
@@ -133,14 +153,15 @@ export async function insertPromptIntoEditor(
 		...(provider === "perplexity" ? [] : (["directSet"] as const)),
 		"pacedPaste",
 	];
+	let activeInput = input;
 
 	for (const strategy of strategies) {
 		for (let attempt = 1; attempt <= 2; attempt++) {
-			await prepareEditorForPrompt(page, input, provider);
-			await insertPromptOnce(page, input, prompt, strategy);
+			activeInput = await prepareEditorForPrompt(page, activeInput, provider);
+			await insertPromptOnce(page, activeInput, prompt, strategy);
 			const rawValue = await waitForPromptValue(
 				page,
-				input,
+				activeInput,
 				expectedValue,
 				strategy === "directSet"
 					? attempt === 1
@@ -162,7 +183,9 @@ export async function insertPromptIntoEditor(
 		}
 	}
 
-	const finalValue = await input.readInputValue().catch(() => "");
+	const finalValue = await activeInput
+		.readInputValue({ timeout: 3_000 })
+		.catch(() => "");
 	throw new ExternalServiceError(
 		provider,
 		`Typing failed: normalized input mismatch after local retry (expected ${expectedValue.length} chars, got ${normalizePromptValue(finalValue).length})`,

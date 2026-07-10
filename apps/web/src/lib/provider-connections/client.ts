@@ -37,6 +37,8 @@ async function startProviderConnection({
 	action = "connect",
 }: ProviderConnectionRequest): Promise<{
 	started: boolean;
+	profileInUse?: boolean;
+	focusedExisting?: boolean;
 }> {
 	const response = await fetch("/api/providers", {
 		method: "POST",
@@ -45,7 +47,11 @@ async function startProviderConnection({
 		},
 		body: JSON.stringify({ provider, action }),
 	});
-	return readJson<{ started: boolean }>(response);
+	return readJson<{
+		started: boolean;
+		profileInUse?: boolean;
+		focusedExisting?: boolean;
+	}>(response);
 }
 
 async function resetAllProviders(): Promise<{ ok: boolean }> {
@@ -79,7 +85,15 @@ export function useProviderConnections(options?: {
 
 export function useProviderConnectionAction(
 	options?: Omit<
-		UseMutationOptions<{ started: boolean }, Error, ProviderConnectionRequest>,
+		UseMutationOptions<
+			{
+				started: boolean;
+				profileInUse?: boolean;
+				focusedExisting?: boolean;
+			},
+			Error,
+			ProviderConnectionRequest
+		>,
 		"mutationFn"
 	>,
 ) {

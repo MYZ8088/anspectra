@@ -11,7 +11,7 @@ import {
 	FormLabel,
 	FormMessage,
 	Input,
-} from "@oneglanse/ui";
+} from "@answerloom/ui";
 import type { Control, FieldValues, Path } from "react-hook-form";
 
 type PasswordFieldProps<T extends FieldValues> = {

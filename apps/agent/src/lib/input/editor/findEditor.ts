@@ -1,12 +1,14 @@
-import { NotFoundError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
-import { PROVIDER_EDITOR_SELECTORS } from "@oneglanse/utils";
+import { NotFoundError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
+import { PROVIDER_EDITOR_SELECTORS } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 
 export type EditorCandidate = {
 	locator: Locator;
 	selector: string;
 };
+
+const EDITOR_PROBE_TIMEOUT_MS = 1_500;
 
 export async function findActiveEditorCandidateFromSelectors(
 	page: Page,
@@ -20,20 +22,23 @@ export async function findActiveEditorCandidateFromSelectors(
 			const el = nodes.nth(i);
 
 			try {
-				const visible = await el.isVisible().catch(() => false);
+				const visible = await el
+					.isVisible({ timeout: EDITOR_PROBE_TIMEOUT_MS })
+					.catch(() => false);
 				if (!visible) {
 					continue;
 				}
 
-				const box = await el.boundingBox().catch(() => null);
+				const box = await el
+					.boundingBox({ timeout: EDITOR_PROBE_TIMEOUT_MS })
+					.catch(() => null);
 				if (!box || box.width < 8 || box.height < 8) {
 					continue;
 				}
 
-				await el.scrollIntoViewIfNeeded().catch(() => {});
-				await el.focus().catch(() => {});
-
-				const state = await el.getEditableState().catch(() => null);
+				const state = await el
+					.getEditableState({ timeout: EDITOR_PROBE_TIMEOUT_MS })
+					.catch(() => null);
 				if (
 					!(
 						state?.connected &&

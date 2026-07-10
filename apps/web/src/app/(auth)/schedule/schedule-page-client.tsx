@@ -16,8 +16,8 @@ import {
 } from "@/components/provider-run-toast";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { AppMode } from "@oneglanse/types";
-import { canConfigureRecurringScheduleInMode } from "@oneglanse/types";
+import type { AppMode } from "@answerloom/types";
+import { canConfigureRecurringScheduleInMode } from "@answerloom/types";
 import {
 	Button,
 	Dialog,
@@ -29,8 +29,8 @@ import {
 	ScrollArea,
 	Skeleton,
 	toast,
-} from "@oneglanse/ui";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn } from "@answerloom/utils";
 import {
 	Calendar,
 	Check,

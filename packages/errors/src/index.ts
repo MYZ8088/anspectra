@@ -6,6 +6,7 @@ export * from "./error/EnvError.js";
 export * from "./error/ExternalServiceError.js";
 export * from "./error/DatabaseError.js";
 export * from "./error/IPRefreshNeededError.js";
+export * from "./error/HumanChallengeError.js";
 export * from "./logger.js";
 export * from "./lib/classifyError.js";
 export * from "./lib/toErrorMessage.js";

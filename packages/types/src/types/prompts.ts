@@ -17,6 +17,10 @@ export type PromptPayload = {
 		prompt: string;
 	}[];
 	created_at: string;
+	sampling?: {
+		minPromptDelayMs: number;
+		maxPromptDelayMs: number;
+	};
 };
 
 export interface PromptDetails {

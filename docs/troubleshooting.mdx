@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues when setting up and running OneGlanse.
+description: Solutions for common issues when setting up and running AnswerLoom.
 ---
 
 ---
@@ -64,7 +64,7 @@ docker logs clickhouse_db
 
 **Cause:** The Camoufox window was closed before the session was fully written.
 
-**Fix:** Open the provider connection again, complete the full sign-in flow (including any 2FA or confirmation steps), and wait for the checkmark to appear in the OneGlanse UI before closing the browser window.
+**Fix:** Open the provider connection again, complete the full sign-in flow (including any 2FA or confirmation steps), and wait for the checkmark to appear in the AnswerLoom UI before closing the browser window.
 
 ---
 
@@ -81,7 +81,7 @@ GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-Note: these control sign-in to the OneGlanse web app itself. They are separate from the Google / Gemini / AI Overview provider connections used for monitoring.
+Note: these control sign-in to the AnswerLoom web app itself. They are separate from the Google / Gemini / AI Overview provider connections used for monitoring.
 
 ---
 
@@ -123,7 +123,7 @@ If the only problem is an architecture mismatch, bootstrap now automatically fal
 
 ```bash
 # Check migration logs
-docker logs oneglanse-migrate
+docker logs answerloom-migrate
 
 # Re-run migrations manually
 pnpm db:migrate
@@ -141,6 +141,6 @@ If there's a schema conflict from a previous installation, check the Drizzle mig
 
 1. Confirm the VPS agent is running: `curl http://YOUR_VPS_IP:3333/health`
 2. Confirm port `3333/tcp` is allowed by your VPS firewall or cloud security group
-3. Check `ONEGLANSE_VPS_IP` and `AGENT_AUTH_UPLOAD_TOKEN` match your VPS `.env`
+3. Check `ANSWERLOOM_VPS_IP` and `AGENT_AUTH_UPLOAD_TOKEN` match your VPS `.env`
 4. If `pnpm upload:vps` returns `401 Unauthorized`, the upload token on your local machine does not match the VPS `AGENT_AUTH_UPLOAD_TOKEN`
-5. Check agent logs on the VPS: `docker logs oneglanse-agent-worker`
+5. Check agent logs on the VPS: `docker logs answerloom-agent-worker`

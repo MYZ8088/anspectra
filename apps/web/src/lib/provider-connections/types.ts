@@ -2,7 +2,7 @@ import type {
 	AuthProvider,
 	Provider,
 	ProviderAuthStatus,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 
 export type ProviderConnectionAction = "connect" | "refresh";
 

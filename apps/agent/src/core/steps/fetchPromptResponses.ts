@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import { exponentialBackoff, logger } from "@oneglanse/utils";
-import type { Provider } from "@oneglanse/types";
+import { ExternalServiceError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
+import { exponentialBackoff, logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 import { getText } from "../../lib/input/response/getText.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
@@ -43,7 +43,8 @@ export async function fetchPromptResponses(
 		}
 	}
 
-	const visibleTextChars = (await getText(page, provider).catch(() => ""))?.trim().length ?? 0;
+	const visibleTextChars =
+		(await getText(page, provider).catch(() => ""))?.trim().length ?? 0;
 	throw new ExternalServiceError(
 		provider,
 		`Markdown response extraction failed after ${MAX_EXTRACTION_RETRIES} retries`,

@@ -5,11 +5,8 @@ import { authClient } from "@/lib/auth/auth-client";
 import { signOutAndRedirect } from "@/lib/auth/logout";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { Workspace } from "@oneglanse/db";
-import {
-	type AppMode,
-	canAccessPeopleInMode,
-} from "@oneglanse/types";
+import type { Workspace } from "@answerloom/db";
+import type { AppMode } from "@answerloom/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -28,23 +25,25 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	toast,
-} from "@oneglanse/ui";
-import { cn, getFaviconUrls } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn, getFaviconUrls } from "@answerloom/utils";
 import {
+	BookOpenText,
 	Check,
 	ChevronDown,
 	ChevronUp,
-	Clock,
-	Globe,
+	FilePenLine,
+	FlaskConical,
 	LayoutGrid,
+	Lightbulb,
+	ListChecks,
 	Loader2,
-	MessageSquare,
 	Plug,
 	Plus,
+	Radar,
 	Settings,
 	User2,
 	UserPlus,
-	Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -107,35 +106,41 @@ export function AppSidebar({
 
 	const generalItems = [
 		{
-			title: "Dashboard",
+			title: "Overview",
 			url: `/dashboard?workspace=${activeWorkspace?.id ?? ""}`,
 			icon: LayoutGrid,
 		},
 		{
-			title: "Prompts",
-			url: `/prompts?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: MessageSquare,
+			title: "Monitor",
+			url: `/monitor?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: Radar,
 		},
 		{
-			title: "Sources",
-			url: `/sources?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: Globe,
+			title: "Prompt Library",
+			url: `/prompt-library?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: BookOpenText,
+		},
+		{
+			title: "Runs",
+			url: `/runs?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: ListChecks,
+		},
+		{
+			title: "Opportunities",
+			url: `/opportunities?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: Lightbulb,
+		},
+		{
+			title: "Content",
+			url: `/content?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: FilePenLine,
+		},
+		{
+			title: "Experiments",
+			url: `/experiments?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: FlaskConical,
 		},
 	];
-
-	if (canAccessPeopleInMode(appMode)) {
-		generalItems.push({
-			title: "People",
-			url: `/people?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: Users,
-		});
-	}
-
-	generalItems.splice(3, 0, {
-		title: "Schedule",
-		url: `/schedule?workspace=${activeWorkspace?.id ?? ""}`,
-		icon: Clock,
-	});
 
 	const settingsItems = [
 		{

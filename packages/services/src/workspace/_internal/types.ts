@@ -1,4 +1,4 @@
-import type { Workspace } from "@oneglanse/db";
+import type { Workspace } from "@answerloom/db";
 
 // Grouping type — workspaces scoped to an organization (uses db Workspace, stays in services)
 export type OrganizationWorkspaceGroup = {

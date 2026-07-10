@@ -1,5 +1,5 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
+import { ExternalServiceError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
 import type { Locator, Page } from "playwright";
 
 type BlockerCheck = {

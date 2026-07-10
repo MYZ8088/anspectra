@@ -1,8 +1,9 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 import {
 	AUTH_PROVIDER_LIST,
@@ -13,12 +14,12 @@ import {
 	type ProviderAuthStatus,
 	isInteractiveAuthAllowedInMode,
 	resolveAppMode,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getAuthProviderForProvider,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 
 type PersistedAuthStatus = {
 	connecting: ProviderAuthStatus["connecting"];
@@ -28,7 +29,7 @@ type PersistedAuthStatus = {
 	launcherPid?: number | null;
 };
 
-type StorageState = {
+export type StorageState = {
 	cookies?: Array<{
 		name?: string;
 		value?: string;
@@ -63,8 +64,17 @@ type RuntimeProfileSeedPlan = {
 
 type ReusableIdentityProvider = "google" | "apple" | "facebook";
 
-const DEFAULT_LOCAL_STORAGE_ROOT = ".oneglanse-storage";
+const DEFAULT_LOCAL_STORAGE_ROOT = ".answerloom-storage";
+const LEGACY_LOCAL_STORAGE_ROOT = ".oneglanse-storage";
 const authLaunchInFlight = new Set<AuthProvider>();
+const execFileAsync = promisify(execFile);
+const PERSISTENT_PROFILE_AUTH_PROVIDERS = new Set<AuthProvider>([
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
+]);
+const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
 const REUSABLE_IDENTITY_PROVIDER_CONFIG: Record<
 	ReusableIdentityProvider,
 	{
@@ -135,12 +145,21 @@ function getStorageRootDir(): string {
 	if (getAppMode() !== "local") {
 		return "/storage";
 	}
-
-	return path.join(resolveMonorepoRoot(), DEFAULT_LOCAL_STORAGE_ROOT);
+	const monorepoRoot = resolveMonorepoRoot();
+	const storageRoot = path.join(monorepoRoot, DEFAULT_LOCAL_STORAGE_ROOT);
+	const legacyStorageRoot = path.join(monorepoRoot, LEGACY_LOCAL_STORAGE_ROOT);
+	if (!existsSync(storageRoot) && existsSync(legacyStorageRoot)) {
+		try {
+			renameSync(legacyStorageRoot, storageRoot);
+		} catch {
+			return legacyStorageRoot;
+		}
+	}
+	return storageRoot;
 }
 
 export function getAppMode(): AppMode {
-	return resolveAppMode(process.env.ONEGLANSE_APP_MODE);
+	return resolveAppMode(process.env.ANSWERLOOM_APP_MODE);
 }
 
 export function isInteractiveAuthLaunchAllowed(): boolean {
@@ -519,7 +538,7 @@ function clearRuntimeProfileDirectory(provider: Provider): void {
 async function getSpawnEnv(): Promise<NodeJS.ProcessEnv> {
 	const spawnEnv: NodeJS.ProcessEnv = {
 		...process.env,
-		ONEGLANSE_APP_MODE: getAppMode(),
+		ANSWERLOOM_APP_MODE: getAppMode(),
 		AGENT_AUTH_ROOT_DIR: getAgentAuthRootDir(),
 	};
 
@@ -599,6 +618,68 @@ export function getAuthProfileDir(provider: AuthProvider): string {
 
 export function getProviderProfileDir(provider: Provider): string {
 	return path.join(getRuntimeRootDir(), provider, "profile");
+}
+
+export function findProfileOwnerPidInProcessList(
+	processList: string,
+	profileDir: string,
+): number | null {
+	const line = processList.split("\n").find((entry) => {
+		if (!entry.includes(profileDir) || /plugin-container/i.test(entry)) {
+			return false;
+		}
+		return /(?:^|[/\\])(?:camoufox|firefox)(?:\.exe)?(?:\s|$)/i.test(entry);
+	});
+	if (!line) return null;
+	const pid = Number(line.trim().split(/\s+/, 1)[0]);
+	return Number.isInteger(pid) && pid > 0 ? pid : null;
+}
+
+export async function findRunningRuntimeProfileProcess(
+	provider: Provider,
+): Promise<number | null> {
+	const profileDir = getProviderProfileDir(provider);
+	if (process.platform === "win32") {
+		const escaped = profileDir.replace(/'/g, "''");
+		const script = [
+			`$match = Get-CimInstance Win32_Process | Where-Object { ($_.Name -match 'firefox|camoufox') -and ($_.CommandLine -like '*${escaped}*') } | Select-Object -First 1`,
+			"if ($match) { Write-Output $match.ProcessId }",
+		].join("; ");
+		try {
+			const { stdout } = await execFileAsync(
+				"powershell.exe",
+				["-NoProfile", "-NonInteractive", "-Command", script],
+				{ timeout: 5_000 },
+			);
+			const pid = Number(stdout.trim());
+			return Number.isInteger(pid) && pid > 0 ? pid : null;
+		} catch {
+			return null;
+		}
+	}
+
+	try {
+		const { stdout } = await execFileAsync("ps", ["-axo", "pid=,command="], {
+			timeout: 5_000,
+		});
+		return findProfileOwnerPidInProcessList(stdout, profileDir);
+	} catch {
+		return null;
+	}
+}
+
+async function focusRunningProviderWindow(provider: Provider): Promise<boolean> {
+	try {
+		const { redis, waitForRedis } = await import("./redis.js");
+		await waitForRedis();
+		const listeners = await redis.publish(
+			PROVIDER_WINDOW_CHANNEL,
+			JSON.stringify({ provider, action: "focus" }),
+		);
+		return listeners > 0;
+	} catch {
+		return false;
+	}
 }
 
 export function getRuntimeProfileMetadataFile(provider: Provider): string {
@@ -770,6 +851,16 @@ export async function saveAuthSession(
 		launcherPid: null,
 	});
 
+	return compactState;
+}
+
+export async function saveRuntimeProviderAuthSession(
+	provider: Provider,
+	state: StorageState,
+): Promise<StorageState> {
+	const authProvider = getAuthProviderForRuntimeProvider(provider);
+	const compactState = await saveAuthSession(authProvider, state);
+	await markRuntimeProfileSeeded(provider, hashStorageState(compactState));
 	return compactState;
 }
 
@@ -1003,7 +1094,11 @@ async function waitForAuthLoginStartup(
 
 export async function spawnProviderAuthLogin(
 	provider: AuthProvider,
-): Promise<{ started: boolean }> {
+): Promise<{
+	started: boolean;
+	profileInUse?: boolean;
+	focusedExisting?: boolean;
+}> {
 	if (!isInteractiveAuthLaunchAllowed()) {
 		throw new Error(
 			"Interactive provider login is disabled in this environment. Open the local Providers screen and configure AGENT_AUTH_UPLOAD_URL/AGENT_AUTH_UPLOAD_TOKEN to sync sessions here.",
@@ -1028,6 +1123,27 @@ export async function spawnProviderAuthLogin(
 				connecting: false,
 				launcherPid: null,
 			});
+		}
+
+		const runtimeProvider = AUTH_PROVIDER_CONFIG[provider].providers[0];
+		if (
+			runtimeProvider &&
+			PERSISTENT_PROFILE_AUTH_PROVIDERS.has(provider) &&
+			(await findRunningRuntimeProfileProcess(runtimeProvider))
+		) {
+			const focusedExisting = await focusRunningProviderWindow(runtimeProvider);
+			await writeProviderAuthStatus(provider, {
+				connecting: false,
+				lastUpdatedAt: existing?.lastUpdatedAt ?? new Date().toISOString(),
+				syncedAt: existing?.syncedAt ?? null,
+				error: null,
+				launcherPid: null,
+			});
+			return {
+				started: false,
+				profileInUse: true,
+				focusedExisting,
+			};
 		}
 
 		ensureAuthDirectories();

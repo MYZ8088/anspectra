@@ -1,4 +1,4 @@
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 import { Queue } from "bullmq";
 import { env } from "../env.js";
 
@@ -17,7 +17,7 @@ const connection = {
 const queues = new Map<Provider, Queue>();
 
 export function getQueueName(provider: Provider): string {
-	return `oneglanse-agent-${provider}`;
+	return `answerloom-agent-${provider}`;
 }
 
 export function getProviderQueue(provider: Provider): Queue {

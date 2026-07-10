@@ -1,0 +1,387 @@
+{
+  "packKey": "yao-full-geo-v1",
+  "version": "1.1.0",
+  "locale": "en-US",
+  "sourceCommit": "136eb92c90946ea56ec63f912d5025bcbc884f39",
+  "license": "MIT",
+  "entries": [
+    {
+      "key": "information-awareness",
+      "intent": "information",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "What is {category}, and which business problems does it usually solve?"
+    },
+    {
+      "key": "information-screening",
+      "intent": "information",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "What is {brand}, and how is it different from a typical {category} product?"
+    },
+    {
+      "key": "information-evaluation",
+      "intent": "information",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "What core capabilities, suitable users, and usage boundaries does {brand}'s {product} have?"
+    },
+    {
+      "key": "information-purchase",
+      "intent": "information",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "What product, contract, service, and public evidence should a buyer verify before purchasing {brand}?"
+    },
+    {
+      "key": "information-implementation",
+      "intent": "information",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "What data, integrations, and team preparation are normally required to implement {brand}'s {product}?"
+    },
+    {
+      "key": "information-review",
+      "intent": "information",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "After adopting {brand}, which metrics show whether {product} is creating value?"
+    },
+    {
+      "key": "recommendation-awareness",
+      "intent": "recommendation",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "Which {category} products are worth considering for {audience}? {evidenceRequirement}"
+    },
+    {
+      "key": "recommendation-screening",
+      "intent": "recommendation",
+      "stage": "screening",
+      "brandExposure": "blind",
+      "prompt": "Recommend {category} products for {audience} with a budget of about {budget}, and explain the reasons. {evidenceRequirement}"
+    },
+    {
+      "key": "recommendation-evaluation",
+      "intent": "recommendation",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "When should a {industry} team in {region} shortlist {brand} as a {category} option? {evidenceRequirement}"
+    },
+    {
+      "key": "recommendation-purchase",
+      "intent": "recommendation",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "A team plans to purchase {category} within {implementationPeriod}. Should it prioritize {brand}, and why? {evidenceRequirement}"
+    },
+    {
+      "key": "recommendation-implementation",
+      "intent": "recommendation",
+      "stage": "implementation",
+      "brandExposure": "blind",
+      "prompt": "Which {category} products are easiest to implement for a {teamSize} team? {evidenceRequirement}"
+    },
+    {
+      "key": "recommendation-review",
+      "intent": "recommendation",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "If the current solution underperforms, should a team continue with {brand} or select another {category} product? {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-awareness",
+      "intent": "comparison",
+      "stage": "awareness",
+      "brandExposure": "aided",
+      "prompt": "What types of products are {brand} and {competitor}, and what are their core differences? {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-screening",
+      "intent": "comparison",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "Which teams and business scenarios are the best fit for {brand} and {competitor}? {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-evaluation",
+      "intent": "comparison",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "Compare {brand} and {competitor} on features, cost, data, integrations, and implementation difficulty. {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-purchase",
+      "intent": "comparison",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "Which evidence should a buyer verify when choosing between {brand} and {competitor}? {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-implementation",
+      "intent": "comparison",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "If a team must launch within {implementationPeriod}, which has more manageable implementation risk: {brand} or {competitor}? {evidenceRequirement}"
+    },
+    {
+      "key": "comparison-review",
+      "intent": "comparison",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "How should a team objectively review the real-world outcomes and long-term costs of {brand} versus {competitor}? {evidenceRequirement}"
+    },
+    {
+      "key": "transaction-awareness",
+      "intent": "transaction",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "After first learning about {category}, should a buyer request a demo, start a trial, or map requirements first?"
+    },
+    {
+      "key": "transaction-screening",
+      "intent": "transaction",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "What requirements and data should a team prepare before trialing {brand}'s {product}?"
+    },
+    {
+      "key": "transaction-evaluation",
+      "intent": "transaction",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "How can a team design a valid and fair trial of {brand}'s {product}?"
+    },
+    {
+      "key": "transaction-purchase",
+      "intent": "transaction",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "Before purchasing {brand}, in what order should a team handle pricing, contract review, and security assessment?"
+    },
+    {
+      "key": "transaction-implementation",
+      "intent": "transaction",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "Which steps should a {teamSize} team complete between signing and launching {brand}?"
+    },
+    {
+      "key": "transaction-review",
+      "intent": "transaction",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "Before renewing, expanding, or leaving {brand}, which review and data-export actions should a team complete?"
+    },
+    {
+      "key": "risk-awareness",
+      "intent": "risk",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "What are the most common risks, misconceptions, and failure modes when choosing {category}? {evidenceRequirement}"
+    },
+    {
+      "key": "risk-screening",
+      "intent": "risk",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "What are the main limitations of {brand}, and which teams should not choose it? {evidenceRequirement}"
+    },
+    {
+      "key": "risk-evaluation",
+      "intent": "risk",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "What data security, privacy, compliance, and vendor lock-in risks should a buyer assess for {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "risk-purchase",
+      "intent": "risk",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "Which contract, pricing, service-boundary, and exit risks should a buyer verify before purchasing {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "risk-implementation",
+      "intent": "risk",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "Which configuration, migration, or organizational issues most often derail an implementation of {brand}'s {product}? {evidenceRequirement}"
+    },
+    {
+      "key": "risk-review",
+      "intent": "risk",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "Which signals indicate that a team should correct, downgrade, or replace its use of {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "price-awareness",
+      "intent": "price",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "What pricing models and cost components are common for {category}? {evidenceRequirement}"
+    },
+    {
+      "key": "price-screening",
+      "intent": "price",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "What are {brand}'s approximate prices, plans, and free-use boundaries? Include the information date and sources. {evidenceRequirement}"
+    },
+    {
+      "key": "price-evaluation",
+      "intent": "price",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "Which hidden costs belong in a total-cost-of-ownership assessment of {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "price-purchase",
+      "intent": "price",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "With a budget of about {budget}, how should a buyer verify {brand}'s plans, usage limits, seats, and contract pricing? {evidenceRequirement}"
+    },
+    {
+      "key": "price-implementation",
+      "intent": "price",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "How do implementation, training, integration, and maintenance costs typically change after launching {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "price-review",
+      "intent": "price",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "How should a team review the actual ROI of {brand} and decide whether renewal or expansion is justified? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-awareness",
+      "intent": "alternative",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "Besides mainstream commercial products, what open-source, self-hosted, or in-house options exist for {category}? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-screening",
+      "intent": "alternative",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "Besides {brand}, which {category} products suit {audience}? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-evaluation",
+      "intent": "alternative",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "What are the best alternatives to {competitor}, and when is {brand} a better fit? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-purchase",
+      "intent": "alternative",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "At final purchase, how should a team choose among {brand}, {competitor}, and an in-house solution? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-implementation",
+      "intent": "alternative",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "What steps, costs, and compatibility risks are involved in migrating from {competitor} to {brand}? {evidenceRequirement}"
+    },
+    {
+      "key": "alternative-review",
+      "intent": "alternative",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "If {brand} underperforms, which alternatives and exit criteria should the current customer assess? {evidenceRequirement}"
+    },
+    {
+      "key": "scenario-awareness",
+      "intent": "scenario",
+      "stage": "awareness",
+      "brandExposure": "blind",
+      "prompt": "In which scenarios do {industry} teams in {region} typically need {category}?"
+    },
+    {
+      "key": "scenario-screening",
+      "intent": "scenario",
+      "stage": "screening",
+      "brandExposure": "blind",
+      "prompt": "How should {audience} choose {category} based on team size, budget, and data requirements?"
+    },
+    {
+      "key": "scenario-evaluation",
+      "intent": "scenario",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "Is {brand} suitable for a {industry} team in {region}? Explain the fit conditions and limitations."
+    },
+    {
+      "key": "scenario-purchase",
+      "intent": "scenario",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "How should {audience} define scenario-specific acceptance criteria when purchasing {brand}?"
+    },
+    {
+      "key": "scenario-implementation",
+      "intent": "scenario",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "How can a {teamSize} {industry} team implement {brand} within {implementationPeriod}?"
+    },
+    {
+      "key": "scenario-review",
+      "intent": "scenario",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "After adopting {brand}, how should {audience} review outcomes by scenario and adjust the configuration?"
+    },
+    {
+      "key": "brand-validation-awareness",
+      "intent": "brand_validation",
+      "stage": "awareness",
+      "brandExposure": "aided",
+      "prompt": "What is {brand}, what are its main products and parent company, and which public materials describe it? {evidenceRequirement}"
+    },
+    {
+      "key": "brand-validation-screening",
+      "intent": "brand_validation",
+      "stage": "screening",
+      "brandExposure": "aided",
+      "prompt": "Is {brand} credible, and which official and independent sources can verify it? {evidenceRequirement}"
+    },
+    {
+      "key": "brand-validation-evaluation",
+      "intent": "brand_validation",
+      "stage": "evaluation",
+      "brandExposure": "aided",
+      "prompt": "Which claims about {brand}'s capabilities, customers, pricing, and credentials are supported by reliable sources? {evidenceRequirement}"
+    },
+    {
+      "key": "brand-validation-purchase",
+      "intent": "brand_validation",
+      "stage": "purchase",
+      "brandExposure": "aided",
+      "prompt": "Before purchasing {brand}, which facts about the company, contracting entity, product boundaries, and service commitments should a buyer verify? {evidenceRequirement}"
+    },
+    {
+      "key": "brand-validation-implementation",
+      "intent": "brand_validation",
+      "stage": "implementation",
+      "brandExposure": "aided",
+      "prompt": "Are {brand}'s official documentation, help center, and support channels sufficient to verify critical implementation steps? {evidenceRequirement}"
+    },
+    {
+      "key": "brand-validation-review",
+      "intent": "brand_validation",
+      "stage": "review",
+      "brandExposure": "aided",
+      "prompt": "Which common claims about {brand} are misunderstood, outdated, or in need of renewed verification? {evidenceRequirement}"
+    }
+  ]
+}

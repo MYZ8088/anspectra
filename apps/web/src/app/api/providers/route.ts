@@ -3,8 +3,8 @@ import { readProviderConnectionsState } from "@/lib/provider-connections/server"
 import {
 	resetProviderAuthData,
 	spawnProviderAuthLogin,
-} from "@oneglanse/services";
-import { AUTH_PROVIDER_LIST, resolveAppMode } from "@oneglanse/types";
+} from "@answerloom/services";
+import { AUTH_PROVIDER_LIST, resolveAppMode } from "@answerloom/types";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -17,7 +17,9 @@ const connectProviderSchema = z.object({
 });
 
 function isLocalProvidersMode(): boolean {
-	return resolveAppMode(process.env.ONEGLANSE_APP_MODE) === "local";
+	return (
+		resolveAppMode(process.env.ANSWERLOOM_APP_MODE) === "local"
+	);
 }
 
 async function requireProvidersApiAccess() {

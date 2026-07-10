@@ -7,6 +7,10 @@ export interface AskPromptResult {
 	prompt: string;
 	response: string;
 	sources: Source[];
+	conversationId?: string | null;
+	conversationUrl?: string | null;
+	conversationIsolation?: "fresh" | "multi_turn_experiment";
+	sourceExposure?: "exposed" | "not_exposed";
 }
 
 export const PROVIDER_LIST = [
@@ -14,6 +18,10 @@ export const PROVIDER_LIST = [
 	"perplexity",
 	"gemini",
 	"claude",
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
 	"ai-overview",
 ] as const;
 
@@ -53,6 +61,10 @@ export const AUTH_PROVIDER_LIST = [
 	"gemini",
 	"google",
 	"claude",
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
 ] as const;
 
 export type AuthProvider = (typeof AUTH_PROVIDER_LIST)[number];

@@ -27,7 +27,7 @@ import {
 import { downloadCsv, downloadJson } from "@/lib/export/download";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { AnalysisRecord, UserPrompt } from "@oneglanse/types";
+import type { AnalysisRecord, UserPrompt } from "@answerloom/types";
 import {
 	Button,
 	Checkbox,
@@ -55,8 +55,8 @@ import {
 	WorkspaceRequiredState,
 	toast,
 	useSortState,
-} from "@oneglanse/ui";
-import { PositionMetricCell, SentimentMetricCell } from "@oneglanse/ui";
+} from "@answerloom/ui";
+import { PositionMetricCell, SentimentMetricCell } from "@answerloom/ui";
 import {
 	buildDetailedAnalysisCsvRow,
 	filterAnalysisRecords,
@@ -64,8 +64,8 @@ import {
 	formatMarkdown,
 	getModelFavicon,
 	modelSelectors,
-} from "@oneglanse/utils";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/utils";
+import { cn } from "@answerloom/utils";
 import {
 	Bot,
 	BriefcaseBusiness,

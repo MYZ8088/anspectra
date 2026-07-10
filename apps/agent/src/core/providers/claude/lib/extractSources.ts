@@ -1,6 +1,6 @@
-import { toErrorMessage } from "@oneglanse/errors";
-import type { Source } from "@oneglanse/types";
-import { logger, PROVIDER_MODEL_RESPONSE_SELECTORS } from "@oneglanse/utils";
+import { toErrorMessage } from "@answerloom/errors";
+import type { Source } from "@answerloom/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS, logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 import { type RawSource, buildSources } from "../../_shared/sourceUtils.js";
 

@@ -1,5 +1,5 @@
-import type { AuthProvider, Provider } from "@oneglanse/types";
-import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@oneglanse/types";
+import type { AuthProvider, Provider } from "@answerloom/types";
+import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@answerloom/types";
 
 interface ProviderDisplayConfig {
 	displayName: string;
@@ -27,6 +27,26 @@ export const PROVIDER_DISPLAY = {
 		displayName: "Claude",
 		domain: "claude.ai",
 		description: "Claude - Advanced reasoning and analysis",
+	},
+	deepseek: {
+		displayName: "DeepSeek",
+		domain: "deepseek.com",
+		description: "DeepSeek - Web UI model",
+	},
+	doubao: {
+		displayName: "Doubao",
+		domain: "doubao.com",
+		description: "Doubao - ByteDance AI assistant",
+	},
+	hunyuan: {
+		displayName: "Tencent Hunyuan",
+		domain: "yuanbao.tencent.com",
+		description: "Tencent Yuanbao - Hunyuan web UI",
+	},
+	qwen: {
+		displayName: "Qwen",
+		domain: "qwen.ai",
+		description: "Qwen Chat - Tongyi Qianwen web UI",
 	},
 	"ai-overview": {
 		displayName: "AI Overview",
@@ -73,6 +93,26 @@ export const AUTH_PROVIDER_DISPLAY = {
 		displayName: "Claude",
 		domain: "claude.ai",
 		connectLabel: "Connect with Claude",
+	},
+	deepseek: {
+		displayName: "DeepSeek",
+		domain: "deepseek.com",
+		connectLabel: "Connect with DeepSeek",
+	},
+	doubao: {
+		displayName: "Doubao",
+		domain: "doubao.com",
+		connectLabel: "Connect with Doubao",
+	},
+	hunyuan: {
+		displayName: "Tencent Hunyuan",
+		domain: "yuanbao.tencent.com",
+		connectLabel: "Connect with Yuanbao",
+	},
+	qwen: {
+		displayName: "Qwen",
+		domain: "qwen.ai",
+		connectLabel: "Connect with Qwen",
 	},
 } satisfies Record<AuthProvider, AuthProviderDisplayConfig>;
 
@@ -127,6 +167,45 @@ export const AUTH_PROVIDER_CONFIG = {
 		domainSuffixes: ["claude.ai", "anthropic.com"],
 		providers: ["claude"],
 	},
+	deepseek: {
+		displayName: "DeepSeek",
+		domain: "deepseek.com",
+		connectLabel: "Connect with DeepSeek",
+		loginUrl: "https://chat.deepseek.com/sign_in",
+		postLoginUrls: ["https://chat.deepseek.com/"],
+		domainSuffixes: ["deepseek.com"],
+		providers: ["deepseek"],
+	},
+	doubao: {
+		displayName: "Doubao",
+		domain: "doubao.com",
+		connectLabel: "Connect with Doubao",
+		loginUrl: "https://www.doubao.com/chat/",
+		postLoginUrls: ["https://www.doubao.com/chat/"],
+		domainSuffixes: ["doubao.com"],
+		providers: ["doubao"],
+	},
+	hunyuan: {
+		displayName: "Tencent Hunyuan",
+		domain: "yuanbao.tencent.com",
+		connectLabel: "Connect with Yuanbao",
+		loginUrl: "https://yuanbao.tencent.com/",
+		postLoginUrls: [
+			"https://yuanbao.tencent.com/",
+			"https://hunyuan.tencent.com/bot/chat",
+		],
+		domainSuffixes: ["yuanbao.tencent.com", "hunyuan.tencent.com", "qq.com"],
+		providers: ["hunyuan"],
+	},
+	qwen: {
+		displayName: "Qwen",
+		domain: "qwen.ai",
+		connectLabel: "Connect with Qwen",
+		loginUrl: "https://chat.qwen.ai/",
+		postLoginUrls: ["https://chat.qwen.ai/", "https://qianwen.com/"],
+		domainSuffixes: ["qwen.ai", "qianwen.com", "aliyun.com", "aliyuncs.com"],
+		providers: ["qwen"],
+	},
 } satisfies Record<AuthProvider, AuthProviderConfig>;
 
 export const PROVIDER_AUTH_GROUP: Record<Provider, AuthProvider> = {
@@ -135,6 +214,10 @@ export const PROVIDER_AUTH_GROUP: Record<Provider, AuthProvider> = {
 	gemini: "gemini",
 	"ai-overview": "google",
 	claude: "claude",
+	deepseek: "deepseek",
+	doubao: "doubao",
+	hunyuan: "hunyuan",
+	qwen: "qwen",
 };
 
 export const ALL_PROVIDERS_JSON = JSON.stringify([...PROVIDER_LIST]);

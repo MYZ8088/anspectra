@@ -1,7 +1,10 @@
-import type { Provider } from "@oneglanse/types";
-import { logger } from "@oneglanse/utils";
+import type { Provider } from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 import type { Page } from "playwright";
-import { preInteractionIdle, randomBetween } from "../../../lib/browser/humanBehavior.js";
+import {
+	preInteractionIdle,
+	randomBetween,
+} from "../../../lib/browser/humanBehavior.js";
 import { navigateWithRetry } from "../../../lib/browser/navigate.js";
 import { detectBotPage } from "../../../lib/input/response/detectBotPage.js";
 

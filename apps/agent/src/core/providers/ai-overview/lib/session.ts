@@ -1,5 +1,5 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import { logger } from "@oneglanse/utils";
+import { ExternalServiceError } from "@answerloom/errors";
+import { logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 import { navigateWithRetry } from "../../../../lib/browser/navigate.js";
 
@@ -11,7 +11,9 @@ const warmedPages = new WeakSet<Page>();
 
 export async function dismissGoogleConsentDialog(page: Page): Promise<void> {
 	const consentBtn = page.locator(GOOGLE_CONSENT_SELECTOR).first();
-	const visible = await consentBtn.isVisible({ timeout: 2500 }).catch(() => false);
+	const visible = await consentBtn
+		.isVisible({ timeout: 2500 })
+		.catch(() => false);
 	if (!visible) return;
 
 	await consentBtn.click({ timeout: 4000 }).catch(() => {});

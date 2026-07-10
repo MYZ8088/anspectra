@@ -1,6 +1,6 @@
-import { NotFoundError } from "@oneglanse/errors";
-import { resolveAppMode, type Provider } from "@oneglanse/types";
-import { logger, PROVIDER_EDITOR_SELECTORS } from "@oneglanse/utils";
+import { NotFoundError } from "@answerloom/errors";
+import { type Provider, resolveAppMode } from "@answerloom/types";
+import { PROVIDER_EDITOR_SELECTORS, logger } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 import { env } from "../../../env.js";
 import { detectBotPage } from "../response/detectBotPage.js";
@@ -24,15 +24,18 @@ const PRIMARY_SELECTOR_GRACE_MS: Partial<Record<Provider, number>> = {
 	gemini: 8_000,
 };
 
-const isLocalMode = resolveAppMode(env.ONEGLANSE_APP_MODE) === "local";
+const isLocalMode = resolveAppMode(env.ANSWERLOOM_APP_MODE) === "local";
 const STABLE_POLLS_REQUIRED = 2;
 const POLL_INTERVAL_MS = 200;
+const EDITOR_PROBE_TIMEOUT_MS = 1_500;
 
 async function waitForInitialDomSettle(page: Page): Promise<void> {
 	await page
 		.waitForLoadState("domcontentloaded", { timeout: 4_000 })
 		.catch(() => {});
-	await page.waitForLoadState("networkidle", { timeout: 2_500 }).catch(() => {});
+	await page
+		.waitForLoadState("networkidle", { timeout: 2_500 })
+		.catch(() => {});
 	await page.waitForTimeout(150);
 }
 
@@ -40,14 +43,15 @@ async function isEditorReady(
 	input: Locator,
 	provider: Provider,
 ): Promise<boolean> {
-	const state = await input.getEditableState().catch(() => null);
+	const state = await input
+		.getEditableState({ timeout: EDITOR_PROBE_TIMEOUT_MS })
+		.catch(() => null);
 	return Boolean(
 		state?.connected &&
 			state.visible &&
 			state.editable &&
 			state.enabled &&
-			(state.acceptsTextInput ||
-				provider === "perplexity"),
+			(state.acceptsTextInput || provider === "perplexity"),
 	);
 }
 
@@ -67,8 +71,6 @@ async function waitForStableEditorCandidate(
 			return null;
 		}
 
-		await candidate.locator.scrollIntoViewIfNeeded().catch(() => {});
-		await candidate.locator.focus().catch(() => {});
 		const ready = await isEditorReady(candidate.locator, provider);
 		if (!ready) {
 			stablePolls = 0;
@@ -118,10 +120,7 @@ export async function waitForEditorReady(
 
 		if (!input) {
 			polls += 1;
-			// Skip bot/login detection in local mode — the user may be on an OAuth
-			// page (accounts.google.com etc.) intentionally. Firing detectBotPage
-			// there misclassifies it as a session error and triggers a browser restart.
-			if (!isLocalMode && polls % BOT_CHECK_EVERY_N_POLLS === 0) {
+			if (polls % BOT_CHECK_EVERY_N_POLLS === 0) {
 				await detectBotPage(page, provider);
 			}
 			await page.waitForTimeout(POLL_INTERVAL_MS);
@@ -132,10 +131,6 @@ export async function waitForEditorReady(
 		return input.locator;
 	}
 
-	// Final bot/login check before throwing — skipped in local mode since the
-	// user may legitimately be on an OAuth page.
-	if (!isLocalMode) {
-		await detectBotPage(page, provider);
-	}
+	await detectBotPage(page, provider);
 	throw new NotFoundError(`editor for ${provider}`);
 }

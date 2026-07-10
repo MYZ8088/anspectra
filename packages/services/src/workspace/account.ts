@@ -1,4 +1,4 @@
-import { db, schema } from "@oneglanse/db";
+import { db, schema } from "@answerloom/db";
 import { and, count, eq, isNull } from "drizzle-orm";
 
 export async function deleteUserAccount(args: {

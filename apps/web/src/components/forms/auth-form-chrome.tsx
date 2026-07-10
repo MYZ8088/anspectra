@@ -7,8 +7,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@oneglanse/ui";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn } from "@answerloom/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FcGoogle } from "react-icons/fc";

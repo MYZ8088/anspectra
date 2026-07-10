@@ -1,5 +1,5 @@
-import type { Provider, Source } from "@oneglanse/types";
-import { getDomain, getFaviconUrls } from "@oneglanse/utils";
+import type { Provider, Source } from "@answerloom/types";
+import { getDomain, getFaviconUrls } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 
 /**
@@ -13,11 +13,29 @@ export type RawSource = {
 	citedText: string;
 };
 
+export function extractVisibleUrlCandidates(text: string): RawSource[] {
+	const candidates = text.match(
+		/(?:https?:\/\/|www\.)[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<>{}\[\]"']*)?|\b[a-z0-9](?:[a-z0-9-]{0,62}\.)+(?:com|ai|io|org|net|cn|co|dev|app|tech|cloud|edu|gov)(?:\/[^\s<>{}\[\]"']*)?/gi,
+	);
+	if (!candidates) return [];
+	return [...new Set(candidates)].map((candidate) => {
+		const cleaned = candidate.replace(/[),.;:!?，。；：！？]+$/u, "");
+		const rawHref = /^https?:\/\//i.test(cleaned)
+			? cleaned
+			: `https://${cleaned}`;
+		return { rawHref, title: cleaned, citedText: "" };
+	});
+}
+
 const PROVIDER_OWNED_SOURCE_DOMAINS: Partial<Record<Provider, string[]>> = {
 	chatgpt: ["chatgpt.com", "openai.com"],
 	perplexity: ["perplexity.ai"],
 	gemini: ["gemini.google.com", "google.com"],
 	claude: ["claude.ai", "anthropic.com"],
+	deepseek: ["deepseek.com"],
+	doubao: ["doubao.com"],
+	hunyuan: ["yuanbao.tencent.com", "hunyuan.tencent.com", "qq.com"],
+	qwen: ["qwen.ai", "qianwen.com", "aliyun.com", "aliyuncs.com"],
 	"ai-overview": ["google.com"],
 };
 
@@ -44,7 +62,10 @@ function normalizeSourceTitle(rawTitle: string, url: string): string {
 	return title.trim() || normalized;
 }
 
-function isProviderOwnedSource(provider: Provider | undefined, url: string): boolean {
+function isProviderOwnedSource(
+	provider: Provider | undefined,
+	url: string,
+): boolean {
 	if (!provider) return false;
 
 	const hostname = (() => {
@@ -82,7 +103,13 @@ export function buildSources(
 		const domain = getDomain(url) || null;
 		const title = normalizeSourceTitle(rawTitle || "", url) || domain || url;
 		const favicon = getFaviconUrls(domain ?? "")?.[0] ?? null;
-		const source: Source = { title, cited_text: citedText, url, domain, favicon };
+		const source: Source = {
+			title,
+			cited_text: citedText,
+			url,
+			domain,
+			favicon,
+		};
 		const dedupeKey = JSON.stringify({
 			domain: source.domain ?? null,
 			url: source.url,

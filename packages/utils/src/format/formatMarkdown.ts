@@ -98,7 +98,10 @@ function sanitizeRenderedHtml(input: string): string {
 }
 
 function stripHtmlTags(input: string): string {
-	return input.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+	return input
+		.replace(/<[^>]+>/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
 }
 
 function looksLikeHtml(input: string): boolean {

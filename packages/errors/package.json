@@ -1,5 +1,5 @@
 {
-	"name": "@oneglanse/errors",
+	"name": "@answerloom/errors",
 	"version": "0.1.0",
 	"private": true,
 	"main": "./dist/index.js",
@@ -16,7 +16,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@oneglanse/types": "workspace:*"
+		"@answerloom/types": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/node": "^25.0.10",

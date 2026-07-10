@@ -1,5 +1,5 @@
-import type { Provider } from "@oneglanse/types";
-import { logger } from "@oneglanse/utils";
+import type { Provider } from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 
 // Bounded random jitter applied before each provider starts so that concurrent
 // jobs do not all spin up browsers simultaneously and spike CPU/memory.
@@ -9,7 +9,7 @@ const slotWaiters: Array<() => void> = [];
 let activeJobCount = 0;
 
 async function acquireGlobalSlot(): Promise<void> {
-	if (activeJobCount === 0) {
+	if (activeJobCount < 2) {
 		activeJobCount += 1;
 		return;
 	}

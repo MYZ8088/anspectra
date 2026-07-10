@@ -1,5 +1,5 @@
 {
-	"name": "@oneglanse/utils",
+	"name": "@answerloom/utils",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -16,7 +16,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@oneglanse/types": "workspace:*",
+		"@answerloom/types": "workspace:*",
 		"clsx": "^2.1.1",
 		"marked": "^17.0.1",
 		"sanitize-html": "^2.17.1",

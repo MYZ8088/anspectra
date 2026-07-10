@@ -5,7 +5,7 @@ import {
 	fetchPromptSourcesForWorkspace,
 	fetchUserPromptsForWorkspace,
 	storePromptsForWorkspace,
-} from "@oneglanse/services";
+} from "@answerloom/services";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { authorizedWorkspaceProcedure } from "../../procedures";

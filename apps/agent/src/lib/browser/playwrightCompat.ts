@@ -1,4 +1,11 @@
 import type {
+	BrowserContext as PlaywrightBrowserContext,
+	Locator as PlaywrightLocator,
+	Page as PlaywrightPage,
+	Worker as PlaywrightWorker,
+} from "playwright-core";
+import { runPageDomOp } from "./domOps.js";
+import type {
 	Browser,
 	BrowserContext,
 	ConsoleMessage,
@@ -8,13 +15,6 @@ import type {
 	PageViewportSize,
 	Worker,
 } from "./runtimeTypes.js";
-import { runPageDomOp } from "./domOps.js";
-import type {
-	BrowserContext as PlaywrightBrowserContext,
-	Locator as PlaywrightLocator,
-	Page as PlaywrightPage,
-	Worker as PlaywrightWorker,
-} from "playwright-core";
 
 class PlaywrightWorkerCompat implements Worker {
 	constructor(private readonly worker: PlaywrightWorker) {}
@@ -59,25 +59,25 @@ class PlaywrightLocatorCompat implements Locator {
 		return this.locator.isVisible(options);
 	}
 
-	isEnabled(): Promise<boolean> {
-		return this.locator.isEnabled();
+	isEnabled(options?: { timeout?: number }): Promise<boolean> {
+		return this.locator.isEnabled(options);
 	}
 
-	focus(): Promise<void> {
-		return this.locator.focus();
+	focus(options?: { timeout?: number }): Promise<void> {
+		return this.locator.focus(options);
 	}
 
-	boundingBox(): Promise<{
+	boundingBox(options?: { timeout?: number }): Promise<{
 		x: number;
 		y: number;
 		width: number;
 		height: number;
 	} | null> {
-		return this.locator.boundingBox();
+		return this.locator.boundingBox(options);
 	}
 
-	scrollIntoViewIfNeeded(): Promise<void> {
-		return this.locator.scrollIntoViewIfNeeded();
+	scrollIntoViewIfNeeded(options?: { timeout?: number }): Promise<void> {
+		return this.locator.scrollIntoViewIfNeeded(options);
 	}
 
 	click(options?: {
@@ -102,7 +102,7 @@ class PlaywrightLocatorCompat implements Locator {
 		});
 	}
 
-	async readInputValue(): Promise<string> {
+	async readInputValue(options?: { timeout?: number }): Promise<string> {
 		return await this.locator.evaluate((element) => {
 			if (
 				element instanceof HTMLInputElement ||
@@ -114,10 +114,13 @@ class PlaywrightLocatorCompat implements Locator {
 				return element.innerText || element.textContent || "";
 			}
 			return "";
-		});
+		}, undefined, options);
 	}
 
-	async setInputValue(value: string): Promise<void> {
+	async setInputValue(
+		value: string,
+		options?: { timeout?: number },
+	): Promise<void> {
 		await this.locator.evaluate((element, nextValue) => {
 			if (
 				element instanceof HTMLInputElement ||
@@ -141,10 +144,12 @@ class PlaywrightLocatorCompat implements Locator {
 				element.dispatchEvent(new Event("input", { bubbles: true }));
 				element.dispatchEvent(new Event("change", { bubbles: true }));
 			}
-		}, value);
+		}, value, options);
 	}
 
-	async getEditableState(): Promise<ElementEditableState> {
+	async getEditableState(options?: {
+		timeout?: number;
+	}): Promise<ElementEditableState> {
 		return await this.locator.evaluate((element) => {
 			function hasHiddenAncestor(target: HTMLElement): boolean {
 				let current: HTMLElement | null = target;
@@ -252,7 +257,7 @@ class PlaywrightLocatorCompat implements Locator {
 				enabled,
 				acceptsTextInput: textInput,
 			};
-		});
+		}, undefined, options);
 	}
 
 	async dispatchClick(): Promise<void> {
@@ -320,8 +325,8 @@ export class PlaywrightBrowserContextCompat implements BrowserContext {
 		await this.context.close();
 	}
 
-	async storageState(options?: { path?: string }): Promise<void> {
-		await this.context.storageState(options);
+	async storageState(options?: { path?: string }) {
+		return this.context.storageState(options);
 	}
 
 	async addInitScript(script: string): Promise<void> {

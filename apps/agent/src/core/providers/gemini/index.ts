@@ -1,7 +1,7 @@
 import { extractAssistantMarkdown } from "../../../lib/input/markdown/toMarkdown.js";
-import { openSourcesPanel } from "../../../lib/input/sources/openPanel.js";
-import { findSourcesButton } from "../../../lib/input/sources/findButton.js";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
+import { findSourcesButton } from "../../../lib/input/sources/findButton.js";
+import { openSourcesPanel } from "../../../lib/input/sources/openPanel.js";
 import type { ProviderConfig } from "../types.js";
 import { extractSourcesFromGemini } from "./lib/extractSources.js";
 import { GEMINI_URL, resetGeminiPage } from "./lib/pageLifecycle.js";

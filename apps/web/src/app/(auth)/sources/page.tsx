@@ -3,7 +3,7 @@
 import { ExportMenu } from "@/components/export-menu";
 import { downloadCsv, downloadJson } from "@/lib/export/download";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
-import type { GroupedSource, SourceGroupResult } from "@oneglanse/types";
+import type { GroupedSource, SourceGroupResult } from "@answerloom/types";
 import {
 	Button,
 	EmptyStatePanel,
@@ -16,14 +16,14 @@ import {
 	SourcesIntelligencePanel,
 	TemporaryIssueState,
 	WorkspaceRequiredState,
-} from "@oneglanse/ui";
+} from "@answerloom/ui";
 import {
 	cleanCitedText,
 	getDomain,
 	getUniqueModelProviders,
 	getUrlPath,
 	joinCitedTexts,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import { AlertTriangle, FileText, Globe2, Link2, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";

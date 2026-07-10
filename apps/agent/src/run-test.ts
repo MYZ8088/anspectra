@@ -6,13 +6,22 @@
  * Example: node --loader ts-node/esm src/run-test.ts chatgpt claude
  */
 import "./env.js";
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 import { createAgent } from "./core/createAgent.js";
 import { executePrompt } from "./core/prompt-runner/executePrompt.js";
 
 const TEST_PROMPT = "What is the capital of France? Answer in one sentence.";
 
-const ALL_PROVIDERS: Provider[] = ["chatgpt", "claude", "gemini", "perplexity"];
+const ALL_PROVIDERS: Provider[] = [
+	"chatgpt",
+	"claude",
+	"deepseek",
+	"doubao",
+	"gemini",
+	"hunyuan",
+	"perplexity",
+	"qwen",
+];
 
 async function runForProvider(provider: Provider): Promise<void> {
 	console.log(`\n${"=".repeat(60)}`);
@@ -22,7 +31,11 @@ async function runForProvider(provider: Provider): Promise<void> {
 
 	const { page, cleanup } = await createAgent(provider);
 	try {
-		const { response, sources } = await executePrompt(page, TEST_PROMPT, provider);
+		const { response, sources } = await executePrompt(
+			page,
+			TEST_PROMPT,
+			provider,
+		);
 		console.log(`\n[${provider}] RESPONSE (${response.length} chars):\n`);
 		console.log(response);
 		console.log(`\n[${provider}] SOURCES (${sources.length}):`);
@@ -30,7 +43,10 @@ async function runForProvider(provider: Provider): Promise<void> {
 			console.log(`  - ${src.url ?? src.title ?? "(no url)"}`);
 		}
 	} catch (err) {
-		console.error(`[${provider}] ERROR:`, err instanceof Error ? err.message : err);
+		console.error(
+			`[${provider}] ERROR:`,
+			err instanceof Error ? err.message : err,
+		);
 	} finally {
 		await cleanup();
 	}

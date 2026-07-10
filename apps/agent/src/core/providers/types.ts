@@ -1,4 +1,4 @@
-import type { Source } from "@oneglanse/types";
+import type { Source } from "@answerloom/types";
 import type { Page } from "playwright";
 
 export interface SubmitSuccessContext {
@@ -42,6 +42,16 @@ export interface ProviderConfig {
 	afterSubmitHook?: (page: Page) => Promise<void>;
 	/** Called between consecutive prompts — e.g. reset the page to its initial state. */
 	betweenPromptsHook?: (page: Page) => Promise<void>;
+	/** Opens and verifies an empty conversation before an isolated sample. */
+	startFreshConversation?: (page: Page) => Promise<void>;
+	/** Reads the provider conversation identifier after a response is available. */
+	getConversationIdentity?: (page: Page) => {
+		conversationId: string | null;
+		conversationUrl: string;
+	} | Promise<{
+		conversationId: string | null;
+		conversationUrl: string;
+	}>;
 	/**
 	 * Override the submission strategy order for this provider.
 	 * Defaults to ["native", "enter", "force", "dispatch"] when unset.

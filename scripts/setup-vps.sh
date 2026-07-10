@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OneGlanse VPS setup — Ubuntu 22.04 / 24.04
+# AnswerLoom VPS setup — Ubuntu 22.04 / 24.04
 # Run as a non-root user with sudo privileges.
 set -euo pipefail
 
@@ -28,18 +28,18 @@ fi
 
 # ─── Gather inputs ────────────────────────────────────────────────────────────
 
-header "OneGlanse — VPS Setup"
+header "AnswerLoom — VPS Setup"
 echo "This script installs all dependencies, clones the repo, configures nginx + HTTPS,"
 echo "and starts the app-only self-hosted stack."
 echo ""
-warn "Run this as the user who will own the OneGlanse process (not root)."
+warn "Run this as the user who will own the AnswerLoom process (not root)."
 echo ""
 
 read -rp "Your domain for the app (e.g. app.yourdomain.com): " DOMAIN
 [[ -z "$DOMAIN" ]] && fatal "Domain is required."
 
-read -rp "Install directory [/home/$USER/oneglanse]: " INSTALL_DIR
-INSTALL_DIR="${INSTALL_DIR:-/home/$USER/oneglanse}"
+read -rp "Install directory [/home/$USER/answerloom]: " INSTALL_DIR
+INSTALL_DIR="${INSTALL_DIR:-/home/$USER/answerloom}"
 
 echo ""
 echo "LLM provider for response analysis:"
@@ -124,14 +124,14 @@ fi
 
 # ─── Clone / update repo ──────────────────────────────────────────────────────
 
-header "2 / 6 — Cloning OneGlanse"
+header "2 / 6 — Cloning AnswerLoom"
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   info "Repo exists at $INSTALL_DIR — pulling latest..."
   git -C "$INSTALL_DIR" pull
 else
   info "Cloning into $INSTALL_DIR..."
-  git clone --depth 1 https://github.com/aryamantodkar/oneglanse "$INSTALL_DIR"
+  git clone --depth 1 https://github.com/aryamantodkar/answerloom "$INSTALL_DIR"
 fi
 
 cd "$INSTALL_DIR"
@@ -163,7 +163,7 @@ needs_secret() {
 set_env "APP_URL"      "https://${DOMAIN}"
 set_env "API_BASE_URL" "https://${DOMAIN}"
 set_env "AGENT_AUTH_UPLOAD_TOKEN" "$AUTH_TOKEN"
-set_env "ONEGLANSE_APP_MODE" "self-host"
+set_env "ANSWERLOOM_APP_MODE" "self-host"
 
 if [[ "$LLM_PROVIDER" == "openai" ]]; then
   set_env "OPENAI_API_KEY" "$OPENAI_KEY"
@@ -184,7 +184,7 @@ success ".env configured"
 
 # ─── Start the stack ──────────────────────────────────────────────────────────
 
-header "4 / 6 — Starting OneGlanse"
+header "4 / 6 — Starting AnswerLoom"
 
 info "Starting the app from published Docker images..."
 if docker_socket_access; then
@@ -205,7 +205,7 @@ for i in $(seq 1 30); do
   fi
   sleep 3
   if [[ $i -eq 30 ]]; then
-    warn "Web app not responding after 90s — check 'docker logs oneglanse-web'"
+    warn "Web app not responding after 90s — check 'docker logs answerloom-web'"
   fi
 done
 
@@ -213,7 +213,7 @@ done
 
 header "5 / 6 — Configuring nginx"
 
-NGINX_CONF="/etc/nginx/sites-available/oneglanse"
+NGINX_CONF="/etc/nginx/sites-available/answerloom"
 
 sudo tee "$NGINX_CONF" > /dev/null <<EOF
 server {
@@ -235,8 +235,8 @@ server {
 }
 EOF
 
-if [[ ! -L /etc/nginx/sites-enabled/oneglanse ]]; then
-  sudo ln -s "$NGINX_CONF" /etc/nginx/sites-enabled/oneglanse
+if [[ ! -L /etc/nginx/sites-enabled/answerloom ]]; then
+  sudo ln -s "$NGINX_CONF" /etc/nginx/sites-enabled/answerloom
 fi
 sudo rm -f /etc/nginx/sites-enabled/default
 
@@ -272,7 +272,7 @@ echo "  Install dir:    ${INSTALL_DIR}"
 echo ""
 echo "Next steps:"
 echo "  1. On your local machine, set in .env:"
-echo "       ONEGLANSE_VPS_IP=<your VPS IP>"
+echo "       ANSWERLOOM_VPS_IP=<your VPS IP>"
 echo "       AGENT_AUTH_UPLOAD_TOKEN=${AUTH_TOKEN}"
 echo "  2. Run: pnpm auth  (sign in to providers locally)"
 echo "  3. Run: pnpm upload:vps  (transfer sessions to this VPS)"

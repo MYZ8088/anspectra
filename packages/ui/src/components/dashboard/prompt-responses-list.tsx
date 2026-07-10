@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@oneglanse/utils";
+import { cn } from "@answerloom/utils";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import type { PromptResponsePreviewRow } from "./prompt-responses-preview.js";

@@ -1,37 +1,39 @@
-import { clickhouse } from "@oneglanse/db";
-import { toErrorMessage } from "@oneglanse/errors";
-import type {
-	BrandAnalysisResult,
-	PromptAnalysis,
-	PromptResponse,
-} from "@oneglanse/types";
+import { clickhouse, db, schema } from "@answerloom/db";
+import { BaseError, toErrorMessage } from "@answerloom/errors";
+import type { PromptAnalysis, PromptResponse } from "@answerloom/types";
+import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getWorkspaceById } from "../workspace/index.js";
-import { runAnalysis } from "./runAnalysis.js";
+import { type AnalysisExecution, runAnalysisDetailed } from "./runAnalysis.js";
 
 async function analysePromptResponse(args: {
-	workspaceId: string;
+	brandDomain: string;
+	brandName: string;
 	response: string;
 	prompt: string;
-	promptId?: string;
-}): Promise<BrandAnalysisResult> {
-	const { workspaceId, response, prompt, promptId } = args;
-
-	const workspace = await getWorkspaceById({ workspaceId });
-
-	const result = await runAnalysis({
-		brandDomain: workspace.domain,
-		brandName: workspace.name,
-		response,
-		prompt,
+	sources?: PromptResponse["sources"];
+	facts: Array<{
+		claim: string;
+		sourceUrl: string | null;
+		evidenceGrade: "A" | "B" | "C" | "D" | null;
+		status: string;
+	}>;
+}): Promise<AnalysisExecution> {
+	const execution = await runAnalysisDetailed({
+		brandDomain: args.brandDomain,
+		brandName: args.brandName,
+		response: args.response,
+		prompt: args.prompt,
+		sources: args.sources,
+		facts: args.facts,
 	});
 
-	result.metadata = {
-		brandName: workspace.name,
-		brandDomain: workspace.domain,
+	execution.result.metadata = {
+		brandName: args.brandName,
+		brandDomain: args.brandDomain,
 	};
 
-	return result;
+	return execution;
 }
 
 export async function analysePromptsForWorkspace(args: {
@@ -45,6 +47,25 @@ export async function analysePromptsForWorkspace(args: {
 	remainingCount: number;
 }> {
 	const { workspaceId, batchSize = 50, analyzeAll = false } = args;
+	const [workspace, profile, ledger] = await Promise.all([
+		getWorkspaceById({ workspaceId }),
+		db.query.brandProfiles.findFirst({
+			where: eq(schema.brandProfiles.workspaceId, workspaceId),
+		}),
+		db.query.brandFacts.findMany({
+			where: eq(schema.brandFacts.workspaceId, workspaceId),
+		}),
+	]);
+	const analysisContext = {
+		brandName: profile?.brandName ?? workspace.name,
+		brandDomain: profile?.officialDomain ?? workspace.domain,
+		facts: ledger.map((fact) => ({
+			claim: `${fact.subject} — ${fact.predicate}: ${fact.value}`,
+			sourceUrl: fact.sourceUrl,
+			evidenceGrade: fact.evidenceGrade as "A" | "B" | "C" | "D" | null,
+			status: fact.status,
+		})),
+	};
 
 	let totalAnalyzed = 0;
 	let totalFailed = 0;
@@ -81,6 +102,7 @@ export async function analysePromptsForWorkspace(args: {
 		}
 
 		const analysisRows: PromptAnalysis[] = [];
+		const analysisV2Rows: Array<Record<string, unknown>> = [];
 		const responseIdsToMark: string[] = [];
 		const errors: Array<{
 			responseId: string;
@@ -91,28 +113,72 @@ export async function analysePromptsForWorkspace(args: {
 		// Analyze each response
 		for (const resp of responses) {
 			try {
-				const analysisResult = await analysePromptResponse({
-					workspaceId: resp.workspace_id,
+				const execution = await analysePromptResponse({
+					...analysisContext,
 					response: resp.response,
 					prompt: resp.prompt,
-					promptId: resp.prompt_id,
+					sources: resp.sources,
 				});
 
+				const analysisId = uuidv4();
+				const analysisJson = JSON.stringify(execution.result);
 				analysisRows.push({
-					id: uuidv4(),
+					id: analysisId,
 					prompt_id: resp.prompt_id,
 					workspace_id: resp.workspace_id,
 					prompt: resp.prompt,
 					user_id: resp.user_id,
 					model_provider: resp.model_provider,
-					brand_analysis: JSON.stringify(analysisResult),
+					brand_analysis: analysisJson,
 					prompt_run_at: resp.prompt_run_at,
 					created_at: resp.created_at,
+				});
+				analysisV2Rows.push({
+					id: analysisId,
+					sample_id: resp.id,
+					prompt_id: resp.prompt_id,
+					workspace_id: resp.workspace_id,
+					user_id: resp.user_id,
+					model_provider: resp.model_provider,
+					analysis_json: analysisJson,
+					analysis_model: execution.model,
+					template_version: "yao-six-layer-analysis-v1",
+					raw_output: JSON.stringify(execution.rawOutputs),
+					status: "completed",
+					error: "",
+					attempt_count: execution.attemptCount,
+					prompt_run_at: resp.prompt_run_at,
 				});
 
 				responseIdsToMark.push(resp.id);
 			} catch (err) {
 				const errorMessage = toErrorMessage(err);
+				const metadata = err instanceof BaseError ? err.meta : undefined;
+				const rawOutputs = Array.isArray(metadata?.rawOutputs)
+					? metadata.rawOutputs
+					: typeof metadata?.rawOutput === "string"
+						? [metadata.rawOutput]
+						: [];
+				const models = Array.isArray(metadata?.models) ? metadata.models : [];
+				analysisV2Rows.push({
+					id: uuidv4(),
+					sample_id: resp.id,
+					prompt_id: resp.prompt_id,
+					workspace_id: resp.workspace_id,
+					user_id: resp.user_id,
+					model_provider: resp.model_provider,
+					analysis_json: "",
+					analysis_model: String(models.at(-1) ?? ""),
+					template_version: "yao-six-layer-analysis-v1",
+					raw_output: JSON.stringify(rawOutputs),
+					status: "failed",
+					error: errorMessage,
+					attempt_count:
+						typeof metadata?.attemptCount === "number"
+							? metadata.attemptCount
+							: 1,
+					prompt_run_at: resp.prompt_run_at,
+				});
 				console.error(
 					`Failed to analyze response ${resp.id} (${resp.model_provider}):`,
 					errorMessage,
@@ -131,6 +197,13 @@ export async function analysePromptsForWorkspace(args: {
 			await clickhouse.insert({
 				table: "analytics.prompt_analysis",
 				values: analysisRows,
+				format: "JSONEachRow",
+			});
+		}
+		if (analysisV2Rows.length > 0) {
+			await clickhouse.insert({
+				table: "analytics.sample_analysis_v2",
+				values: analysisV2Rows,
 				format: "JSONEachRow",
 			});
 		}

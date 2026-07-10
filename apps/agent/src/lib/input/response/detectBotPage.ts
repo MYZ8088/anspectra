@@ -1,10 +1,15 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
+import { HumanChallengeError } from "@answerloom/errors";
+import {
+	CHALLENGE_KIND_LIST,
+	type ChallengeKind,
+	type Provider,
+} from "@answerloom/types";
 import type { Page } from "playwright";
 
 type BotPageState = {
 	botDetected: boolean;
 	reason: string | null;
+	kind: string | null;
 };
 
 export async function detectBotPage(
@@ -13,12 +18,17 @@ export async function detectBotPage(
 ): Promise<void> {
 	const state = await page
 		.runDomOp<BotPageState>("detect-bot-page")
-		.catch(() => ({ botDetected: false, reason: null }));
+		.catch(() => ({ botDetected: false, reason: null, kind: null }));
 
 	if (state.botDetected) {
-		throw new ExternalServiceError(
+		const kind = CHALLENGE_KIND_LIST.includes(state.kind as ChallengeKind)
+			? (state.kind as ChallengeKind)
+			: "security_check";
+		throw new HumanChallengeError({
 			provider,
-			state.reason ?? "bot detection page detected",
-		);
+			kind,
+			pageUrl: page.url(),
+			message: state.reason ?? "human verification required",
+		});
 	}
 }

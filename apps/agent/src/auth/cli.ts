@@ -1,23 +1,32 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { promisify } from "node:util";
 import {
 	ensureAuthDirectories,
+	findRunningRuntimeProfileProcess,
+	getProviderProfileDir,
 	getReusableIdentityDomainSuffixes,
 	readAuthLaunchSeedState,
 	readPersistedAuthStatus,
 	saveAuthSession,
 	saveReusableIdentitySessions,
+	saveRuntimeProviderAuthSession,
 	uploadAuthSession,
 	writeProviderAuthStatus,
-} from "@oneglanse/services";
-import { AUTH_PROVIDER_LIST, type AuthProvider } from "@oneglanse/types";
+} from "@answerloom/services";
+import {
+	AUTH_PROVIDER_LIST,
+	type AuthProvider,
+	type Provider,
+} from "@answerloom/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getProviderDisplayName,
 	logger,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import {
+	type Browser,
 	type BrowserContext,
 	type Frame,
 	type Page,
@@ -26,6 +35,11 @@ import {
 } from "playwright-core";
 import { resolveCamoufoxLaunchOptions } from "../lib/browser/camoufox.js";
 import { detectDisplay, isWsl } from "../lib/browser/display.js";
+import { getPersistentLaunchOptions } from "../lib/browser/providerSessionManager.js";
+import {
+	fitProviderWindow,
+	normalizeFirefoxWindowStore,
+} from "../lib/browser/windowControl.js";
 
 const AUTH_SNAPSHOT_DEBOUNCE_MS = 250;
 const AUTH_SNAPSHOT_HEARTBEAT_MS = 2_000;
@@ -33,6 +47,12 @@ const AUTH_WINDOW_CLOSE_GRACE_MS = 1_000;
 const SYSTEM_THEME_DETECT_TIMEOUT_MS = 4_000;
 const AUTH_WINDOW_WIDTH = 1280;
 const AUTH_WINDOW_HEIGHT = 900;
+const PERSISTENT_AUTH_PROVIDERS = new Set<AuthProvider>([
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
+]);
 const execFileAsync = promisify(execFile);
 type BrowserLaunchOptions = NonNullable<Parameters<typeof firefox.launch>[0]>;
 type PersistedStorageState = Parameters<typeof saveAuthSession>[1];
@@ -654,6 +674,7 @@ async function waitForAllAuthPagesToClose(
 async function waitForManualBrowserClose(
 	context: BrowserContext,
 	provider: AuthProvider,
+	runtimeProvider: Provider | null,
 ): Promise<void> {
 	const tracker = new AuthSessionTracker(context, provider);
 	tracker.start();
@@ -671,7 +692,9 @@ async function waitForManualBrowserClose(
 		);
 	}
 	await saveReusableIdentitySessions(finalState);
-	const savedState = await saveAuthSession(provider, finalState);
+	const savedState = runtimeProvider
+		? await saveRuntimeProviderAuthSession(runtimeProvider, finalState)
+		: await saveAuthSession(provider, finalState);
 	await uploadAuthSession(provider, savedState);
 	await context.close().catch(() => {});
 }
@@ -686,78 +709,117 @@ async function runAuthLogin(provider: AuthProvider): Promise<void> {
 	ensureAuthDirectories();
 	const authSeedState = await readAuthLaunchSeedState(provider);
 	const playwrightStorageState = toPlaywrightStorageState(authSeedState);
-	const systemDarkMode = await detectSystemDarkMode();
-	const prefersColorSchemeOverride =
-		systemDarkMode === true ? 0 : systemDarkMode === false ? 1 : 2;
-	const systemUsesDarkThemePref =
-		systemDarkMode === true ? 1 : systemDarkMode === false ? 0 : -1;
-	const authDisplay = resolveAuthDisplay();
+	const usePersistentRuntimeProfile = PERSISTENT_AUTH_PROVIDERS.has(provider);
+	const runtimeProfileDir = getProviderProfileDir(browserProvider);
+	if (
+		usePersistentRuntimeProfile &&
+		(await findRunningRuntimeProfileProcess(browserProvider))
+	) {
+		throw new Error(
+			`${AUTH_PROVIDER_DISPLAY[provider].displayName} is already open in the collector. Complete sign-in in that existing window, then resume the waiting verification task.`,
+		);
+	}
+	const shouldSeedPersistentProfile =
+		usePersistentRuntimeProfile &&
+		!existsSync(runtimeProfileDir) &&
+		Boolean(playwrightStorageState);
+	let persistentGeometry:
+		| Awaited<ReturnType<typeof getPersistentLaunchOptions>>["geometry"]
+		| null = null;
+	let browserLaunchOptions: BrowserLaunchOptions;
+	if (usePersistentRuntimeProfile) {
+		const persistentLaunch = await getPersistentLaunchOptions({
+			provider: browserProvider,
+			profileDir: runtimeProfileDir,
+		});
+		persistentGeometry = persistentLaunch.geometry;
+		browserLaunchOptions = {
+			...(persistentLaunch.options as BrowserLaunchOptions),
+			headless: false,
+		};
+	} else {
+		const systemDarkMode = await detectSystemDarkMode();
+		const prefersColorSchemeOverride =
+			systemDarkMode === true ? 0 : systemDarkMode === false ? 1 : 2;
+		const systemUsesDarkThemePref =
+			systemDarkMode === true ? 1 : systemDarkMode === false ? 0 : -1;
+		const launchOptions = await resolveCamoufoxLaunchOptions({
+			display: resolveAuthDisplay(),
+			provider: browserProvider,
+			headlessMode: "headful",
+			plainAuthMode: true,
+			disableFingerprinting: true,
+			// OAuth pages need stock Firefox rendering rather than Camoufox's
+			// privacy add-ons and generated system-color preferences.
+			disableDefaultAddons: true,
+		});
+		browserLaunchOptions = {
+			...(launchOptions as BrowserLaunchOptions),
+			args: buildAuthLaunchArgs(launchOptions.args),
+			headless: false,
+			firefoxUserPrefs: {
+				...(launchOptions.firefoxUserPrefs as Record<string, unknown>),
+				"ui.use_standins_for_native_colors": false,
+				"ui.systemUsesDarkTheme": systemUsesDarkThemePref,
+				"extensions.activeThemeID": "default-theme@mozilla.org",
+				"layout.css.prefers-color-scheme.content-override":
+					prefersColorSchemeOverride,
+				"privacy.resistFingerprinting": false,
+			},
+		};
+	}
 
-	const launchOptions = await resolveCamoufoxLaunchOptions({
-		display: authDisplay,
-		provider: browserProvider,
-		headlessMode: "headful",
-		humanize: false,
-		plainAuthMode: true,
-		disableFingerprinting: true,
-		// Disable Camoufox's default privacy addons for the auth browser.
-		// Those addons can modify CSS rendering (e.g. block external stylesheets,
-		// alter color-scheme), causing Google/OAuth pages to render incorrectly
-		// (white button backgrounds, broken layout). The auth browser should look
-		// and behave exactly like a stock Firefox.
-		disableDefaultAddons: true,
-	});
-
-	const browser = await firefox.launch({
-		...(launchOptions as BrowserLaunchOptions),
-		args: buildAuthLaunchArgs(launchOptions.args),
-		headless: false,
-		// Re-apply auth-critical prefs HERE, after Camoufox's Python launch_options
-		// has already merged its own generated prefs into firefoxUserPrefs. We have
-		// no control over the merge order inside Python — Camoufox can override our
-		// camoufox.ts-level value with its own. Spreading them last at the Playwright
-		// level guarantees they win regardless of what Camoufox produced.
-		firefoxUserPrefs: {
-			...(launchOptions.firefoxUserPrefs as Record<string, unknown>),
-			// All prefs below are spread AFTER Camoufox's Python-merged prefs so they
-			// unconditionally win, regardless of what Camoufox generated.
-
-			// camoufox.cfg bakes in ui.use_standins_for_native_colors=true, which
-			// replaces CSS system colors (Window, ButtonFace, -moz-Dialog, etc.) with
-			// neutral white standins. Any element using system colors — including
-			// the Google sign-in container — renders white instead of the real OS
-			// color. Disabling this restores true system color rendering.
-			"ui.use_standins_for_native_colors": false,
-
-			// Use an explicit host theme value when we can detect it. Firefox's
-			// automatic system-theme detection can be unreliable in local auth
-			// environments, which leaves some sites with mixed dark/light surfaces.
-			"ui.systemUsesDarkTheme": systemUsesDarkThemePref,
-
-			// Reset to Firefox's default theme — camoufox.cfg forces compact-dark.
-			"extensions.activeThemeID": "default-theme@mozilla.org",
-
-			// Match website appearance to the explicit host theme when available
-			// instead of relying on Firefox/Camoufox auto-detection.
-			// Values: 0 = Dark, 1 = Light, 2 = System
-			"layout.css.prefers-color-scheme.content-override":
-				prefersColorSchemeOverride,
-
-			// RFP unconditionally forces prefers-color-scheme to light and overrides
-			// the content-override pref above. Keep disabled for auth.
-			"privacy.resistFingerprinting": false,
-		},
-	});
-	const context = await browser.newContext({
-		viewport: isWsl()
-			? { width: AUTH_WINDOW_WIDTH, height: AUTH_WINDOW_HEIGHT }
-			: null,
-		...(playwrightStorageState ? { storageState: playwrightStorageState } : {}),
-	});
+	let browser: Browser | null = null;
+	let context: BrowserContext;
+	if (usePersistentRuntimeProfile) {
+		if (!persistentGeometry) {
+			throw new Error("Persistent provider window geometry is unavailable.");
+		}
+		await normalizeFirefoxWindowStore(runtimeProfileDir, persistentGeometry);
+		context = await firefox.launchPersistentContext(runtimeProfileDir, {
+			...browserLaunchOptions,
+			viewport: isWsl()
+				? { width: AUTH_WINDOW_WIDTH, height: AUTH_WINDOW_HEIGHT }
+				: null,
+		});
+		if (shouldSeedPersistentProfile && playwrightStorageState) {
+			await context.addCookies(playwrightStorageState.cookies);
+			await context.addInitScript((origins) => {
+				const match = origins.find((entry) => entry.origin === location.origin);
+				for (const item of match?.localStorage ?? []) {
+					localStorage.setItem(item.name, item.value);
+				}
+			}, playwrightStorageState.origins);
+		}
+		if (process.platform === "darwin" || process.platform === "win32") {
+			const observed = await fitProviderWindow(
+				runtimeProfileDir,
+				persistentGeometry,
+			);
+			if (!observed) {
+				await context.close().catch(() => {});
+				throw new Error(
+					`Could not fit the persistent ${browserProvider} window to ${persistentGeometry.width}x${persistentGeometry.height} at ${persistentGeometry.x},${persistentGeometry.y}.`,
+				);
+			}
+		}
+	} else {
+		browser = await firefox.launch(browserLaunchOptions);
+		context = await browser.newContext({
+			viewport: isWsl()
+				? { width: AUTH_WINDOW_WIDTH, height: AUTH_WINDOW_HEIGHT }
+				: null,
+			...(playwrightStorageState
+				? { storageState: playwrightStorageState }
+				: {}),
+		});
+	}
 	attachAuthDebugLogging(context, provider);
 
 	try {
-		const page = await context.newPage();
+		const page = usePersistentRuntimeProfile
+			? (context.pages()[0] ?? (await context.newPage()))
+			: await context.newPage();
 		logger.debug(
 			`[auth:${provider}] using primary page url=${page.url() || "about:blank"}`,
 		);
@@ -765,7 +827,11 @@ async function runAuthLogin(provider: AuthProvider): Promise<void> {
 			waitUntil: "domcontentloaded",
 			timeout: 30_000,
 		});
-		await waitForManualBrowserClose(context, provider);
+		await waitForManualBrowserClose(
+			context,
+			provider,
+			usePersistentRuntimeProfile ? browserProvider : null,
+		);
 	} catch (error) {
 		await writeProviderAuthStatus(provider, {
 			connecting: false,
@@ -775,11 +841,11 @@ async function runAuthLogin(provider: AuthProvider): Promise<void> {
 			launcherPid: null,
 		});
 		await context.close().catch(() => {});
-		await browser.close().catch(() => {});
+		await browser?.close().catch(() => {});
 		throw error;
 	}
 
-	await browser.close().catch(() => {});
+	await browser?.close().catch(() => {});
 }
 
 const provider = parseProviderArg(process.argv.slice(2));

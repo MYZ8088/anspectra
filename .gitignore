@@ -57,3 +57,8 @@ CODEBASE_MEMORY.md
 # Test / scratch data
 mockData/
 llm_results.json
+
+.answerloom-storage/
+
+# Local reference repositories
+external/

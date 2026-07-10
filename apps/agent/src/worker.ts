@@ -1,56 +1,64 @@
-import { getProviderQueue, getQueueName, redis, waitForRedis } from "@oneglanse/services";
-import { PROVIDER_LIST } from "@oneglanse/types";
-import { logger } from "@oneglanse/utils";
+import {
+	dispatchDueRetestExperiments,
+	dispatchScheduledGeoRuns,
+	getProviderQueue,
+	getQueueName,
+	redis,
+	waitForRedis,
+} from "@answerloom/services";
+import { PROVIDER_LIST } from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 import { Worker } from "bullmq";
 import { env } from "./env.js";
+import { focusProviderSession } from "./lib/browser/providerSessionManager.js";
 import { runWithProviderExecutionGate } from "./worker/executionGate.js";
 import { handleJob, stopActiveProviderRun } from "./worker/jobHandler.js";
 
 // Exported so index.ts can call worker.close() during graceful shutdown.
 export let workers: Worker[] = [];
 const WORKER_LOCK_DURATION_MS = 4 * 60 * 60 * 1000;
-const PROVIDER_STOP_CHANNEL = "oneglanse:agent:provider-stop";
-
-async function drainQueues() {
-	// Remove any waiting or active jobs left over from a previous run that was
-	// killed before its jobs could complete. Without this, BullMQ's stall-check
-	// would re-queue those jobs on startup and re-run providers the user never
-	// explicitly triggered in this session.
-	await Promise.all(
-		PROVIDER_LIST.map(async (provider) => {
-			try {
-				const queue = getProviderQueue(provider);
-				await queue.waitUntilReady();
-				// drain() removes all waiting/delayed jobs
-				await queue.drain();
-				// clean() removes any jobs stuck in active state from the prior process
-				await queue.clean(0, 1000, "active");
-			} catch {
-				// Non-fatal: if a queue can't be drained, log and continue
-				logger.warn(`[agent] could not drain queue for ${provider} on startup`);
-			}
-		}),
-	);
-	logger.log("[agent] Queues drained — clean slate for this session.");
-}
+const PROVIDER_STOP_CHANNEL = "answerloom:agent:provider-stop";
+const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
 
 async function startWorkers() {
 	await waitForRedis();
-	await drainQueues();
+	const writeHeartbeat = async () => {
+		await redis.set(
+			"answerloom:agent:heartbeat",
+			new Date().toISOString(),
+			"EX",
+			90,
+		);
+	};
+	await writeHeartbeat();
+	setInterval(() => void writeHeartbeat().catch(() => null), 30_000).unref();
+	await dispatchDueRetestExperiments().catch(() => 0);
+	await dispatchScheduledGeoRuns().catch(() => 0);
+	setInterval(() => {
+		void dispatchDueRetestExperiments()
+			.catch(() => 0)
+			.then(() => dispatchScheduledGeoRuns())
+			.catch(() => 0);
+	}, 60_000).unref();
 	const stopSubscriber = redis.duplicate();
 	await stopSubscriber.connect();
 	await stopSubscriber.subscribe(PROVIDER_STOP_CHANNEL);
+	await stopSubscriber.subscribe(PROVIDER_WINDOW_CHANNEL);
 	stopSubscriber.on("message", (channel, message) => {
-		if (channel !== PROVIDER_STOP_CHANNEL) return;
 		void (async () => {
 			try {
 				const payload = JSON.parse(message) as {
 					jobGroupId?: string;
 					provider?: (typeof PROVIDER_LIST)[number];
 				};
-				if (!payload.jobGroupId || !payload.provider) {
+				if (!payload.provider) {
 					return;
 				}
+				if (channel === PROVIDER_WINDOW_CHANNEL) {
+					await focusProviderSession(payload.provider);
+					return;
+				}
+				if (channel !== PROVIDER_STOP_CHANNEL || !payload.jobGroupId) return;
 				await stopActiveProviderRun({
 					jobGroupId: payload.jobGroupId,
 					provider: payload.provider,
@@ -97,7 +105,7 @@ async function startWorkers() {
 		});
 
 		logger.log(
-			`[agent] provider worker started → queue: ${queueName} (concurrency=1, global_limit=1)`,
+			`[agent] provider worker started → queue: ${queueName} (concurrency=1, global_limit=2)`,
 		);
 		return worker;
 	});

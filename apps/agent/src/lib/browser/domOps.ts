@@ -1,4 +1,4 @@
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 import type { Page as PlaywrightPage } from "playwright-core";
 import { PROVIDER_RAW_SOURCES_DOM_EXTRACTORS } from "../../core/providers/_shared/rawSourcesDom.js";
 
@@ -157,16 +157,18 @@ export async function runPageDomOp<T>(
 				title: string;
 				citedText: string;
 			}> | null {
-				const cache = (window as typeof window & {
-					__oneglanseRawSourcesCache?: Record<
-						string,
-						Array<{
-							rawHref: string;
-							title: string;
-							citedText: string;
-						}>
-					>;
-				}).__oneglanseRawSourcesCache;
+				const cache = (
+					window as typeof window & {
+						__answerloomRawSourcesCache?: Record<
+							string,
+							Array<{
+								rawHref: string;
+								title: string;
+								citedText: string;
+							}>
+						>;
+					}
+				).__answerloomRawSourcesCache;
 
 				return cache?.[key] ?? null;
 			}
@@ -180,7 +182,7 @@ export async function runPageDomOp<T>(
 				}>,
 			): void {
 				const state = window as typeof window & {
-					__oneglanseRawSourcesCache?: Record<
+					__answerloomRawSourcesCache?: Record<
 						string,
 						Array<{
 							rawHref: string;
@@ -189,11 +191,13 @@ export async function runPageDomOp<T>(
 						}>
 					>;
 				};
-				state.__oneglanseRawSourcesCache ||= {};
-				state.__oneglanseRawSourcesCache[key] = rawSources;
+				state.__answerloomRawSourcesCache ||= {};
+				state.__answerloomRawSourcesCache[key] = rawSources;
 			}
 
-			function extractClaudeRawSourcesFromResponseElement(responseEl: HTMLElement) {
+			function extractClaudeRawSourcesFromResponseElement(
+				responseEl: HTMLElement,
+			) {
 				const normalize = (text: string) => text.replace(/\s+/g, " ").trim();
 
 				const getTextBeforeAnchor = (anchor: HTMLElement) => {
@@ -227,13 +231,14 @@ export async function runPageDomOp<T>(
 				return Array.from(responseEl.querySelectorAll('a[href^="http"]'))
 					.map((anchor) => {
 						const link = anchor as HTMLAnchorElement;
-						const anchorElement =
-							anchor instanceof HTMLElement ? anchor : null;
+						const anchorElement = anchor instanceof HTMLElement ? anchor : null;
 
 						return {
 							rawHref: link.href,
 							title: (anchor.textContent || "").trim() || link.href,
-							citedText: anchorElement ? getTextBeforeAnchor(anchorElement) : "",
+							citedText: anchorElement
+								? getTextBeforeAnchor(anchorElement)
+								: "",
 						};
 					})
 					.filter((source) => source.rawHref);
@@ -245,9 +250,7 @@ export async function runPageDomOp<T>(
 			) {
 				if (!extractorSource.trim()) return [];
 
-				const extractor = Function(
-					`return (${extractorSource});`,
-				)() as (
+				const extractor = Function(`return (${extractorSource});`)() as (
 					helpers: {
 						getCachedRawSources: typeof getCachedRawSources;
 						setCachedRawSources: typeof setCachedRawSources;
@@ -268,8 +271,13 @@ export async function runPageDomOp<T>(
 				);
 			}
 
-			function readResponseText(_provider: string, selectors: string[]): string {
-				return findLatestResponseElement(selectors)?.element.innerText.trim() || "";
+			function readResponseText(
+				_provider: string,
+				selectors: string[],
+			): string {
+				return (
+					findLatestResponseElement(selectors)?.element.innerText.trim() || ""
+				);
 			}
 
 			function isCitationAnchor(anchor: HTMLAnchorElement): boolean {
@@ -281,7 +289,12 @@ export async function runPageDomOp<T>(
 				// normal link text like "Read more" or "Learn more".
 				// Allows "site.com", "sub.site.com", "emailtooltester.com+3" (Perplexity "+N" suffix).
 				// No spaces — domains never have spaces.
-				if (/^[a-z0-9.\-+]+$/i.test(text) && text.includes(".") && text.length < 40) return true;
+				if (
+					/^[a-z0-9.\-+]+$/i.test(text) &&
+					text.includes(".") &&
+					text.length < 40
+				)
+					return true;
 				return false;
 			}
 
@@ -397,6 +410,7 @@ export async function runPageDomOp<T>(
 			function detectBotPageState(): {
 				botDetected: boolean;
 				reason: string | null;
+				kind: string | null;
 			} {
 				const bodyText = (document.body?.innerText || "")
 					.replace(/\s+/g, " ")
@@ -404,18 +418,45 @@ export async function runPageDomOp<T>(
 				const title = (document.title || "").trim();
 				const url = window.location.href;
 
-				const signals: Array<{ matched: boolean; reason: string }> = [
+				const signals: Array<{
+					matched: boolean;
+					reason: string;
+					kind: string;
+				}> = [
+					{
+						matched:
+							/请选择所有符合|拖拽到下方|图片验证码|图形验证码/i.test(
+								bodyText,
+							) || Boolean(document.querySelector('iframe[src*="captcha"]')),
+						reason: "human challenge: image captcha",
+						kind: "captcha",
+					},
+					{
+						matched: /滑块|拖动.*验证|slide.*verify/i.test(bodyText),
+						reason: "human challenge: slider verification",
+						kind: "slider",
+					},
+					{
+						matched:
+							/scan (?:the )?qr|scan with wechat|请使用微信扫码|扫码登录|微信.*登录/i.test(
+								bodyText,
+							),
+						reason: "human challenge: QR login required",
+						kind: "qr_login",
+					},
 					{
 						matched:
 							/sorry/i.test(url) ||
 							/our systems have detected unusual traffic/i.test(bodyText),
 						reason: "bot detection: unusual traffic / sorry page",
+						kind: "security_check",
 					},
 					{
 						matched: /captcha|recaptcha|turnstile|verify you are human/i.test(
 							bodyText,
 						),
 						reason: "bot detection: captcha or human verification challenge",
+						kind: "captcha",
 					},
 					{
 						matched:
@@ -425,6 +466,7 @@ export async function runPageDomOp<T>(
 								),
 							) || /challenge/i.test(title),
 						reason: "bot detection: challenge UI present",
+						kind: "security_check",
 					},
 					{
 						matched:
@@ -432,13 +474,23 @@ export async function runPageDomOp<T>(
 								url,
 							),
 						reason: "session expired: redirected to login page",
+						kind: "login_required",
 					},
 					{
 						matched:
-							/sign in to continue|you('ve| have) been signed out|create a free account|log in to continue|sign in to (?:chat|use|access)|please (?:sign|log) in/i.test(
+							/sign in to continue|you('ve| have) been signed out|create a free account|log in to continue|sign in to (?:chat|use|access)|please (?:sign|log) in|not logged in|未登录|请先登录/i.test(
 								bodyText,
 							),
 						reason: "session expired: login wall detected",
+						kind: "login_required",
+					},
+					{
+						matched:
+							/region.?ban|not available in your region|地区.*不可用/i.test(
+								`${url} ${bodyText}`,
+							),
+						reason: "human challenge: region access blocked",
+						kind: "region_block",
 					},
 				];
 
@@ -446,6 +498,7 @@ export async function runPageDomOp<T>(
 				return {
 					botDetected: Boolean(hit),
 					reason: hit?.reason ?? null,
+					kind: hit?.kind ?? null,
 				};
 			}
 

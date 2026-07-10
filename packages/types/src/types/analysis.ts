@@ -13,6 +13,13 @@ export interface AnalysisInputSingle {
 	brandName: string;
 	response: string;
 	prompt: string;
+	sources?: Source[];
+	facts?: Array<{
+		claim: string;
+		sourceUrl?: string | null;
+		evidenceGrade?: "A" | "B" | "C" | "D" | null;
+		status?: string;
+	}>;
 }
 
 export interface BrandAnalysisResult {
@@ -98,7 +105,52 @@ export interface BrandAnalysisResult {
 	risks: {
 		items: {
 			severity: "critical" | "warning" | "info";
+			type?:
+				| "outdated_info"
+				| "factual_error"
+				| "brand_confusion"
+				| "negative_association"
+				| "missing_from_response";
+			claim?: string;
+			correction?: string | null;
 		}[];
+	};
+
+	/** Six independent GEO layers. Null means this sample cannot assess the layer. */
+	scorecard: {
+		visibility: { score: number; numerator: number; denominator: number };
+		factuality: {
+			score: number | null;
+			reviewedClaims: number;
+			accurateClaims: number;
+			errors: Array<{
+				claim: string;
+				severity: "critical" | "warning" | "info";
+				correction: string | null;
+			}>;
+		};
+		evidence: {
+			score: number;
+			visibleCitations: number;
+			supportedClaims: number;
+			unsupportedClaims: number;
+		};
+		stability: {
+			score: number | null;
+			comparableSamples: number;
+			consistentSamples: number;
+			note: string;
+		};
+		competition: {
+			score: number;
+			targetShare: number;
+			competitorShare: number;
+		};
+		governanceAttribution: {
+			score: number;
+			confidence: "low" | "medium" | "high";
+			caveats: string[];
+		};
 	};
 }
 

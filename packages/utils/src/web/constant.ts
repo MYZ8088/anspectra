@@ -1,7 +1,10 @@
-import { PROVIDER_LIST } from "@oneglanse/types";
+import { PROVIDER_LIST } from "@answerloom/types";
 import { PROVIDER_DISPLAY } from "../agent/providers.js";
 
 export const modelSelectors = [
 	{ value: "All Models", label: "All Models" },
-	...PROVIDER_LIST.map((p) => ({ value: p, label: PROVIDER_DISPLAY[p].displayName })),
+	...PROVIDER_LIST.map((p) => ({
+		value: p,
+		label: PROVIDER_DISPLAY[p].displayName,
+	})),
 ];

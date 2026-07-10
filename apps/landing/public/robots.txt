@@ -34,5 +34,3 @@ Allow: /
 
 User-agent: FacebookBot
 Allow: /
-
-Sitemap: https://oneglanse.com/sitemap.xml

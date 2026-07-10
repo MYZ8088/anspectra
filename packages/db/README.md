@@ -1,4 +1,4 @@
-# @oneglanse/db
+# @answerloom/db
 
 Database package containing schema definitions, environment validation, and client instances for PostgreSQL and ClickHouse.
 
@@ -33,12 +33,12 @@ From `src/index.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/db build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/db typecheck` | TypeScript checks |
-| `pnpm --filter @oneglanse/db db:generate` | Generate migration files |
-| `pnpm --filter @oneglanse/db db:migrate` | Run migrations |
-| `pnpm --filter @oneglanse/db db:push` | Push schema directly |
-| `pnpm --filter @oneglanse/db db:studio` | Open Drizzle Studio |
+| `pnpm --filter @answerloom/db build` | Compile TypeScript |
+| `pnpm --filter @answerloom/db typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/db db:generate` | Generate migration files |
+| `pnpm --filter @answerloom/db db:migrate` | Run migrations |
+| `pnpm --filter @answerloom/db db:push` | Push schema directly |
+| `pnpm --filter @answerloom/db db:studio` | Open Drizzle Studio |
 
 ## Environment Variables
 
@@ -55,7 +55,7 @@ Validated in `src/env.ts`:
 ## Usage
 
 ```ts
-import { db, clickhouse, schema } from "@oneglanse/db";
+import { db, clickhouse, schema } from "@answerloom/db";
 ```
 
 Use this package as the only DB boundary for app/service code.

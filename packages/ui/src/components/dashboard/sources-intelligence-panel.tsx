@@ -7,7 +7,7 @@ import {
 	getFaviconUrls,
 	getModelFavicon,
 	getUrlPath,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import {
 	BarChart3,
 	ChevronRight,

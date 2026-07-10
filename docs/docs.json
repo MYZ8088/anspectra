@@ -1,7 +1,7 @@
 {
 	"$schema": "https://mintlify.com/docs.json",
 	"theme": "mint",
-	"name": "OneGlanse",
+	"name": "AnswerLoom",
 	"favicon": "/images/logo-dark.png",
 	"thumbnail": "/images/Mockup-1.png",
 	"colors": {

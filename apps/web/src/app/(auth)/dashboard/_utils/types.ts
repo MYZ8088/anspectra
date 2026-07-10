@@ -1,8 +1,8 @@
-import type { AnalysisRecord } from "@oneglanse/types";
+import type { AnalysisRecord } from "@answerloom/types";
 import type {
 	DashboardCompetitorData as CompetitorData,
 	DashboardSourceData as SourceData,
-} from "@oneglanse/ui";
+} from "@answerloom/ui";
 
 export type { CompetitorData, SourceData };
 

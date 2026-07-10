@@ -1,9 +1,13 @@
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 import { aiOverviewConfig } from "./ai-overview/index.js";
 import { chatgptConfig } from "./chatgpt/index.js";
 import { claudeConfig } from "./claude/index.js";
+import { deepseekConfig } from "./deepseek/index.js";
+import { doubaoConfig } from "./doubao/index.js";
 import { geminiConfig } from "./gemini/index.js";
+import { hunyuanConfig } from "./hunyuan/index.js";
 import { perplexityConfig } from "./perplexity/index.js";
+import { qwenConfig } from "./qwen/index.js";
 import type { ProviderConfig } from "./types.js";
 
 /**
@@ -21,5 +25,9 @@ export const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
 	chatgpt: chatgptConfig,
 	perplexity: perplexityConfig,
 	claude: claudeConfig,
+	deepseek: deepseekConfig,
+	doubao: doubaoConfig,
+	hunyuan: hunyuanConfig,
+	qwen: qwenConfig,
 	"ai-overview": aiOverviewConfig,
 };

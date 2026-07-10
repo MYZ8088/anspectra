@@ -8,11 +8,14 @@ const geist = Geist({
 	variable: "--font-geist-sans",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+const repositoryUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
+
 export const metadata: Metadata = {
-	metadataBase: new URL("https://oneglanse.com"),
-	title: "OneGlanse | Open-source GEO & AI Visibility Tracker",
+	metadataBase: new URL(siteUrl),
+	title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
 	description:
-		"OneGlanse is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+		"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
 	keywords: [
 		"GEO",
 		"generative engine optimization",
@@ -28,10 +31,10 @@ export const metadata: Metadata = {
 		"LLM visibility",
 		"AI search optimization",
 		"AI mention tracking",
-		"oneglanse",
+		"answerloom",
 	],
 	alternates: {
-		canonical: "https://oneglanse.com",
+		canonical: siteUrl,
 	},
 	icons: {
 		icon: [
@@ -60,26 +63,26 @@ export const metadata: Metadata = {
 		],
 	},
 	openGraph: {
-		title: "OneGlanse | Open-source GEO & AI Visibility Tracker",
+		title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
 		description:
-			"OneGlanse is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
-		url: "https://oneglanse.com",
-		siteName: "OneGlanse",
+			"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+		url: siteUrl,
+		siteName: "AnswerLoom",
 		type: "website",
 		images: [
 			{
 				url: "/opengraph-image",
 				width: 1200,
 				height: 630,
-				alt: "OneGlanse open-source AI visibility tracking",
+				alt: "AnswerLoom open-source AI visibility tracking",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "OneGlanse | Open-source GEO & AI Visibility Tracker",
+		title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
 		description:
-			"OneGlanse is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+			"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
 		images: ["/twitter-image"],
 	},
 };
@@ -87,8 +90,8 @@ export const metadata: Metadata = {
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
-	name: "OneGlanse",
-	url: "https://oneglanse.com",
+	name: "AnswerLoom",
+	url: siteUrl,
 	description:
 		"Open-source GEO and AI visibility tracking platform. Monitors how brands appear in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview using real browser automation.",
 	applicationCategory: "BusinessApplication",
@@ -98,13 +101,13 @@ const jsonLd = {
 		price: "0",
 		priceCurrency: "USD",
 	},
-	license: "https://github.com/aryamantodkar/oneglanse/blob/main/LICENSE",
-	codeRepository: "https://github.com/aryamantodkar/oneglanse",
+	license: "MIT",
+	...(repositoryUrl ? { codeRepository: repositoryUrl } : {}),
 	author: {
 		"@type": "Organization",
-		name: "OneGlanse",
-		url: "https://oneglanse.com",
-		sameAs: ["https://github.com/aryamantodkar/oneglanse"],
+		name: "AnswerLoom",
+		url: siteUrl,
+		...(repositoryUrl ? { sameAs: [repositoryUrl] } : {}),
 	},
 	keywords:
 		"GEO, generative engine optimization, AI visibility, AI tracking, ChatGPT tracking, open source, self-hosted",

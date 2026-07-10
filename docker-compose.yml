@@ -1,19 +1,20 @@
-name: oneglanse-app
+name: answerloom
 
 services:
   # ----------------------------
   # Agent Worker
   # ----------------------------
   agent-worker:
+    profiles: ["container-collector"]
     build:
       context: .
       dockerfile: ./apps/agent/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-        CAMOUFOX_PIP_SPEC: "${CAMOUFOX_PIP_SPEC:-cloverlabs-camoufox[geoip]}"
-        CAMOUFOX_BROWSER_CHANNEL: "${CAMOUFOX_BROWSER_CHANNEL:-official/stable}"
-    image: ${ONEGLANSE_AGENT_IMAGE:-ghcr.io/aryamantodkar/oneglanse-agent:latest}
-    container_name: oneglanse-agent-worker
+        CAMOUFOX_PIP_SPEC: "${CAMOUFOX_PIP_SPEC:-cloverlabs-camoufox[geoip]==0.5.5}"
+        CAMOUFOX_BROWSER_CHANNEL: "${CAMOUFOX_BROWSER_CHANNEL:-official/stable/135.0.1-beta.24}"
+    image: ${ANSWERLOOM_AGENT_IMAGE:-answerloom/collector:local}
+    container_name: answerloom-collector
     restart: unless-stopped
     stop_grace_period: 16m
     shm_size: "2gb"
@@ -21,11 +22,11 @@ services:
       - .env
     environment:
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-oneglanse}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ONEGLANSE_STORAGE_ROOT:-/opt/oneglanse/storage}:/storage
+      - ${ANSWERLOOM_STORAGE_ROOT:-/opt/answerloom/storage}:/storage
     ports:
       - "3333:3333"
     depends_on:
@@ -61,7 +62,7 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
-    container_name: redis
+    container_name: answerloom-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -89,15 +90,15 @@ services:
     build:
       context: .
       dockerfile: ./packages/db/Dockerfile
-    image: ${ONEGLANSE_POSTGRES_IMAGE:-ghcr.io/aryamantodkar/oneglanse-postgres:latest}
-    container_name: postgres_db
+    image: ${ANSWERLOOM_POSTGRES_IMAGE:-answerloom/postgres:local}
+    container_name: answerloom-postgres
     restart: always
     command:
       - postgres
       - -c
       - shared_preload_libraries=pg_cron
       - -c
-      - cron.database_name=${POSTGRES_DB:-oneglanse}
+      - cron.database_name=${POSTGRES_DB:-answerloom}
     env_file:
       - .env
     volumes:
@@ -116,7 +117,7 @@ services:
           cpus: '0.25'
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-oneglanse}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-answerloom}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -126,7 +127,7 @@ services:
   # ----------------------------
   clickhouse:
     image: clickhouse/clickhouse-server:latest
-    container_name: clickhouse_db
+    container_name: answerloom-clickhouse
     restart: unless-stopped
     env_file:
       - .env
@@ -161,8 +162,8 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ONEGLANSE_WEB_IMAGE:-ghcr.io/aryamantodkar/oneglanse-web:latest}
-    container_name: oneglanse-web
+    image: ${ANSWERLOOM_WEB_IMAGE:-answerloom/web:local}
+    container_name: answerloom-web
     restart: unless-stopped
     env_file:
       - .env
@@ -170,11 +171,11 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-oneglanse}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ONEGLANSE_STORAGE_ROOT:-/opt/oneglanse/storage}:/storage:ro
+      - ${ANSWERLOOM_STORAGE_ROOT:-/opt/answerloom/storage}:/storage:ro
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -209,12 +210,12 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ONEGLANSE_WEB_IMAGE:-ghcr.io/aryamantodkar/oneglanse-web:latest}
-    container_name: oneglanse-migrate
+    image: ${ANSWERLOOM_WEB_IMAGE:-answerloom/web:local}
+    container_name: answerloom-migrate
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-oneglanse}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
     depends_on:
       db:
         condition: service_healthy
@@ -222,20 +223,23 @@ services:
     working_dir: /workspace
     networks:
       - data
-    command: pnpm --filter @oneglanse/db db:migrate
+    command: pnpm --filter @answerloom/db db:migrate
 
 # ----------------------------
 # Volumes
 # ----------------------------
 volumes:
   db_data:
+    name: answerloom-db-data
   clickhouse_data:
+    name: answerloom-clickhouse-data
   redis_data:
+    name: answerloom-redis-data
 
 networks:
   edge:
     external: true
-    name: oneglanse-edge
+    name: answerloom-edge
   frontend:
     driver: bridge
   backend:

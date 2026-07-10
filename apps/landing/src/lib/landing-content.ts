@@ -11,17 +11,19 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-const githubRepoUrl =
-	process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() ||
-	"https://github.com/aryamantodkar/oneglanse";
+const githubRepoUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
+const landingUrl =
+	process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3001";
+const appUrl =
+	process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
 
 export const SITE_URLS = {
 	github: githubRepoUrl,
-	githubLicense: `${githubRepoUrl}/blob/main/LICENSE`,
-	signup: "https://oneglanse.com/signup",
-	login: "https://oneglanse.com/login",
-	docs: "https://docs.oneglanse.com/",
-	homepage: "https://oneglanse.com",
+	githubLicense: githubRepoUrl ? `${githubRepoUrl}/blob/main/LICENSE` : null,
+	signup: `${appUrl}/signup`,
+	login: `${appUrl}/login`,
+	docs: process.env.NEXT_PUBLIC_DOCS_URL?.trim() || `${landingUrl}/docs`,
+	homepage: landingUrl,
 } as const;
 
 type FeatureItem = {
@@ -77,7 +79,7 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 	},
 ];
 
-export const STORAGE_KEY = "oneglanse-landing-theme" as const;
+export const STORAGE_KEY = "answerloom-landing-theme" as const;
 
 export const METHOD_POINTS = [
 	"All five providers are monitored through their real web UIs: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. They are not monitored through model APIs.",
@@ -112,6 +114,10 @@ export const OPEN_SOURCE_POINTS: Array<{ text: string; icon: LucideIcon }> = [
 
 export const FOOTER_LINKS = [
 	{ label: "Docs", href: SITE_URLS.docs },
-	{ label: "GitHub", href: SITE_URLS.github },
-	{ label: "License", href: SITE_URLS.githubLicense },
-] as const;
+	...(SITE_URLS.github
+		? [{ label: "GitHub", href: SITE_URLS.github }]
+		: []),
+	...(SITE_URLS.githubLicense
+		? [{ label: "License", href: SITE_URLS.githubLicense }]
+		: []),
+];

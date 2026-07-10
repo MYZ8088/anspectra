@@ -1,7 +1,11 @@
-import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
-import type { Provider, Source } from "@oneglanse/types";
+import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
+import type { Provider, Source } from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 import type { Page } from "playwright";
-import { logger } from "@oneglanse/utils";
+import {
+	buildSources,
+	extractVisibleUrlCandidates,
+} from "../../lib/extraction/sourceUtils.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
 
 function shouldRetrySourceExtraction(err: unknown): boolean {
@@ -18,6 +22,7 @@ function shouldRetrySourceExtraction(err: unknown): boolean {
 export async function checkAndExtractSources(
 	page: Page,
 	provider: Provider,
+	responseText = "",
 ): Promise<Source[]> {
 	let sources: Source[] = [];
 
@@ -35,7 +40,18 @@ export async function checkAndExtractSources(
 		sources = [];
 	}
 
-	return sources;
+	const responseSources = buildSources(extractVisibleUrlCandidates(responseText), {
+		provider,
+	});
+	const seenUrls = new Set(sources.map((source) => source.url));
+	return [
+		...sources,
+		...responseSources.filter((source) => {
+			if (seenUrls.has(source.url)) return false;
+			seenUrls.add(source.url);
+			return true;
+		}),
+	];
 }
 
 async function extractSourcesFromPanel(

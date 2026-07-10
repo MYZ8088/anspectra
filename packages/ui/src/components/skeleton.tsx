@@ -1,4 +1,4 @@
-import { cn } from "@oneglanse/utils";
+import { cn } from "@answerloom/utils";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 	return (

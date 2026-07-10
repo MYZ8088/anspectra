@@ -5,8 +5,8 @@ import {
 	formatMarkdown,
 	getModelFavicon,
 	getProviderDisplayName,
-} from "@oneglanse/utils";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/utils";
+import { cn } from "@answerloom/utils";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { PositionMetricCell, SentimentMetricCell } from "../cell.js";

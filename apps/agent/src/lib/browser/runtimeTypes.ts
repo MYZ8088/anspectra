@@ -83,16 +83,16 @@ export interface Locator {
 	filter(options: LocatorFilterOptions): Locator;
 	getByText(text: string | RegExp): Locator;
 	isVisible(options?: { timeout?: number }): Promise<boolean>;
-	isEnabled(): Promise<boolean>;
-	focus(): Promise<void>;
-	boundingBox(): Promise<BoundingBox | null>;
-	scrollIntoViewIfNeeded(): Promise<void>;
+	isEnabled(options?: { timeout?: number }): Promise<boolean>;
+	focus(options?: { timeout?: number }): Promise<void>;
+	boundingBox(options?: { timeout?: number }): Promise<BoundingBox | null>;
+	scrollIntoViewIfNeeded(options?: { timeout?: number }): Promise<void>;
 	click(options?: ClickOptions): Promise<void>;
 	press(key: string, options?: KeyboardPressOptions): Promise<void>;
 	waitFor(options?: WaitForOptions): Promise<void>;
-	readInputValue(): Promise<string>;
-	setInputValue(value: string): Promise<void>;
-	getEditableState(): Promise<ElementEditableState>;
+	readInputValue(options?: { timeout?: number }): Promise<string>;
+	setInputValue(value: string, options?: { timeout?: number }): Promise<void>;
+	getEditableState(options?: { timeout?: number }): Promise<ElementEditableState>;
 	dispatchClick(): Promise<void>;
 }
 
@@ -123,7 +123,11 @@ export interface Page {
 	viewportSize(): PageViewportSize | null;
 	runDomOp<T>(operation: string, params?: unknown): Promise<T>;
 	ping(): Promise<boolean>;
-	screenshot(options?: { type?: "jpeg" | "png"; quality?: number; fullPage?: boolean }): Promise<Buffer>;
+	screenshot(options?: {
+		type?: "jpeg" | "png";
+		quality?: number;
+		fullPage?: boolean;
+	}): Promise<Buffer>;
 	mouse: Mouse;
 	keyboard: Keyboard;
 }
@@ -132,10 +136,27 @@ export type StorageStateOptions = {
 	path?: string;
 };
 
+export type BrowserStorageState = {
+	cookies: Array<{
+		name: string;
+		value: string;
+		domain: string;
+		path: string;
+		expires: number;
+		httpOnly: boolean;
+		secure: boolean;
+		sameSite: "Strict" | "Lax" | "None";
+	}>;
+	origins: Array<{
+		origin: string;
+		localStorage: Array<{ name: string; value: string }>;
+	}>;
+};
+
 export interface BrowserContext {
 	newPage(): Promise<Page>;
 	close(): Promise<void>;
-	storageState(options?: StorageStateOptions): Promise<void>;
+	storageState(options?: StorageStateOptions): Promise<BrowserStorageState>;
 	addInitScript(script: string): Promise<void>;
 	on(event: "page", listener: (page: Page) => void): void;
 }

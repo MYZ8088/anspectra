@@ -1,7 +1,7 @@
 import { env } from "@/env";
 import { trackUserSignup } from "@/lib/telemetry";
-import { db, schema } from "@oneglanse/db";
-import * as authSchema from "@oneglanse/db";
+import { db, schema } from "@answerloom/db";
+import * as authSchema from "@answerloom/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";

@@ -16,8 +16,8 @@ import {
 import { writeSkipProviderGate } from "@/lib/provider-connections/provider-gate";
 import type { ProviderConnectionCard } from "@/lib/provider-connections/types";
 import { api } from "@/trpc/react";
-import { AUTH_PROVIDER_LIST } from "@oneglanse/types";
-import type { AuthProvider } from "@oneglanse/types";
+import { AUTH_PROVIDER_LIST } from "@answerloom/types";
+import type { AuthProvider } from "@answerloom/types";
 import {
 	Button,
 	Dialog,
@@ -27,12 +27,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 	toast,
-} from "@oneglanse/ui";
-import { cn, getModelFavicon } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn, getModelFavicon } from "@answerloom/utils";
 import {
 	AlertTriangle,
 	ArrowRight,
 	CheckCircle2,
+	Copy,
+	Laptop,
 	Loader2,
 	RotateCcw,
 	RotateCw,
@@ -46,7 +48,22 @@ const CARD_ORDER: Array<ProviderConnectionCard["provider"]> = [
 	"chatgpt",
 	"perplexity",
 	"claude",
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
 ];
+
+const CONNECTION_UPDATED_AT_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: true,
+	timeZone: "UTC",
+	timeZoneName: "short",
+});
 
 function getConnectionCardTitle(card: ProviderConnectionCard): string {
 	return card.provider === "google" ? "AI Overview" : card.displayName;
@@ -100,14 +117,12 @@ function formatConnectionUpdatedAt(timestamp: string | null): string | null {
 		return null;
 	}
 
-	return new Date(timestamp).toLocaleString(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-		hour12: true,
-	});
+	const date = new Date(timestamp);
+	if (Number.isNaN(date.getTime())) {
+		return null;
+	}
+
+	return CONNECTION_UPDATED_AT_FORMATTER.format(date);
 }
 
 function getConnectionCardClasses(card: ProviderConnectionCard): string {
@@ -179,6 +194,10 @@ export function ProviderConnectionsPanel(props: {
 		AuthProvider[] | null | undefined
 	>(undefined);
 	const [showSkipDialog, setShowSkipDialog] = useState(false);
+	const [showResetDialog, setShowResetDialog] = useState(false);
+	const [pairedDeviceToken, setPairedDeviceToken] = useState<string | null>(
+		null,
+	);
 	const toggleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
@@ -253,6 +272,14 @@ export function ProviderConnectionsPanel(props: {
 
 	const providerActionMutation = useProviderConnectionAction({
 		onSuccess: (result, variables) => {
+			if (result.profileInUse) {
+				toast.success(
+					result.focusedExisting
+						? "Opened the existing provider window. Complete sign-in there, then resume verification."
+						: "The provider window is already open. Complete sign-in there, then resume verification.",
+				);
+				return;
+			}
 			toast.success(
 				result.started
 					? variables.action === "refresh"
@@ -267,6 +294,7 @@ export function ProviderConnectionsPanel(props: {
 	});
 	const resetAllMutation = useResetAllProviders({
 		onSuccess: () => {
+			setShowResetDialog(false);
 			toast.success("All provider sessions have been reset.");
 		},
 		onError: (error) => {
@@ -291,6 +319,17 @@ export function ProviderConnectionsPanel(props: {
 		showOnboardingActions &&
 		!canInteractivelyConnect &&
 		!hasAtLeastOneConnection;
+	const collectorsQuery = api.geo.collectors.useQuery(
+		{ workspaceId: resolvedWorkspaceId },
+		{ enabled: !!workspaceId && !canInteractivelyConnect },
+	);
+	const pairCollectorMutation = api.geo.pairCollector.useMutation({
+		onSuccess: async (result) => {
+			setPairedDeviceToken(result.deviceToken);
+			await utils.geo.collectors.invalidate();
+		},
+		onError: (error) => toast.error(error.message),
+	});
 
 	return (
 		<section>
@@ -308,7 +347,7 @@ export function ProviderConnectionsPanel(props: {
 								formSecondaryButtonClassName,
 								"h-10 shrink-0 border border-gray-200/80 bg-white/85 text-gray-600 shadow-none hover:bg-white hover:text-gray-900 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-gray-100",
 							)}
-							onClick={() => resetAllMutation.mutate()}
+							onClick={() => setShowResetDialog(true)}
 							disabled={
 								!hasAtLeastOneConnection ||
 								resetAllMutation.isPending ||
@@ -368,6 +407,60 @@ export function ProviderConnectionsPanel(props: {
 						? "This page updates automatically as soon as uploaded sessions are detected."
 						: "Refresh this page after the upload completes to see the updated provider status."}
 				</p>
+			) : null}
+
+			{workspaceId && !canInteractivelyConnect ? (
+				<div className="mb-6 border-y border-gray-200 py-4 dark:border-gray-800">
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div className="flex items-center gap-3">
+							<Laptop className="size-5 text-gray-500" />
+							<div>
+								<p className="text-sm font-semibold">Local collector</p>
+								<p className="mt-1 text-xs text-gray-500">
+									{collectorsQuery.data?.length ?? 0} paired device(s); browser
+									profiles stay on each device.
+								</p>
+							</div>
+						</div>
+						<Button
+							className={formPrimaryButtonClassName}
+							disabled={pairCollectorMutation.isPending}
+							onClick={() =>
+								pairCollectorMutation.mutate({
+									workspaceId,
+									name: `Collector ${new Date().toLocaleDateString()}`,
+									platform: navigator.platform.toLowerCase().includes("win")
+										? "win32"
+										: "darwin",
+								})
+							}
+						>
+							{pairCollectorMutation.isPending ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<Laptop className="size-4" />
+							)}
+							Pair device
+						</Button>
+					</div>
+					{pairedDeviceToken ? (
+						<div className="mt-4 flex min-w-0 items-center gap-2 border border-gray-200 bg-stone-50 p-3 dark:border-gray-800 dark:bg-neutral-900">
+							<code className="min-w-0 flex-1 truncate text-xs">
+								{pairedDeviceToken}
+							</code>
+							<Button
+								variant="ghost"
+								size="icon"
+								title="Copy one-time device token"
+								onClick={() =>
+									void navigator.clipboard.writeText(pairedDeviceToken)
+								}
+							>
+								<Copy className="size-4" />
+							</Button>
+						</div>
+					) : null}
+				</div>
 			) : null}
 
 			<div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-3">
@@ -583,6 +676,48 @@ export function ProviderConnectionsPanel(props: {
 					) : null}
 				</div>
 			) : null}
+
+			<Dialog
+				open={showResetDialog}
+				onOpenChange={(open) => {
+					if (!resetAllMutation.isPending) {
+						setShowResetDialog(open);
+					}
+				}}
+			>
+				<DialogContent className={formDialogContentClassName}>
+					<DialogHeader className={formDialogHeaderClassName}>
+						<DialogTitle className="text-lg font-semibold tracking-[-0.01em] text-gray-950 dark:text-gray-50">
+							Reset all provider sessions?
+						</DialogTitle>
+						<DialogDescription className="text-sm leading-6 text-gray-500 dark:text-gray-400">
+							This removes every saved local provider session on this machine.
+							You will need to reconnect providers before prompt runs can use
+							them.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className={formDialogFooterClassName}>
+						<Button
+							variant="ghost"
+							onClick={() => setShowResetDialog(false)}
+							disabled={resetAllMutation.isPending}
+							className={formSecondaryButtonClassName}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={() => resetAllMutation.mutate()}
+							disabled={resetAllMutation.isPending}
+							className={formPrimaryButtonClassName}
+						>
+							{resetAllMutation.isPending ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : null}
+							Reset sessions
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<Dialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
 				<DialogContent className={formDialogContentClassName}>

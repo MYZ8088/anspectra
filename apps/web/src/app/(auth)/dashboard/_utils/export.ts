@@ -1,5 +1,5 @@
 import { downloadCsv, downloadJson } from "@/lib/export/download";
-import { buildDetailedAnalysisCsvRow } from "@oneglanse/utils";
+import { buildDetailedAnalysisCsvRow } from "@answerloom/utils";
 import type { DashboardMetrics } from "./types";
 
 function getActionPriorities(metrics: DashboardMetrics): string[] {

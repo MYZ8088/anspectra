@@ -1,10 +1,10 @@
 ---
 title: Introduction
-description: OneGlanse is the open-source GEO tracker that shows how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview.
+description: AnswerLoom is the open-source GEO tracker that shows how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview.
 ---
 ## Built on real AI outputs
 
-OneGlanse captures responses directly from product interfaces, not raw model APIs.
+AnswerLoom captures responses directly from product interfaces, not raw model APIs.
 
 That distinction matters.
 
@@ -15,7 +15,7 @@ UI responses include:
 
 These layers are stripped out in API responses, but they define real-world visibility.
 
-OneGlanse is intentionally **UI-first**:
+AnswerLoom is intentionally **UI-first**:
 
 - It opens the real ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview interfaces
 - It captures the rendered answer that a user actually sees
@@ -27,17 +27,17 @@ If you want the underlying model completion, APIs are useful. If you want GEO tr
 
 You can read more about the API-vs-UI gap here: [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
 
-## Why OneGlanse uses Camoufox
+## Why AnswerLoom uses Camoufox
 
-OneGlanse uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
+AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
 
 We do not use standard Chrome / Chromium automation as the primary runtime because provider web apps are heavily protected against scripted access. In practice, plain Chrome-style automation is much more likely to trigger sign-in loops, verification challenges, unstable sessions, or failed UI rendering.
 
-The issue is not only "headless vs headful". Provider detection systems also look at browser fingerprint consistency and automation signals. Camoufox is materially better suited for this workflow, which is why OneGlanse depends on it for stable authenticated scraping of real chat interfaces.
+The issue is not only "headless vs headful". Provider detection systems also look at browser fingerprint consistency and automation signals. Camoufox is materially better suited for this workflow, which is why AnswerLoom depends on it for stable authenticated scraping of real chat interfaces.
 
 ## Your data stays yours
 
-OneGlanse is fully open source and self-hostable.
+AnswerLoom is fully open source and self-hostable.
 
 All data, including responses, analytics, and auth sessions, lives in infrastructure you control:
 - Local machine or private VPS
@@ -52,7 +52,7 @@ Credentials are never stored externally.
 
 Self-hosted VPS runs usually come from datacenter IP ranges. Those IPs are routinely blocked, challenged, or rate-limited by AI provider websites.
 
-That means a VPS can be perfect for scheduling and persistence, but a poor direct network origin for browser traffic. OneGlanse solves that by routing provider traffic through a residential proxy on VPS deployments.
+That means a VPS can be perfect for scheduling and persistence, but a poor direct network origin for browser traffic. AnswerLoom solves that by routing provider traffic through a residential proxy on VPS deployments.
 
 The proxy is not for analytics or API calls. It is specifically for browser access to provider websites from a server environment where datacenter IP reputation would otherwise break collection.
 

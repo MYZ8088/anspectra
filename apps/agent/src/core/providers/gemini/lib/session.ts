@@ -1,4 +1,4 @@
-import { ExternalServiceError } from "@oneglanse/errors";
+import { ExternalServiceError } from "@answerloom/errors";
 import type { Page } from "playwright";
 import { clickLocatorLikeUser } from "../../../../lib/browser/humanBehavior.js";
 
@@ -10,9 +10,13 @@ export async function handleGeminiConsentPage(page: Page): Promise<void> {
 	if (!url.includes("consent.google.com")) return;
 
 	const consentBtn = page.locator(GEMINI_CONSENT_SELECTOR).first();
-	const visible = await consentBtn.isVisible({ timeout: 3000 }).catch(() => false);
+	const visible = await consentBtn
+		.isVisible({ timeout: 3000 })
+		.catch(() => false);
 	if (visible) {
-		await clickLocatorLikeUser(page, consentBtn, { timeout: 4000 }).catch(() => {});
+		await clickLocatorLikeUser(page, consentBtn, { timeout: 4000 }).catch(
+			() => {},
+		);
 		await page.waitForTimeout(1000);
 		if (!page.url().includes("consent.google.com")) return;
 	}

@@ -1,12 +1,12 @@
 import "../../styles/globals.css";
-import { auth } from "@/lib/auth/auth";
 import { appIcons } from "@/lib/app-metadata";
+import { auth } from "@/lib/auth/auth";
 import { readProviderConnectionsState } from "@/lib/provider-connections/server";
 import { trackUserActive } from "@/lib/telemetry";
 import { getWorkspace } from "@/lib/workspace/getWorkspace";
 import { TRPCReactProvider } from "@/trpc/react";
-import { resolveAppMode } from "@oneglanse/types";
-import { SidebarProvider } from "@oneglanse/ui";
+import { resolveAppMode } from "@answerloom/types";
+import { SidebarProvider } from "@answerloom/ui";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { cookies, headers } from "next/headers";
@@ -14,8 +14,9 @@ import { redirect } from "next/navigation";
 import LayoutContent from "./layoutContent";
 
 export const metadata: Metadata = {
-	title: "OneGlanse",
-	description: "Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
+	title: "AnswerLoom",
+	description:
+		"Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
 	icons: appIcons,
 };
 
@@ -29,11 +30,11 @@ export default async function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const appMode = resolveAppMode(process.env.ONEGLANSE_APP_MODE);
+	const appMode = resolveAppMode(process.env.ANSWERLOOM_APP_MODE);
 	const requestHeaders = await headers();
 	const isPublicLocalProvidersPage =
 		appMode === "local" &&
-		requestHeaders.get("x-oneglanse-public-providers") === "1";
+		requestHeaders.get("x-answerloom-public-providers") === "1";
 
 	if (isPublicLocalProvidersPage) {
 		return children;

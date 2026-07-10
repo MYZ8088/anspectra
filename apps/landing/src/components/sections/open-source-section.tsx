@@ -1,5 +1,5 @@
 import { OPEN_SOURCE_POINTS, SITE_URLS } from "@/lib/landing-content";
-import { Button, Card } from "@oneglanse/ui";
+import { Button, Card } from "@answerloom/ui";
 import { Github, Server } from "lucide-react";
 
 export function OpenSourceSection(): React.JSX.Element {
@@ -23,16 +23,18 @@ export function OpenSourceSection(): React.JSX.Element {
 							and observability.
 						</p>
 						<div className="mt-auto flex flex-wrap gap-3 pt-6">
-							<Button asChild variant="outline">
-								<a
-									href={SITE_URLS.github}
-									target="_blank"
-									rel="noreferrer noopener"
-								>
-									<Github className="h-4 w-4" aria-hidden="true" />
-									View on GitHub
-								</a>
-							</Button>
+							{SITE_URLS.github ? (
+								<Button asChild variant="outline">
+									<a
+										href={SITE_URLS.github}
+										target="_blank"
+										rel="noreferrer noopener"
+									>
+										<Github className="h-4 w-4" aria-hidden="true" />
+										View on GitHub
+									</a>
+								</Button>
+							) : null}
 							<Button asChild>
 								<a
 									href={SITE_URLS.docs}

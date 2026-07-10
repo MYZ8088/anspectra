@@ -1,7 +1,23 @@
-import type { AnalysisInputSingle } from "@oneglanse/types";
+import type { AnalysisInputSingle } from "@answerloom/types";
 
 export function analysisPrompt(input: AnalysisInputSingle): string {
 	const { prompt, response, brandDomain, brandName } = input;
+	const factLedger = input.facts?.length
+		? input.facts
+				.map(
+					(fact, index) =>
+						`${index + 1}. [${fact.evidenceGrade ?? "ungraded"}/${fact.status ?? "unknown"}] ${fact.claim}${fact.sourceUrl ? ` (${fact.sourceUrl})` : ""}`,
+				)
+				.join("\n")
+		: "No verified fact ledger was supplied. Factuality must be null.";
+	const visibleSources = input.sources?.length
+		? input.sources
+				.map(
+					(source, index) =>
+						`${index + 1}. ${source.title || "Untitled source"} — ${source.url || "no visible URL"}${source.cited_text ? ` — ${source.cited_text}` : ""}`,
+				)
+				.join("\n")
+		: "No source links were exposed by the provider Web page.";
 
 	return `
 You are a precision instrument for Generative Engine Optimization (GEO) analysis. Your task: analyze exactly how "${brandName}" (${brandDomain}) appears in an LLM-generated response. You must produce perfectly calibrated, evidence-backed metrics.
@@ -29,6 +45,12 @@ ${response}
 </response>
 
 **Target Brand:** ${brandName} (${brandDomain})
+
+**Verified Fact Ledger (the only authority for factual accuracy):**
+${factLedger}
+
+**Visible Web Citations (absence means not_exposed, not that the answer has no sources):**
+${visibleSources}
 
 ---
 
@@ -80,7 +102,15 @@ If the brand is not mentioned AT ALL in the response's substantive content or qu
     "recommendation": { "type": "not_mentioned" },
     "competitors": [<still extract competitors that ARE mentioned in declarative statements>],
     "perception": { "coreClaims": [], "differentiators": [], "bestKnownFor": null, "pricingPerception": "not_mentioned" },
-    "risks": { "items": [] }
+    "risks": { "items": [] },
+    "scorecard": {
+      "visibility": { "score": 0, "numerator": 0, "denominator": 1 },
+      "factuality": { "score": null, "reviewedClaims": 0, "accurateClaims": 0, "errors": [] },
+      "evidence": { "score": 0, "visibleCitations": 0, "supportedClaims": 0, "unsupportedClaims": 0 },
+      "stability": { "score": null, "comparableSamples": 1, "consistentSamples": 1, "note": "Requires repeated samples" },
+      "competition": { "score": 0, "targetShare": 0, "competitorShare": 0 },
+      "governanceAttribution": { "score": 25, "confidence": "low", "caveats": ["Single observed answer"] }
+    }
 }
 
 CRITICAL: When brand is absent, sentiment.score MUST be 0. An absent brand has no measured sentiment — all metrics are zero.
@@ -352,11 +382,24 @@ Severity:
 
 ---
 
+## SIX-LAYER SCORECARD
+
+Keep these layers independent; never hide them behind geoScore.overall.
+
+1. visibility: score equals presence.visibility. numerator is 1 only when the brand is substantively mentioned; denominator is always 1.
+2. factuality: compare declarative brand claims only against the supplied verified fact ledger. If no supplied fact can verify or contradict a claim, do not guess. If zero claims can be reviewed, score is null. Otherwise score is accurateClaims / reviewedClaims * 100. Put contradicted claims in errors with the ledger correction.
+3. evidence: visibleCitations is the count of supplied visible Web citations. A citation supports a claim only when its cited text or title directly substantiates that claim. Score is supportedClaims / (supportedClaims + unsupportedClaims) * 100; when no brand claim and no citation exists, use 0. Never infer hidden citations.
+4. stability: this call contains one answer, so score is always null, comparableSamples=1, consistentSamples=1, and note="Requires repeated samples". Stability is aggregated later across rounds.
+5. competition: calculate targetShare from the target brand's share of all distinct brands discussed or recommended; competitorShare is 100-targetShare. Score is 100 when the target is the only candidate, lower as competitors dominate. Use 0 when target is absent.
+6. governanceAttribution: this is an observed answer, not proof that content caused the outcome. Use low confidence and a score no higher than 40 for one sample. Caveats must mention missing fact coverage, missing visible citations, or single-sample limits when applicable.
+
+---
+
 ## FINAL CROSS-VALIDATION CHECKLIST
 
 Before outputting, verify ALL of these. If any fail, fix the output:
 
-1. If mentioned = false → geoScore.overall = 0, visibility = 0, recommendation.type = "not_mentioned", sentiment.score = 50, rankPosition = null, coreClaims = [], differentiators = [], bestKnownFor = null.
+1. If mentioned = false → geoScore.overall = 0, visibility = 0, recommendation.type = "not_mentioned", sentiment.score = 0, rankPosition = null, coreClaims = [], differentiators = [], bestKnownFor = null.
 2. If mentioned = true → visibility >= 1.
 3. If sentiment.score >= 81 → there must be explicit superlative language traceable to the text.
 4. If recommendation.type = "not_mentioned" → mentioned = false.
@@ -432,9 +475,47 @@ Respond with ONLY valid JSON. No markdown code fences. No preamble. No trailing 
     "risks": {
         "items": [
             {
-                "severity": "<critical|warning|info>"
+                "severity": "<critical|warning|info>",
+                "type": "<outdated_info|factual_error|brand_confusion|negative_association|missing_from_response>",
+                "claim": "<the exact problematic claim or omission>",
+                "correction": "<verified correction from the fact ledger, or null>"
             }
         ]
+    },
+    "scorecard": {
+        "visibility": {
+            "score": <same as presence.visibility>,
+            "numerator": <0 or 1>,
+            "denominator": 1
+        },
+        "factuality": {
+            "score": <0-100 or null>,
+            "reviewedClaims": <integer>,
+            "accurateClaims": <integer>,
+            "errors": [{ "claim": "<claim>", "severity": "<critical|warning|info>", "correction": "<correction or null>" }]
+        },
+        "evidence": {
+            "score": <0-100>,
+            "visibleCitations": <integer>,
+            "supportedClaims": <integer>,
+            "unsupportedClaims": <integer>
+        },
+        "stability": {
+            "score": null,
+            "comparableSamples": 1,
+            "consistentSamples": 1,
+            "note": "Requires repeated samples"
+        },
+        "competition": {
+            "score": <0-100>,
+            "targetShare": <0-100>,
+            "competitorShare": <0-100>
+        },
+        "governanceAttribution": {
+            "score": <0-40 for a single sample>,
+            "confidence": "low",
+            "caveats": ["<specific measurement limitation>"]
+        }
     }
 }
 `;

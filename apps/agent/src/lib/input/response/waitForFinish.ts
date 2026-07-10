@@ -1,11 +1,11 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
-import type { Page } from "playwright";
+import { ExternalServiceError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
 import {
-	logger,
 	PROVIDER_FORCE_EXIT_STABLE_MS,
 	PROVIDER_NO_OUTPUT_TIMEOUT_MS,
-} from "@oneglanse/utils";
+	logger,
+} from "@answerloom/utils";
+import type { Page } from "playwright";
 import {
 	getGenerationStateSignature,
 	getResponseStateSignature,
@@ -55,15 +55,27 @@ export async function waitForAssistantToFinish(
 	let lastChangeAt = Date.now();
 	let initialized = false;
 	let seenResponse = false;
+	let noOutputWarningEmitted = false;
+	const stableResponseMs = new Set<Provider>([
+		"deepseek",
+		"doubao",
+		"hunyuan",
+		"qwen",
+	]).has(provider)
+		? 3_500
+		: 1_500;
 
 	await pollUntilCondition(
 		async () => {
-			const [currentGenerationState, currentResponseState, hasVisibleIndicator] =
-				await Promise.all([
+			const [
+				currentGenerationState,
+				currentResponseState,
+				hasVisibleIndicator,
+			] = await Promise.all([
 				getGenerationStateSignature(page, provider),
 				getResponseStateSignature(page, provider),
 				hasVisibleGenerationIndicator(page, provider),
-				]);
+			]);
 			const waitedFor = Date.now() - waitStart;
 			const forceExitStableMs = PROVIDER_FORCE_EXIT_STABLE_MS[provider];
 			const responseStateChanged =
@@ -100,19 +112,24 @@ export async function waitForAssistantToFinish(
 				}
 			}
 
-			if (seenResponse && !hasVisibleIndicator && stableFor >= 1500) {
+			if (
+				seenResponse &&
+				!hasVisibleIndicator &&
+				stableFor >= stableResponseMs
+			) {
 				logger.debug("✅ Assistant finished");
 				return true;
 			}
 
 			const noOutputTimeoutMs = PROVIDER_NO_OUTPUT_TIMEOUT_MS[provider];
-			if (waitedFor >= noOutputTimeoutMs) {
+			if (waitedFor >= noOutputTimeoutMs && !noOutputWarningEmitted) {
 				logger.warn(
 					`Generation state did not stabilize within ${Math.round(noOutputTimeoutMs / 1000)}s`,
 				);
+				noOutputWarningEmitted = true;
 			}
 
-			if (stableFor >= forceExitStableMs) {
+			if (seenResponse && stableFor >= forceExitStableMs) {
 				logger.warn(
 					`${hasVisibleIndicator ? "Generation indicator still visible and " : ""}generation state stable for ${Math.round(forceExitStableMs / 1000)}s — forcing exit`,
 				);

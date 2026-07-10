@@ -8,9 +8,9 @@ import {
 const COMMANDS_REQUIRING_EDGE_NETWORK = new Set(["create", "start", "up"]);
 const COMPOSE_FILE = "docker-compose.yml";
 const DEFAULT_IMAGES = {
-	ONEGLANSE_AGENT_IMAGE: "ghcr.io/aryamantodkar/oneglanse-agent:latest",
-	ONEGLANSE_POSTGRES_IMAGE: "ghcr.io/aryamantodkar/oneglanse-postgres:latest",
-	ONEGLANSE_WEB_IMAGE: "ghcr.io/aryamantodkar/oneglanse-web:latest",
+	ANSWERLOOM_AGENT_IMAGE: "answerloom/collector:local",
+	ANSWERLOOM_POSTGRES_IMAGE: "answerloom/postgres:local",
+	ANSWERLOOM_WEB_IMAGE: "answerloom/web:local",
 };
 const ARCH_MISMATCH_PATTERNS = [
 	"no matching manifest",
@@ -21,23 +21,23 @@ const PULLABLE_SERVICES = [
 	{ service: "clickhouse" },
 	{
 		service: "agent-worker",
-		envKey: "ONEGLANSE_AGENT_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ONEGLANSE_AGENT_IMAGE,
+		envKey: "ANSWERLOOM_AGENT_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_AGENT_IMAGE,
 	},
 	{
 		service: "db",
-		envKey: "ONEGLANSE_POSTGRES_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ONEGLANSE_POSTGRES_IMAGE,
+		envKey: "ANSWERLOOM_POSTGRES_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_POSTGRES_IMAGE,
 	},
 	{
 		service: "web",
-		envKey: "ONEGLANSE_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ONEGLANSE_WEB_IMAGE,
+		envKey: "ANSWERLOOM_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_WEB_IMAGE,
 	},
 	{
 		service: "migrate",
-		envKey: "ONEGLANSE_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ONEGLANSE_WEB_IMAGE,
+		envKey: "ANSWERLOOM_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_WEB_IMAGE,
 	},
 ];
 
@@ -55,10 +55,10 @@ function shouldPullConfiguredImage(envKey, defaultImage) {
 
 	const configured = process.env[envKey]?.trim();
 	if (!configured) {
-		return defaultImage.includes("/");
+		return false;
 	}
 
-	return configured.includes("/");
+	return configured !== defaultImage && configured.includes("/");
 }
 
 async function runCompose(composeArgs) {
@@ -104,6 +104,14 @@ async function runSmartPull() {
 
 async function runBootstrap() {
 	await ensureDockerNetwork(edgeNetworkName);
+	const hasPublishedAppImages = Object.keys(DEFAULT_IMAGES).every((envKey) =>
+		Boolean(process.env[envKey]?.trim()),
+	);
+	if (!hasPublishedAppImages) {
+		await runCompose(["up", "-d", "--build", "--force-recreate"]);
+		console.log("Self-host stack started from AnswerLoom local images.");
+		return;
+	}
 
 	if (process.arch === "arm64") {
 		console.warn(

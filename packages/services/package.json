@@ -1,5 +1,5 @@
 {
-	"name": "@oneglanse/services",
+	"name": "@answerloom/services",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -9,6 +9,10 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
+		},
+		"./agent-auth": {
+			"types": "./dist/agent/auth.d.ts",
+			"default": "./dist/agent/auth.js"
 		}
 	},
 	"scripts": {
@@ -17,14 +21,17 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.89.0",
-		"@oneglanse/db": "workspace:*",
-		"@oneglanse/errors": "workspace:*",
-		"@oneglanse/types": "workspace:*",
-		"@oneglanse/utils": "workspace:*",
+		"@answerloom/db": "workspace:*",
+		"@answerloom/errors": "workspace:*",
+		"@answerloom/types": "workspace:*",
+		"@answerloom/utils": "workspace:*",
 		"bullmq": "^5.67.0",
+		"cheerio": "^1.2.0",
 		"drizzle-orm": "^0.41.0",
+		"fast-xml-parser": "^5.9.3",
 		"ioredis": "^5.9.2",
 		"openai": "^5.23.2",
+		"robots-parser": "^3.0.1",
 		"uuid": "^13.0.0",
 		"zod": "^3.24.1"
 	},

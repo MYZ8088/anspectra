@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { toErrorMessage } from "@oneglanse/errors";
-import type { Provider, UserPrompt } from "@oneglanse/types";
-import { PROVIDER_LIST } from "@oneglanse/types";
+import { toErrorMessage } from "@answerloom/errors";
+import type { Provider, UserPrompt } from "@answerloom/types";
+import { PROVIDER_LIST } from "@answerloom/types";
 import { fetchUserPromptsForWorkspace } from "../prompt/index.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import {
@@ -14,16 +14,21 @@ import { getProviderQueue } from "./queue.js";
 import { redis, waitForRedis } from "./redis.js";
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
-const PROVIDER_STOP_CHANNEL = "oneglanse:agent:provider-stop";
+const PROVIDER_STOP_CHANNEL = "answerloom:agent:provider-stop";
 
 type ProviderJobPayload = {
 	jobGroupId: string;
+	collectionRunId?: string;
 	provider: Provider;
 	runProviders?: Provider[];
 	prompts: UserPrompt[];
 	user_id: string;
 	workspace_id: string;
 	created_at?: string;
+	initialCompletedCount?: number;
+	totalPromptCount?: number;
+	minPromptDelayMs?: number;
+	maxPromptDelayMs?: number;
 };
 
 export type SubmitAgentJobResult =
@@ -75,17 +80,27 @@ function buildProviderJobs(): Array<{
 
 export async function enqueueProviderJobs(args: {
 	jobGroupId: string;
+	collectionRunId?: string;
 	prompts: UserPrompt[];
 	userId: string;
 	workspaceId: string;
 	providers?: Provider[];
+	initialCompletedCount?: number;
+	totalPromptCount?: number;
+	minPromptDelayMs?: number;
+	maxPromptDelayMs?: number;
 }): Promise<Provider[]> {
 	const {
 		jobGroupId,
+		collectionRunId,
 		prompts,
 		userId,
 		workspaceId,
 		providers = PROVIDER_LIST,
+		initialCompletedCount,
+		totalPromptCount,
+		minPromptDelayMs,
+		maxPromptDelayMs,
 	} = args;
 	const allowedProviders = [...new Set(providers)];
 	const providerJobs = buildProviderJobs().filter(({ provider }) =>
@@ -95,11 +110,16 @@ export async function enqueueProviderJobs(args: {
 		providerJobs.map(async ({ provider, runProviders }) => {
 			await enqueueProviderJob({
 				jobGroupId,
+				collectionRunId,
 				provider,
 				runProviders,
 				prompts,
 				user_id: userId,
 				workspace_id: workspaceId,
+				initialCompletedCount,
+				totalPromptCount,
+				minPromptDelayMs,
+				maxPromptDelayMs,
 			});
 			return provider;
 		}),
@@ -120,6 +140,35 @@ export async function enqueueProviderJobs(args: {
 		);
 		return [failedProvider];
 	});
+}
+
+export async function initializeAgentProgress(args: {
+	jobGroupId: string;
+	providers: Provider[];
+	totalPrompts: number;
+}): Promise<void> {
+	await waitForRedis();
+	const progress = {
+		status: "pending" as const,
+		updateId: 0,
+		providers: Object.fromEntries(
+			args.providers.map((provider) => [provider, "pending"]),
+		),
+		results: Object.fromEntries(
+			args.providers.map((provider) => [provider, 0]),
+		),
+		stats: {
+			totalPrompts: args.totalPrompts,
+			expectedResponses: args.totalPrompts * args.providers.length,
+			actualResponses: 0,
+		},
+	};
+	await redis.set(
+		`job:${args.jobGroupId}:result`,
+		JSON.stringify(progress),
+		"EX",
+		AGENT_PROGRESS_TTL_SECONDS,
+	);
 }
 
 async function markProvidersFailed(args: {
@@ -191,30 +240,11 @@ export async function submitAgentJobGroup(args: {
 		);
 		return { status: "no-providers", disconnectedProviders };
 	}
-	await waitForRedis();
-
-	const progress = {
-		status: "pending" as const,
-		updateId: 0,
-		providers: Object.fromEntries(
-			authenticatedProviders.map((p) => [p, "pending"]),
-		) as Record<string, string>,
-		results: Object.fromEntries(
-			authenticatedProviders.map((p) => [p, 0]),
-		) as Record<string, number>,
-		stats: {
-			totalPrompts: prompts.length,
-			expectedResponses: prompts.length * authenticatedProviders.length,
-			actualResponses: 0,
-		},
-	};
-
-	await redis.set(
-		`job:${jobGroupId}:result`,
-		JSON.stringify(progress),
-		"EX",
-		AGENT_PROGRESS_TTL_SECONDS,
-	);
+	await initializeAgentProgress({
+		jobGroupId,
+		providers: authenticatedProviders,
+		totalPrompts: prompts.length,
+	});
 
 	void enqueueProviderJobs({
 		jobGroupId,

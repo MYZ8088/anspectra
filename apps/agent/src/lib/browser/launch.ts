@@ -1,15 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
+import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
 import {
 	ensureAuthDirectories,
 	getRuntimeProfileSeedPlan,
-} from "@oneglanse/services";
+} from "@answerloom/services/agent-auth";
 import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@oneglanse/types";
-import { logger } from "@oneglanse/utils";
+} from "@answerloom/types";
+import { logger } from "@answerloom/utils";
 import type { Browser, BrowserContext } from "playwright";
 import { firefox } from "playwright-core";
 import { env } from "../../env.js";
@@ -20,6 +20,7 @@ import {
 import { ensureDisplay } from "./display.js";
 import type { DisplayHandle } from "./display.js";
 import { PlaywrightBrowserContextCompat } from "./playwrightCompat.js";
+import { acquireProviderSession } from "./providerSessionManager.js";
 import {
 	type ProxyScheme,
 	type UpstreamProxyConfig,
@@ -54,12 +55,9 @@ function resolveRuntimeHeadlessMode(): "virtual" | "headful" | "headless" {
 		return configuredMode;
 	}
 
-	const appMode = resolveAppMode(env.ONEGLANSE_APP_MODE);
+	const appMode = resolveAppMode(env.ANSWERLOOM_APP_MODE);
 	if (appMode === "local") {
-		// Local runs should stay headless by default, but they must still reuse
-		// the persistent runtime profile rather than falling back to a fresh
-		// one-off storageState context.
-		return "headless";
+		return "headful";
 	}
 
 	if (process.platform === "linux") {
@@ -224,7 +222,7 @@ async function acquireThorDataProxyInner(): Promise<ProxyAllocation> {
 }
 
 async function buildProxyAllocationInner(): Promise<ProxyAllocation> {
-	if (!shouldUseProxyInMode(resolveAppMode(env.ONEGLANSE_APP_MODE))) {
+	if (!shouldUseProxyInMode(resolveAppMode(env.ANSWERLOOM_APP_MODE))) {
 		return { proxy: null, release: () => {} };
 	}
 	return acquireThorDataProxyInner();
@@ -256,7 +254,27 @@ export async function launchContext(provider: Provider): Promise<{
 	proxy: string | null;
 	cleanup: () => Promise<void>;
 	invalidateProxyHint: () => Promise<void>;
+	holdForHuman?: (page: import("./runtimeTypes.js").Page) => void;
+	resumePage?: import("./runtimeTypes.js").Page | null;
+	minimizeWindow?: () => Promise<void>;
+	focusWindow?: () => Promise<void>;
 }> {
+	const appMode = resolveAppMode(env.ANSWERLOOM_APP_MODE);
+	if (appMode === "local") {
+		const lease = await acquireProviderSession(provider);
+		return {
+			browser: lease.browser as Browser,
+			context: lease.context as BrowserContext,
+			proxy: null,
+			cleanup: lease.release,
+			invalidateProxyHint: lease.invalidate,
+			holdForHuman: lease.holdForHuman,
+			resumePage: lease.resumePage,
+			minimizeWindow: lease.minimizeWindow,
+			focusWindow: lease.focusWindow,
+		};
+	}
+
 	let upstreamProxy: UpstreamProxyConfig | null = null;
 	let releaseProxyLease = () => {};
 	let invalidateProxyHint: () => Promise<void> = async () => {};
@@ -273,7 +291,6 @@ export async function launchContext(provider: Provider): Promise<{
 	};
 
 	try {
-		const appMode = resolveAppMode(env.ONEGLANSE_APP_MODE);
 		const runtimeHeadlessMode = resolveRuntimeHeadlessMode();
 		if (shouldUseProxyInMode(appMode)) {
 			logger.log("resolving proxy before browser launch");
@@ -341,6 +358,9 @@ export async function launchContext(provider: Provider): Promise<{
 			proxy: upstreamProxy?.logProxy ?? null,
 			cleanup,
 			invalidateProxyHint,
+			holdForHuman: undefined,
+			minimizeWindow: undefined,
+			focusWindow: undefined,
 		};
 	} catch (error) {
 		await cleanup();

@@ -1,5 +1,5 @@
-import type { DomainStats, SourceGroupResult } from "./sources.js";
 import type { ModelResult } from "./agent.js";
+import type { DomainStats, SourceGroupResult } from "./sources.js";
 
 export interface CreateWorkspaceForTenantArgs {
 	name: string;
@@ -54,7 +54,7 @@ export interface StorePromptsForWorkspaceArgs {
 	userId: string;
 }
 
-export interface ConfigureSchedulerSecretsArgs {}
+export type ConfigureSchedulerSecretsArgs = {};
 
 export interface ScheduleCronForPromptsArgs {
 	workspaceId: string;
@@ -71,6 +71,10 @@ export interface StorePromptResponsesArgs {
 	userId: string;
 	workspaceId: string;
 	promptRunAt: string;
+	runId?: string;
+	checkpointId?: string;
+	promptSetId?: string;
+	repeatIndex?: number;
 }
 
 export interface FetchPromptResponsesForWorkspaceArgs {
@@ -99,7 +103,10 @@ export interface WorkspaceJoinInfo {
 }
 
 export interface FetchPromptSourcesForWorkspaceResult {
-	domain_stats: { combined: DomainStats[]; byModel: Record<string, DomainStats[]> };
+	domain_stats: {
+		combined: DomainStats[];
+		byModel: Record<string, DomainStats[]>;
+	};
 	sourceStats: SourceGroupResult;
 }
 

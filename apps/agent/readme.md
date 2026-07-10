@@ -1,4 +1,4 @@
-# @oneglanse/agent
+# @answerloom/agent
 
 Camoufox-backed browser worker + BullMQ worker responsible for executing provider prompt jobs and persisting results.
 
@@ -6,7 +6,7 @@ Camoufox-backed browser worker + BullMQ worker responsible for executing provide
 
 - Consume provider-specific queue jobs from Redis/BullMQ.
 - Launch browser contexts, submit prompts, and extract responses/sources.
-- Persist prompt responses through `@oneglanse/services`.
+- Persist prompt responses through `@answerloom/services`.
 - Trigger analysis pipeline after successful response writes.
 - Manage graceful shutdown of workers, warm browser pool, and Redis connections.
 
@@ -29,17 +29,17 @@ Camoufox-backed browser worker + BullMQ worker responsible for executing provide
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/agent dev` | Run worker entry in TS mode |
-| `pnpm --filter @oneglanse/agent build` | Compile TS to `dist` |
-| `pnpm --filter @oneglanse/agent start:worker` | Run compiled worker |
-| `pnpm --filter @oneglanse/agent typecheck` | Run TypeScript checks |
+| `pnpm --filter @answerloom/agent dev` | Run worker entry in TS mode |
+| `pnpm --filter @answerloom/agent build` | Compile TS to `dist` |
+| `pnpm --filter @answerloom/agent start:worker` | Run compiled worker |
+| `pnpm --filter @answerloom/agent typecheck` | Run TypeScript checks |
 
 ## Environment Variables
 
 Defined in `src/env.ts` (Zod validated):
 
 - Required runtime:
-  - `ONEGLANSE_APP_MODE`
+  - `ANSWERLOOM_APP_MODE`
   - `REDIS_HOST`
   - `REDIS_PORT`
   - `REDIS_PASSWORD`
@@ -138,22 +138,22 @@ CAMOUFOX_EXTRA_LAUNCH_JSON={"ignore_default_args":["--enable-automation"]}
 4. Run worker:
 
 ```bash
-pnpm --filter @oneglanse/agent dev
+pnpm --filter @answerloom/agent dev
 ```
 
 ## Queue Model
 
-- Queue name per provider comes from `@oneglanse/services` `getQueueName(provider)`.
+- Queue name per provider comes from `@answerloom/services` `getQueueName(provider)`.
 - Jobs are submitted by `submitAgentJobGroup` in services.
 - Worker status/progress is written to Redis key: `job:{jobGroupId}:result`.
 
 ## Dependencies
 
 This app depends on:
-- `@oneglanse/services` for persistence/queue contracts
-- `@oneglanse/types` for provider/payload contracts
-- `@oneglanse/utils` for logging and shared helpers
-- `@oneglanse/errors` for typed error behavior
+- `@answerloom/services` for persistence/queue contracts
+- `@answerloom/types` for provider/payload contracts
+- `@answerloom/utils` for logging and shared helpers
+- `@answerloom/errors` for typed error behavior
 
 ## Operational Notes
 

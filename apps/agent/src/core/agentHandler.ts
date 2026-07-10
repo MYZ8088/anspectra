@@ -1,8 +1,9 @@
 import type {
 	AskPromptResult,
+	PromptAttemptUpdate,
 	PromptPayload,
 	Provider,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 import {
 	type AgentFactory,
 	type AttemptExecutor,
@@ -22,6 +23,8 @@ export async function agentHandler(
 		onAttemptStart?: (attempt: BrowserAttempt) => void | Promise<void>;
 		onAttemptComplete?: () => void | Promise<void>;
 		onPromptProgress?: (current: number, total: number) => Promise<void>;
+		onSampleComplete?: (sample: AskPromptResult) => Promise<void>;
+		onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>;
 	},
 ): Promise<AskPromptResult[]> {
 	return runWithProvider(provider, async () => {
@@ -31,6 +34,8 @@ export async function agentHandler(
 			onAttemptStart: options?.onAttemptStart,
 			onAttemptComplete: options?.onAttemptComplete,
 			onPromptProgress: options?.onPromptProgress,
+			onSampleComplete: options?.onSampleComplete,
+			onAttemptUpdate: options?.onAttemptUpdate,
 		});
 	});
 }

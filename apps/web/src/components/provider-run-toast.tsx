@@ -2,12 +2,21 @@
 
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { PROVIDER_LIST, type Provider } from "@oneglanse/types";
-import { ProviderRunStatusCard, toast } from "@oneglanse/ui";
+import { PROVIDER_LIST, type Provider } from "@answerloom/types";
+import { ProviderRunStatusCard, toast } from "@answerloom/ui";
+import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type ProviderState = "pending" | "running" | "completed" | "failed" | "stopped";
+type ProviderState =
+	| "pending"
+	| "running"
+	| "waiting_human"
+	| "partial"
+	| "completed"
+	| "failed"
+	| "stopped";
 
 type ProviderProgressResponse = {
 	updateId?: number;
@@ -21,8 +30,8 @@ type DisplayPhase = "pending" | "running" | "completed" | "failed" | "stopped";
 const PROVIDER_RUN_TOAST_ID = "provider-run-progress";
 const COMPLETION_TOAST_DURATION_MS = 1400;
 const STOPPED_HANDOFF_DELAY_MS = 350;
-const ACTIVE_PROVIDER_RUN_STORAGE_KEY = "oneglanse.active-provider-run";
-const ACTIVE_PROVIDER_RUN_EVENT = "oneglanse:active-provider-run";
+const ACTIVE_PROVIDER_RUN_STORAGE_KEY = "answerloom.active-provider-run";
+const ACTIVE_PROVIDER_RUN_EVENT = "answerloom:active-provider-run";
 
 type ActiveProviderRun = {
 	workspaceId: string;
@@ -183,6 +192,7 @@ function useProviderRunToast(args: {
 		phase: DisplayPhase;
 		promptNumber?: number;
 	} | null>(null);
+	const announcedChallengesRef = useRef(new Set<Provider>());
 
 	const parsed = useMemo(() => {
 		const data = response as ProviderProgressResponse | null | undefined;
@@ -237,6 +247,7 @@ function useProviderRunToast(args: {
 			}
 			displayRef.current = null;
 			toast.dismiss(PROVIDER_RUN_TOAST_ID);
+			toast.dismiss(`${PROVIDER_RUN_TOAST_ID}-challenge`);
 			return;
 		}
 
@@ -253,6 +264,50 @@ function useProviderRunToast(args: {
 		const runningProviders = PROVIDER_LIST.filter(
 			(provider) => providerStates[provider] === "running",
 		);
+		const waitingHumanProvider = PROVIDER_LIST.find(
+			(provider) => providerStates[provider] === "waiting_human",
+		);
+		for (const provider of announcedChallengesRef.current) {
+			if (providerStates[provider] !== "waiting_human") {
+				announcedChallengesRef.current.delete(provider);
+			}
+		}
+		if (!waitingHumanProvider) {
+			toast.dismiss(`${PROVIDER_RUN_TOAST_ID}-challenge`);
+		}
+		if (
+			waitingHumanProvider &&
+			!announcedChallengesRef.current.has(waitingHumanProvider)
+		) {
+			announcedChallengesRef.current.add(waitingHumanProvider);
+			toast.custom(
+				() => (
+					<div className="flex w-[min(340px,calc(100vw-2rem))] items-start gap-3 border border-amber-200 bg-amber-50 p-4 shadow-lg dark:border-amber-900 dark:bg-amber-950">
+						<AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" />
+						<div className="min-w-0 flex-1">
+							<p className="text-sm font-semibold capitalize text-amber-950 dark:text-amber-100">
+								{waitingHumanProvider} needs verification
+							</p>
+							<p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+								Completed samples are saved. Resolve the real provider page to
+								continue.
+							</p>
+							<Link
+								className="mt-3 inline-flex text-xs font-semibold underline"
+								href={`/runs?workspace=${workspaceId}`}
+							>
+								Review verification
+							</Link>
+						</div>
+					</div>
+				),
+				{
+					id: `${PROVIDER_RUN_TOAST_ID}-challenge`,
+					duration: Number.POSITIVE_INFINITY,
+				},
+			);
+			return;
+		}
 		const currentDisplay = displayRef.current;
 		const transitionedProvider = PROVIDER_LIST.find((provider) => {
 			const previousState = previousStates[provider];
@@ -261,6 +316,7 @@ function useProviderRunToast(args: {
 			return (
 				previousState === "running" &&
 				(nextState === "completed" ||
+					nextState === "partial" ||
 					nextState === "failed" ||
 					nextState === "stopped")
 			);
@@ -468,7 +524,7 @@ export function ProviderRunToastManager() {
 	);
 
 	useProviderRunToast({
-		active: !!activeRun,
+		active: !!activeRun && pathname !== "/runs",
 		workspaceId: activeRun?.workspaceId ?? "",
 		jobId: activeRun?.jobId ?? null,
 		response: jobStatusQuery.data?.response,

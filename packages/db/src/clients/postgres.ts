@@ -2,9 +2,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { Pool } from "pg";
 import postgres from "postgres";
 
-import * as schema from "../schema/index.js";
 import { getRequiredDatabaseUrl } from "../config/postgres.js";
 import { env } from "../env.js";
+import * as schema from "../schema/index.js";
 
 const globalForDb = globalThis as unknown as {
 	conn: postgres.Sql | undefined;

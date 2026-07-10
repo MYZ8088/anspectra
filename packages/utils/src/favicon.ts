@@ -1,5 +1,5 @@
-import { getDomain } from "./url/getDomain.js";
 import { PROVIDER_DISPLAY } from "./agent/providers.js";
+import { getDomain } from "./url/getDomain.js";
 
 export const getModelFavicon = (model: string): string => {
 	// Normalize model name to lowercase provider key
@@ -21,6 +21,11 @@ export const getModelFavicon = (model: string): string => {
 		gemini: "gemini.google.com",
 		"ai-overview": "google.com",
 		claude: "claude.ai",
+		deepseek: "deepseek.com",
+		doubao: "doubao.com",
+		hunyuan: "yuanbao.tencent.com",
+		"tencent yuanbao": "yuanbao.tencent.com",
+		qwen: "qwen.ai",
 		mistral: "mistral.ai",
 		meta: "about.fb.com",
 		cohere: "cohere.com",

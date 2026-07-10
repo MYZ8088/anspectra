@@ -1,10 +1,14 @@
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 
 export const PROVIDER_NO_OUTPUT_TIMEOUT_MS: Record<Provider, number> = {
 	chatgpt: 90_000,
 	perplexity: 45_000,
 	gemini: 45_000,
 	claude: 60_000,
+	deepseek: 60_000,
+	doubao: 60_000,
+	hunyuan: 60_000,
+	qwen: 60_000,
 	"ai-overview": 45_000,
 };
 
@@ -13,33 +17,71 @@ export const PROVIDER_FORCE_EXIT_STABLE_MS: Record<Provider, number> = {
 	perplexity: 30_000,
 	gemini: 45_000,
 	claude: 45_000,
+	deepseek: 45_000,
+	doubao: 45_000,
+	hunyuan: 45_000,
+	qwen: 45_000,
 	"ai-overview": 30_000,
 };
 
 export const PROVIDER_EDITOR_SELECTORS: Record<Provider, string[]> = {
 	chatgpt: [
-		'#prompt-textarea',
+		"#prompt-textarea",
 		'div#prompt-textarea[contenteditable="true"][role="textbox"]',
 		'div.ProseMirror[contenteditable="true"][role="textbox"]',
-		'div[contenteditable="true"][role="textbox"][aria-multiline="true"][aria-label="Chat with ChatGPT"]'
+		'div[contenteditable="true"][role="textbox"][aria-multiline="true"][aria-label="Chat with ChatGPT"]',
 	],
 	perplexity: [
-		'#ask-input',
+		"#ask-input",
 		'div#ask-input[contenteditable="true"][role="textbox"]',
 		'div[role="textbox"][data-lexical-editor="true"]',
-		'div[contenteditable="true"][role="textbox"][data-lexical-editor="true"]'
+		'div[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
 	],
 	gemini: [
 		'div[aria-label="Enter a prompt for Gemini"]',
 		'rich-textarea [contenteditable="true"][role="textbox"]',
-		'div[contenteditable="true"][role="textbox"][aria-multiline="true"]'
+		'div[contenteditable="true"][role="textbox"][aria-multiline="true"]',
 	],
 	claude: [
 		'[data-testid="chat-input"]',
 		'div[data-testid="chat-input"][contenteditable="true"][role="textbox"]',
 		'[data-testid="chat-input"][aria-multiline="true"]',
 	],
-	"ai-overview": ['textarea[name="q"][role="combobox"]','textarea[role="combobox"][aria-label="Search"]',],
+	deepseek: [
+		'textarea[name="user query"]',
+		'textarea[placeholder*="DeepSeek" i]',
+		"textarea.ds-textarea__textarea",
+	],
+	doubao: [
+		"textarea",
+		'textarea[placeholder*="豆包" i]',
+		'textarea[placeholder*="发消息" i]',
+		'textarea[placeholder*="Ask" i]',
+		'div[contenteditable="true"][role="textbox"]',
+		'div[contenteditable="true"]',
+	],
+	hunyuan: [
+		'.ql-editor[contenteditable="true"]',
+		'[contenteditable="true"][data-placeholder*="Ask me anything" i]',
+		"textarea",
+		'textarea[placeholder*="问" i]',
+		'textarea[placeholder*="元宝" i]',
+		'textarea[placeholder*="发消息" i]',
+		'div[contenteditable="true"][role="textbox"]',
+		'div[contenteditable="true"]',
+	],
+	qwen: [
+		"textarea",
+		'textarea[placeholder*="Ask" i]',
+		'textarea[placeholder*="Qwen" i]',
+		'textarea[placeholder*="千问" i]',
+		'div[contenteditable="true"][role="textbox"]',
+		'div[contenteditable="true"]',
+	],
+	"ai-overview": [
+		'textarea[name="q"][role="combobox"]',
+		'textarea[role="combobox"][aria-label="Search"]',
+	],
 };
 
 export const PROVIDER_SUBMIT_BTN_SELECTORS: Record<Provider, string[]> = {
@@ -47,36 +89,94 @@ export const PROVIDER_SUBMIT_BTN_SELECTORS: Record<Provider, string[]> = {
 	perplexity: ['button[aria-label*="Submit"]'],
 	gemini: ['button[aria-label*="Send"]'],
 	claude: ['button[aria-label*="Send"]'],
+	deepseek: [
+		'button[aria-label*="Send" i]',
+		'button[aria-label*="发送" i]',
+		'button:has-text("Send")',
+		'button:has-text("发送")',
+	],
+	doubao: [
+		'button[aria-label*="Send" i]',
+		'button[aria-label*="发送" i]',
+		'button:has-text("Send")',
+		'button:has-text("发送")',
+	],
+	hunyuan: [
+		'button[aria-label*="Send" i]',
+		'button[aria-label*="发送" i]',
+		'button:has-text("Send")',
+		'button:has-text("发送")',
+	],
+	qwen: [
+		'button[aria-label*="Send" i]',
+		'button[aria-label*="发送" i]',
+		'button:has-text("Send")',
+		'button:has-text("发送")',
+	],
 	"ai-overview": [],
 };
 
 export const PROVIDER_MODEL_RESPONSE_SELECTORS: Record<Provider, string[]> = {
 	chatgpt: [
 		'[data-message-author-role="assistant"]',
-		'[data-testid^="conversation-turn"][data-turn="assistant"]'
+		'[data-testid^="conversation-turn"][data-turn="assistant"]',
 	],
 	perplexity: [
 		'div[id^="markdown-content-"]',
-		'[id^="markdown-content-"] .prose'
+		'[id^="markdown-content-"] .prose',
 	],
-	gemini: ['message-content .markdown'],
+	gemini: ["message-content .markdown"],
 	claude: [
 		'[data-is-streaming="false"] .standard-markdown',
-		'.standard-markdown'
+		".standard-markdown",
 	],
-	"ai-overview": [
-		'[data-container-id="main-col"]'
+	deepseek: [".ds-markdown:not(.ds-think-content *)"],
+	doubao: [
+		'[data-message-id]:not([class*="justify-end"]) .md-box-root',
+		".md-box-root",
+		".markdown-body",
+		".markdown",
+		'[class*="markdown" i]',
+		'[data-testid*="answer" i]',
+		'[data-testid*="message" i]',
 	],
+	hunyuan: [
+		".hyc-common-markdown",
+		".markdown-body",
+		".markdown",
+		'[class*="markdown" i]',
+		'[data-testid*="answer" i]',
+		'[data-testid*="message" i]',
+	],
+	qwen: [
+		".markdown-body",
+		".markdown",
+		'[class*="markdown" i]',
+		'[data-testid*="message" i]',
+		'[data-message-author-role="assistant"]',
+	],
+	"ai-overview": ['[data-container-id="main-col"]'],
 };
 
 export const PROVIDER_RESPONSE_GENERATION_SELECTORS: Record<
 	Provider,
 	string[]
 > = {
-	chatgpt: ['button[data-testid="stop-button"]', 'button[aria-label*="stop" i]'],
+	chatgpt: [
+		'button[data-testid="stop-button"]',
+		'button[aria-label*="stop" i]',
+	],
 	perplexity: ['button[aria-label*="stop" i]'],
 	gemini: ['button[aria-label*="stop" i]'],
 	claude: ['button[aria-label*="stop" i]'],
+	deepseek: ['button[aria-label*="stop" i]', 'button[aria-label*="停止" i]'],
+	doubao: [
+		'[data-message-id]:not([class*="justify-end"]) .md-box-root[data-streaming="true"]',
+		'button[aria-label*="stop" i]',
+		'button[aria-label*="停止" i]',
+	],
+	hunyuan: ['button[aria-label*="stop" i]', 'button[aria-label*="停止" i]'],
+	qwen: ['button[aria-label*="stop" i]', 'button[aria-label*="停止" i]'],
 	"ai-overview": [],
 };
 

@@ -9,7 +9,10 @@
 		"composite": true,
 		"baseUrl": "../../",
 		"paths": {
-			"@oneglanse/utils": ["packages/utils/src/index.ts", "packages/utils/dist/index.d.ts"]
+			"@answerloom/utils": [
+				"packages/utils/src/index.ts",
+				"packages/utils/dist/index.d.ts"
+			]
 		},
 
 		/* Output */

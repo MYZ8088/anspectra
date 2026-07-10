@@ -22,7 +22,7 @@ import type {
 	DomainStats,
 	GroupedSource,
 	SourceExcerpt,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 import {
 	Button,
 	Dialog,
@@ -33,13 +33,13 @@ import {
 	Input,
 	Label,
 	toast,
-} from "@oneglanse/ui";
+} from "@answerloom/ui";
 import {
 	buildDetailedAnalysisCsvRow,
 	getUniqueModelProviders,
 	joinCitedTexts,
-} from "@oneglanse/utils";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/utils";
+import { cn } from "@answerloom/utils";
 import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useDashboardData } from "../dashboard/_hooks/use-dashboard-data";

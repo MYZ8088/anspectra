@@ -1,6 +1,5 @@
 const DEBUG_ENABLED =
-	process.env["DEBUG_ENABLED"] === "true" ||
-	process.env["DEBUG_ENABLED"] === "1";
+	process.env.DEBUG_ENABLED === "true" || process.env.DEBUG_ENABLED === "1";
 
 // ── Provider context hook ─────────────────────────────────────────────────────
 // Logger is browser-safe: it never imports node:async_hooks.
@@ -28,6 +27,10 @@ const PROVIDER_COLORS: Record<string, string> = {
 	perplexity: "\x1b[36m",
 	gemini: "\x1b[33m",
 	claude: "\x1b[35m",
+	deepseek: "\x1b[36m",
+	doubao: "\x1b[35m",
+	hunyuan: "\x1b[36m",
+	qwen: "\x1b[32m",
 	"ai-overview": "\x1b[34m",
 };
 
@@ -36,6 +39,10 @@ const RAW_PROVIDER_LABELS: Record<string, string> = {
 	perplexity: "PERPLEXITY",
 	gemini: "GEMINI",
 	claude: "CLAUDE",
+	deepseek: "DEEPSEEK",
+	doubao: "DOUBAO",
+	hunyuan: "YUANBAO",
+	qwen: "QWEN",
 	"ai-overview": "AI OVERVIEW",
 };
 

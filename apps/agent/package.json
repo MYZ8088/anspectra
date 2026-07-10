@@ -1,5 +1,5 @@
 {
-	"name": "@oneglanse/agent",
+	"name": "@answerloom/agent",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
@@ -11,10 +11,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@oneglanse/errors": "workspace:*",
-		"@oneglanse/services": "workspace:*",
-		"@oneglanse/types": "workspace:*",
-		"@oneglanse/utils": "workspace:*",
+		"@answerloom/errors": "workspace:*",
+		"@answerloom/services": "workspace:*",
+		"@answerloom/types": "workspace:*",
+		"@answerloom/utils": "workspace:*",
 		"bullmq": "^5.66.4",
 		"dotenv": "^17.2.3",
 		"playwright-core": "^1.51.1",

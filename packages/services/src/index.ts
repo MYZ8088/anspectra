@@ -3,3 +3,4 @@ export * from "./llm/index.js";
 export * from "./prompt/index.js";
 export * from "./workspace/index.js";
 export * from "./agent/index.js";
+export * from "./geo/index.js";

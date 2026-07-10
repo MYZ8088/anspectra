@@ -29,14 +29,14 @@ export const api = createTRPCReact<AppRouter>();
  *
  * @example type HelloInput = RouterInputs['example']['hello']
  */
-type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterInputs = inferRouterInputs<AppRouter>;
 
 /**
  * Inference helper for outputs.
  *
  * @example type HelloOutput = RouterOutputs['example']['hello']
  */
-type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
 	const queryClient = getQueryClient();
@@ -46,7 +46,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 			links: [
 				loggerLink({
 					enabled: (op) =>
-						op.direction === "down" && op.result instanceof Error,
+						process.env.NEXT_PUBLIC_TRPC_LOGGER === "true" &&
+						op.direction === "down" &&
+						op.result instanceof Error,
 				}),
 				httpBatchLink({
 					transformer: SuperJSON,

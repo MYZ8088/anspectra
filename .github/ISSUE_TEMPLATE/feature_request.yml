@@ -1,12 +1,12 @@
 name: Feature Request
-description: Suggest a new feature or improvement for OneGlanse
+description: Suggest a new feature or improvement for AnswerLoom
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
         Have an idea? We'd love to hear it.
-        Before submitting, check [existing issues](https://github.com/aryamantodkar/oneglanse/issues) to see if it's already been requested.
+        Before submitting, check existing issues in this AnswerLoom repository to see if it has already been requested.
 
   - type: textarea
     id: problem

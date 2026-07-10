@@ -1,4 +1,4 @@
-# @oneglanse/errors
+# @answerloom/errors
 
 Centralized error primitives and error-handling helpers.
 
@@ -31,13 +31,13 @@ In `src/error/*`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/errors build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/errors typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/errors build` | Compile TypeScript |
+| `pnpm --filter @answerloom/errors typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import { ValidationError, toErrorMessage } from "@oneglanse/errors";
+import { ValidationError, toErrorMessage } from "@answerloom/errors";
 ```
 
 Use typed errors for predictable API/worker behavior and cleaner telemetry.

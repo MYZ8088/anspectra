@@ -18,12 +18,12 @@ const config = {
 		SKIP_ENV_VALIDATION: process.env.SKIP_ENV_VALIDATION,
 	},
 	transpilePackages: [
-		"@oneglanse/ui",
-		"@oneglanse/utils",
-		"@oneglanse/db",
-		"@oneglanse/errors",
-		"@oneglanse/services",
-		"@oneglanse/types",
+		"@answerloom/ui",
+		"@answerloom/utils",
+		"@answerloom/db",
+		"@answerloom/errors",
+		"@answerloom/services",
+		"@answerloom/types",
 	],
 	logging: {
 		incomingRequests: {

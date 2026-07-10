@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function DocsForwarder(): never {
-	redirect("https://docs.oneglanse.com/");
+	redirect(process.env.NEXT_PUBLIC_DOCS_URL ?? "/");
 }

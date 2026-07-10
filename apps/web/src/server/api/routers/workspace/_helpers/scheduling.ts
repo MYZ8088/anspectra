@@ -1,4 +1,4 @@
-import { ValidationError } from "@oneglanse/errors";
+import { ValidationError } from "@answerloom/errors";
 import { CronExpressionParser } from "cron-parser";
 
 export function parseCronExpressionOrThrow(cronExpression: string) {

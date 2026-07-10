@@ -1,6 +1,6 @@
 "use client";
 
-import { getModelFavicon, modelSelectors } from "@oneglanse/utils";
+import { getModelFavicon, modelSelectors } from "@answerloom/utils";
 import { Bot } from "lucide-react";
 import {
 	Select,

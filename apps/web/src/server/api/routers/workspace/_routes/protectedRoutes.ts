@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { ValidationError } from "@oneglanse/errors";
+import { ValidationError } from "@answerloom/errors";
 import {
 	addWorkspaceToExistingOrg,
 	checkIsFirstWorkspace,
@@ -9,7 +9,7 @@ import {
 	getAllWorkspacesForUser,
 	getWorkspacesForUser,
 	joinWorkspaceByCode,
-} from "@oneglanse/services";
+} from "@answerloom/services";
 import { createRateLimiter } from "../../../middleware/rateLimit";
 import { protectedProcedure } from "../../../procedures";
 import {

@@ -1,25 +1,20 @@
-import { PROVIDER_EDITOR_SELECTORS } from "@oneglanse/utils";
-import { logger } from "@oneglanse/utils";
+import { PROVIDER_EDITOR_SELECTORS } from "@answerloom/utils";
+import { logger } from "@answerloom/utils";
 import { navigateWithRetry } from "../../../lib/browser/navigate.js";
-import {
-	findActiveEditorCandidateFromSelectors,
-} from "../../../lib/input/editor/findEditor.js";
-import { extractAssistantMarkdown } from "../../../lib/input/markdown/toMarkdown.js";
+import { findActiveEditorCandidateFromSelectors } from "../../../lib/input/editor/findEditor.js";
 import { insertPromptIntoEditor } from "../../../lib/input/editor/promptInput.js";
+import { extractAssistantMarkdown } from "../../../lib/input/markdown/toMarkdown.js";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
-import { extractAIOverviewSources } from "./lib/extractSources.js";
+import type { ProviderConfig } from "../types.js";
 import { expandAIOverviewSources } from "./lib/expand.js";
-import {
-	AI_OVERVIEW_URL,
-	resetAIOverviewPage,
-} from "./lib/pageLifecycle.js";
+import { extractAIOverviewSources } from "./lib/extractSources.js";
+import { AI_OVERVIEW_URL, resetAIOverviewPage } from "./lib/pageLifecycle.js";
 import {
 	assertAIOverviewPageNotBlocked,
 	dismissGoogleConsentDialog,
 	ensureAIOverviewGoogleSession,
 	waitForAIOverviewSearchResults,
 } from "./lib/session.js";
-import type { ProviderConfig } from "../types.js";
 
 export const aiOverviewConfig: ProviderConfig = {
 	url: AI_OVERVIEW_URL,
@@ -39,7 +34,9 @@ export const aiOverviewConfig: ProviderConfig = {
 		const searchInput = await findActiveEditorCandidateFromSelectors(page, [
 			...PROVIDER_EDITOR_SELECTORS["ai-overview"],
 		]);
-		logger.debug(`[ai-overview] using search selector: ${searchInput.selector}`);
+		logger.debug(
+			`[ai-overview] using search selector: ${searchInput.selector}`,
+		);
 
 		logger.debug(`[ai-overview] pasting ${prompt.length} chars…`);
 		await insertPromptIntoEditor(
@@ -53,9 +50,9 @@ export const aiOverviewConfig: ProviderConfig = {
 
 		logger.debug("[ai-overview] attempting submission…");
 		await page.keyboard.press("Enter");
-		await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(
-			() => {},
-		);
+		await page
+			.waitForLoadState("domcontentloaded", { timeout: 5000 })
+			.catch(() => {});
 		await waitForAIOverviewSearchResults(page);
 		await dismissGoogleConsentDialog(page);
 		assertAIOverviewPageNotBlocked(page);

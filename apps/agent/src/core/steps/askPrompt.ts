@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
-import { logger, withTimeout } from "@oneglanse/utils";
+import { ExternalServiceError } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
+import { logger, withTimeout } from "@answerloom/utils";
 import type { Page } from "playwright";
 import {
 	moveMouseToElement,
@@ -8,8 +8,8 @@ import {
 	randomBetween,
 	smallScroll,
 } from "../../lib/browser/humanBehavior.js";
-import { findEnabledSendButton } from "../../lib/input/editor/findSendButton.js";
 import { ensureEditorNotBlocked } from "../../lib/input/editor/assertNotBlocked.js";
+import { findEnabledSendButton } from "../../lib/input/editor/findSendButton.js";
 import {
 	insertPromptIntoEditor,
 	normalizePromptValue,
@@ -29,6 +29,7 @@ const NETWORKIDLE_TIMEOUT_MS = 3000;
 const SUBMISSION_PHASE_TIMEOUT_MS = 30_000;
 const HOOK_TIMEOUT_MS = 10_000;
 const TYPE_PHASE_TIMEOUT_MS = 25_000;
+const CHINA_PROVIDER_EDITOR_TIMEOUT_MS = 60_000;
 const POST_SUBMIT_STABILIZE_TIMEOUT_MS = 12_000;
 const CAMOUFOX_HUMANIZE = true;
 
@@ -38,6 +39,14 @@ export async function askPrompt(
 	provider: Provider,
 ): Promise<void> {
 	const config = PROVIDER_CONFIGS[provider];
+	const editorTimeoutMs = new Set([
+		"doubao",
+		"deepseek",
+		"hunyuan",
+		"qwen",
+	]).has(provider)
+		? CHINA_PROVIDER_EDITOR_TIMEOUT_MS
+		: TYPE_PHASE_TIMEOUT_MS;
 	await withTimeout(
 		`[${provider}] beforePromptHook`,
 		async () => {
@@ -46,22 +55,26 @@ export async function askPrompt(
 		HOOK_TIMEOUT_MS,
 	);
 
+	logger.log(`[${provider}] input phase: waiting for editor`);
 	let input = await withTimeout(
 		`[${provider}] waitForEditorReady`,
 		async () => await waitForEditorReady(page, provider),
-		TYPE_PHASE_TIMEOUT_MS,
+		editorTimeoutMs,
 	);
+	logger.log(`[${provider}] input phase: editor ready`);
 
 	try {
 		await ensureEditorNotBlocked(page, input, provider);
 	} catch (err) {
 		if (config.beforeRetryHook) {
-			logger.warn(`editor blocked for ${provider} — refreshing page immediately`);
+			logger.warn(
+				`editor blocked for ${provider} — refreshing page immediately`,
+			);
 			await config.beforeRetryHook(page);
 			const refreshedInput = await withTimeout(
 				`[${provider}] waitForEditorReady after refresh`,
 				async () => await waitForEditorReady(page, provider),
-				TYPE_PHASE_TIMEOUT_MS,
+				editorTimeoutMs,
 			);
 			await ensureEditorNotBlocked(page, refreshedInput, provider);
 			input = refreshedInput;
@@ -76,19 +89,13 @@ export async function askPrompt(
 		await moveMouseToElement(page, input);
 	}
 
-	logger.debug(`pasting ${prompt.length} chars…`);
+	logger.log(`[${provider}] input phase: inserting ${prompt.length} chars`);
 	const { rawValue: insertedValue } = await withTimeout(
 		`[${provider}] insertPromptIntoEditor`,
-		async () =>
-			await insertPromptIntoEditor(
-				page,
-				input,
-				prompt,
-				provider,
-			),
+		async () => await insertPromptIntoEditor(page, input, prompt, provider),
 		TYPE_PHASE_TIMEOUT_MS,
 	);
-	logger.debug(`pasting ${prompt.length} chars complete`);
+	logger.log(`[${provider}] input phase: prompt inserted`);
 
 	await page.waitForTimeout(randomBetween(300, 700));
 	await withTimeout(
@@ -148,7 +155,7 @@ export async function askPrompt(
 	};
 
 	// Detect bot/CAPTCHA page before attempting submission.
-	logger.debug("attempting submission…");
+	logger.log(`[${provider}] submission phase: starting`);
 	await detectBotPage(page, provider);
 
 	// Try each submission strategy exactly once — if all fail, throw immediately.

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OneGlanse will be documented here.
+All notable changes to AnswerLoom will be documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -43,7 +43,7 @@ Initial public release.
 ### Fixed
 - Redis service using raw `console.log`: replaced with structured Logger
 - `.env.example` missing `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ANTHROPIC_API_KEY`
-- `ONEGLANSE_APP_MODE` default in `.env.example` corrected to `local`
+- `ANSWERLOOM_APP_MODE` default in `.env.example` corrected to `local`
 
 ### Removed
 - Unused `RateLimitError` class

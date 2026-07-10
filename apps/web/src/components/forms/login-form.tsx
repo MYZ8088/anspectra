@@ -11,7 +11,6 @@ import {
 	getPostAuthProvidersPath,
 	getSafeAuthRedirectPath,
 } from "@/lib/auth/redirect";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Button,
 	Form,
@@ -23,7 +22,8 @@ import {
 	Input,
 	toast,
 	useForm,
-} from "@oneglanse/ui";
+} from "@answerloom/ui";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";

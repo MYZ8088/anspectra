@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/common/brand-logo";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { SITE_URLS } from "@/lib/landing-content";
-import { Button } from "@oneglanse/ui";
+import { Button } from "@answerloom/ui";
 import { Github, Server } from "lucide-react";
 
 export function SiteHeader(): React.JSX.Element {
@@ -15,20 +15,22 @@ export function SiteHeader(): React.JSX.Element {
 					rel="noreferrer noopener"
 				>
 					<BrandLogo className="h-6 w-6" />
-					OneGlanse
+					AnswerLoom
 				</a>
 
 				<div className="flex shrink-0 items-center gap-2">
-					<Button asChild variant="outline">
-						<a
-							href={SITE_URLS.github}
-							target="_blank"
-							rel="noreferrer noopener"
-						>
-							<Github className="h-4 w-4" aria-hidden="true" />
-							<span className="hidden sm:inline">GitHub</span>
-						</a>
-					</Button>
+					{SITE_URLS.github ? (
+						<Button asChild variant="outline">
+							<a
+								href={SITE_URLS.github}
+								target="_blank"
+								rel="noreferrer noopener"
+							>
+								<Github className="h-4 w-4" aria-hidden="true" />
+								<span className="hidden sm:inline">GitHub</span>
+							</a>
+						</Button>
+					) : null}
 					<Button asChild variant="outline" className="hidden md:inline-flex">
 						<a href={SITE_URLS.docs} target="_blank" rel="noreferrer noopener">
 							<Server className="h-4 w-4" aria-hidden="true" />

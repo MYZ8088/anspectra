@@ -5,8 +5,8 @@ import {
 	getAuthSessionFile,
 	getAuthStorageDiagnostics,
 	readProviderAuthStatuses,
-} from "@oneglanse/services";
-import type { AuthProvider, ProviderAuthStatus } from "@oneglanse/types";
+} from "@answerloom/services";
+import type { AuthProvider, ProviderAuthStatus } from "@answerloom/types";
 import type { ProviderConnectionsState } from "./types";
 
 function getDefaultProviderAuthStatus(

@@ -1,4 +1,4 @@
-# @oneglanse/web
+# @answerloom/web
 
 Main authenticated product application built with Next.js App Router and tRPC.
 
@@ -35,19 +35,19 @@ Defined in `src/server/api/root.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/web dev` | Start Next.js dev server |
-| `pnpm --filter @oneglanse/web build` | Build production bundle |
-| `pnpm --filter @oneglanse/web start` | Start built app |
-| `pnpm --filter @oneglanse/web preview` | Build + start |
-| `pnpm --filter @oneglanse/web typecheck` | TypeScript checks |
-| `pnpm --filter @oneglanse/web lint` | Biome lint/check |
-| `pnpm --filter @oneglanse/web check` | Biome check |
-| `pnpm --filter @oneglanse/web check:write` | Biome write fixes |
-| `pnpm --filter @oneglanse/web check:unsafe` | Biome unsafe fixes |
-| `pnpm --filter @oneglanse/web db:generate` | Drizzle generate |
-| `pnpm --filter @oneglanse/web db:migrate` | Drizzle migrate |
-| `pnpm --filter @oneglanse/web db:push` | Drizzle push |
-| `pnpm --filter @oneglanse/web db:studio` | Drizzle studio |
+| `pnpm --filter @answerloom/web dev` | Start Next.js dev server |
+| `pnpm --filter @answerloom/web build` | Build production bundle |
+| `pnpm --filter @answerloom/web start` | Start built app |
+| `pnpm --filter @answerloom/web preview` | Build + start |
+| `pnpm --filter @answerloom/web typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/web lint` | Biome lint/check |
+| `pnpm --filter @answerloom/web check` | Biome check |
+| `pnpm --filter @answerloom/web check:write` | Biome write fixes |
+| `pnpm --filter @answerloom/web check:unsafe` | Biome unsafe fixes |
+| `pnpm --filter @answerloom/web db:generate` | Drizzle generate |
+| `pnpm --filter @answerloom/web db:migrate` | Drizzle migrate |
+| `pnpm --filter @answerloom/web db:push` | Drizzle push |
+| `pnpm --filter @answerloom/web db:studio` | Drizzle studio |
 
 ## Environment Variables
 
@@ -78,21 +78,21 @@ pnpm db:migrate
 3. Start the app:
 
 ```bash
-pnpm --filter @oneglanse/web dev
+pnpm --filter @answerloom/web dev
 ```
 
 ## Dependencies
 
 This app relies on workspace packages:
-- `@oneglanse/services`: domain/business operations
-- `@oneglanse/db`: schema and DB clients
-- `@oneglanse/types`: shared contracts
-- `@oneglanse/ui`: shared UI components
-- `@oneglanse/utils`: shared helpers
-- `@oneglanse/errors`: typed errors
+- `@answerloom/services`: domain/business operations
+- `@answerloom/db`: schema and DB clients
+- `@answerloom/types`: shared contracts
+- `@answerloom/ui`: shared UI components
+- `@answerloom/utils`: shared helpers
+- `@answerloom/errors`: typed errors
 
 ## Development Boundaries
 
-- Keep route handlers/procedures thin; move business logic to `@oneglanse/services`.
+- Keep route handlers/procedures thin; move business logic to `@answerloom/services`.
 - Use `authorizedWorkspaceProcedure` for workspace-scoped actions.
 - Use `createRateLimiter` middleware for write-heavy mutations.

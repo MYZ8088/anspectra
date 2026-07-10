@@ -1,4 +1,4 @@
-# @oneglanse/types
+# @answerloom/types
 
 Shared TypeScript contracts used across apps and packages.
 
@@ -24,13 +24,13 @@ Shared TypeScript contracts used across apps and packages.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/types build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/types typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/types build` | Compile TypeScript |
+| `pnpm --filter @answerloom/types typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import type { Provider, AnalysisRecord } from "@oneglanse/types";
+import type { Provider, AnalysisRecord } from "@answerloom/types";
 ```
 
 ## Contribution Guidance

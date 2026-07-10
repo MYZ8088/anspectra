@@ -1,6 +1,6 @@
 ---
 title: Local Setup
-description: Run the full OneGlanse stack on your own machine for the fastest setup, interactive provider auth, and manual prompt runs.
+description: Run the full AnswerLoom stack on your own machine for the fastest setup, interactive provider auth, and manual prompt runs.
 ---
 
 ## When to choose local
@@ -24,8 +24,8 @@ npm install -g pnpm@latest
 ## 1. Clone and configure
 
 ```bash
-git clone https://github.com/aryamantodkar/oneglanse
-cd oneglanse
+# From your AnswerLoom checkout:
+cd answerloom
 cp .env.example .env
 ```
 
@@ -48,7 +48,7 @@ pnpm local
 
 The app runs at [http://localhost:3000](http://localhost:3000).
 
-On first run, OneGlanse:
+On first run, AnswerLoom:
 
 - Starts Postgres, ClickHouse, and Redis
 - Runs migrations
@@ -66,9 +66,9 @@ Then:
 
 If Google OAuth is configured for the web app, users can also sign in with Google. That is separate from monitoring Google AI Overview, which still uses provider sessions captured through the browser auth flow.
 
-## Why OneGlanse uses UI collection
+## Why AnswerLoom uses UI collection
 
-OneGlanse does not rely on official model APIs for provider collection.
+AnswerLoom does not rely on official model APIs for provider collection.
 
 Instead, it opens the real chat interfaces and captures what the provider UI actually renders. That matters because the UI can include:
 
@@ -81,11 +81,11 @@ This is the core product differentiator. GEO is about what users actually see in
 
 For more context on why UI answers and API answers differ, see [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
 
-## Why OneGlanse uses Camoufox
+## Why AnswerLoom uses Camoufox
 
 Provider websites are authenticated consumer apps with anti-bot protections.
 
-OneGlanse uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, because plain Chrome or Chromium automation is much more likely to run into:
+AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, because plain Chrome or Chromium automation is much more likely to run into:
 
 - Login loops
 - Forced verification challenges

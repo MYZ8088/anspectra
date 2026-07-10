@@ -2,6 +2,14 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  '@biomejs/biome': true
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+  sharp: true
+
 injectWorkspacePackages: true
 syncInjectedDepsAfterScripts:
   - build

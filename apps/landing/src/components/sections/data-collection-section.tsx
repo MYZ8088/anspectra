@@ -1,5 +1,5 @@
 import { METHOD_POINTS } from "@/lib/landing-content";
-import { Card } from "@oneglanse/ui";
+import { Card } from "@answerloom/ui";
 import {
 	ExternalLink,
 	Fingerprint,

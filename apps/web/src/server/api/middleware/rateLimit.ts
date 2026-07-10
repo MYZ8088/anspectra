@@ -1,7 +1,15 @@
 import "server-only";
+import {
+	type RateLimitConfig,
+	checkRateLimit,
+	getClientIp,
+} from "@/lib/rate-limit";
 import { TRPCError } from "@trpc/server";
-import { checkRateLimit, getClientIp, type RateLimitConfig } from "@/lib/rate-limit";
 import { t } from "../trpc";
+
+function shouldSkipRateLimit(): boolean {
+	return process.env.ANSWERLOOM_APP_MODE === "local";
+}
 
 /**
  * Returns a tRPC middleware that enforces a per-user fixed-window rate limit.
@@ -11,17 +19,24 @@ import { t } from "../trpc";
  * Usage: procedure.use(createRateLimiter("agent.run", { limit: 3, windowSecs: 60 }))
  */
 export function createRateLimiter(keyPrefix: string, config: RateLimitConfig) {
-  return t.middleware(async ({ ctx, next }) => {
-    const identifier = ctx.session?.user?.id ?? getClientIp(ctx.headers);
-    const { allowed } = await checkRateLimit(`rl:${keyPrefix}:${identifier}`, config);
+	return t.middleware(async ({ ctx, next }) => {
+		if (shouldSkipRateLimit()) {
+			return next();
+		}
 
-    if (!allowed) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: "Rate limit exceeded. Please slow down.",
-      });
-    }
+		const identifier = ctx.session?.user?.id ?? getClientIp(ctx.headers);
+		const { allowed } = await checkRateLimit(
+			`rl:${keyPrefix}:${identifier}`,
+			config,
+		);
 
-    return next();
-  });
+		if (!allowed) {
+			throw new TRPCError({
+				code: "TOO_MANY_REQUESTS",
+				message: "Rate limit exceeded. Please slow down.",
+			});
+		}
+
+		return next();
+	});
 }

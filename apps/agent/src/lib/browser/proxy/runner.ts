@@ -3,19 +3,20 @@ import {
 	IPRefreshNeededError,
 	classifyError,
 	toErrorMessage,
-} from "@oneglanse/errors";
+} from "@answerloom/errors";
 import {
 	type AskPromptResult,
+	type PromptAttemptUpdate,
 	type PromptPayload,
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 import {
 	createProviderLogger,
 	exponentialBackoff,
 	logger,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { runAgents } from "../../../core/runAgents.js";
 
@@ -49,6 +50,7 @@ export type AgentFactory = () => Promise<{
 	proxy?: string | null;
 	cleanup?: () => Promise<void>;
 	invalidateProxyHint?: () => Promise<void>;
+	preserveForHuman?: () => void;
 }>;
 
 export type BrowserAttempt = {
@@ -74,6 +76,7 @@ type Refs = {
 	proxy: string | null;
 	cleanup?: (() => Promise<void>) | null;
 	invalidateProxyHint?: (() => Promise<void>) | null;
+	preserveForHuman?: (() => void) | null;
 };
 
 function jitter(baseMs: number, factor = 0.3): number {
@@ -101,14 +104,14 @@ async function invalidateAndEvict(refs: Refs): Promise<void> {
 }
 
 async function closeContextAndBrowser(refs: Refs): Promise<void> {
-	// Close context first, then let cleanup() handle browser + process + forwarder.
-	// Don't call refs.browser.close() here — cleanup() already does it and
-	// double-closing triggers silent errors.
 	const hadRefs = refs.context !== null || refs.cleanup !== null;
-	await refs.context?.close().catch(() => {});
-	await refs.cleanup?.().catch(() => {});
+	if (refs.cleanup) {
+		await refs.cleanup().catch(() => {});
+	} else {
+		await refs.context?.close().catch(() => {});
+	}
 	if (hadRefs) {
-		logger.debug("browser closed");
+		logger.debug("browser attempt released");
 	}
 }
 
@@ -157,6 +160,7 @@ async function runSingleAttempt(
 	// or timeout during execution can always attempt teardown.
 	refs.cleanup = agent.cleanup ?? null;
 	refs.invalidateProxyHint = agent.invalidateProxyHint ?? null;
+	refs.preserveForHuman = agent.preserveForHuman ?? null;
 	refs.browser = agent.browser;
 	refs.context = agent.context;
 	refs.page = agent.page;
@@ -200,6 +204,8 @@ async function runRetryCycle(
 	accumulatedResults: AskPromptResult[],
 	currentPayload: PromptPayload,
 	cycle: number,
+	attemptsPerCycle: number,
+	maxCycles: number,
 	plog: ReturnType<typeof createProviderLogger>,
 	executor: AttemptExecutor,
 	timeoutMs?: number,
@@ -208,13 +214,13 @@ async function runRetryCycle(
 	onAttemptComplete?: () => void | Promise<void>,
 ): Promise<{ done: true } | { done: false; updatedPayload: PromptPayload }> {
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(process.env.ONEGLANSE_APP_MODE),
+		resolveAppMode(process.env.ANSWERLOOM_APP_MODE),
 	);
 	let nextPayload = currentPayload;
 
-	for (let attempt = 0; attempt < ATTEMPTS_PER_CYCLE; attempt++) {
-		const totalAttempt = cycle * ATTEMPTS_PER_CYCLE + attempt + 1;
-		const totalMax = MAX_CYCLES * ATTEMPTS_PER_CYCLE;
+	for (let attempt = 0; attempt < attemptsPerCycle; attempt++) {
+		const totalAttempt = cycle * attemptsPerCycle + attempt + 1;
+		const totalMax = maxCycles * attemptsPerCycle;
 
 		const refs: Refs = {
 			browser: null,
@@ -223,6 +229,7 @@ async function runRetryCycle(
 			proxy: null,
 			cleanup: null,
 			invalidateProxyHint: null,
+			preserveForHuman: null,
 		};
 
 		try {
@@ -285,8 +292,7 @@ async function runRetryCycle(
 					break;
 				}
 
-
-				if (attempt < ATTEMPTS_PER_CYCLE - 1) {
+				if (attempt < attemptsPerCycle - 1) {
 					await sleep(jitter(RETRY_DELAY));
 				}
 				continue;
@@ -294,7 +300,7 @@ async function runRetryCycle(
 
 			const failureType = getFailureType(err);
 			plog.error(
-				`failed (attempt ${totalAttempt}/${totalMax}, cycle ${cycle + 1}/${MAX_CYCLES}, type=${failureType}):`,
+				`failed (attempt ${totalAttempt}/${totalMax}, cycle ${cycle + 1}/${maxCycles}, type=${failureType}):`,
 				toErrorMessage(err),
 			);
 
@@ -304,6 +310,12 @@ async function runRetryCycle(
 				);
 				await invalidateAndEvict(refs);
 				return { done: true };
+			}
+
+			if (failureType === "human_challenge") {
+				plog.warn("human verification required — pausing without retry");
+				refs.preserveForHuman?.();
+				throw err;
 			}
 
 			if (failureType === "bot_detection") {
@@ -339,10 +351,22 @@ async function runRetryCycle(
 				plog.warn(
 					`browser crash on attempt ${totalAttempt}/${totalMax}; retrying immediately`,
 				);
+				await invalidateAndEvict(refs);
 				continue;
 			}
 
-			if (attempt < ATTEMPTS_PER_CYCLE - 1) {
+			if (
+				!useProxy &&
+				failureType === "no_editor" &&
+				attempt < attemptsPerCycle - 1
+			) {
+				plog.warn(
+					`editor unavailable after page retries; restarting the same persistent profile context`,
+				);
+				await invalidateAndEvict(refs);
+			}
+
+			if (attempt < attemptsPerCycle - 1) {
 				await sleep(jitter(RETRY_DELAY));
 			}
 		} finally {
@@ -370,31 +394,49 @@ export async function runWithRetryCycles(
 		onAttemptStart?: (attempt: BrowserAttempt) => void | Promise<void>;
 		onAttemptComplete?: () => void | Promise<void>;
 		onPromptProgress?: (current: number, total: number) => Promise<void>;
+		onSampleComplete?: (sample: AskPromptResult) => Promise<void>;
+		onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>;
 	},
 ): Promise<AskPromptResult[]> {
 	const plog = createProviderLogger(provider);
+	const useProxy = shouldUseProxyInMode(
+		resolveAppMode(process.env.ANSWERLOOM_APP_MODE),
+	);
+	const attemptsPerCycle = useProxy ? ATTEMPTS_PER_CYCLE : 2;
+	const maxCycles = useProxy ? MAX_CYCLES : 1;
 	const accumulatedResults: AskPromptResult[] = [];
 	let currentPayload = payload;
 	const executor =
 		options?.executor ??
 		((attempt, currentAttemptPayload) =>
-			runAgents(currentAttemptPayload, attempt.page, provider, options?.onPromptProgress));
+			runAgents(
+				currentAttemptPayload,
+				attempt.page,
+				provider,
+				options?.onPromptProgress,
+				options?.onSampleComplete,
+				options?.onAttemptUpdate,
+			));
 
 	// Scale execution timeout by prompt count so multi-prompt jobs don't time out mid-run.
 	// Setup (launch + warmup + nav) is bounded separately by AGENT_SETUP_TIMEOUT_MS.
+	const promptCount = Math.max(1, payload.prompts.length);
+	const samplingBudgetMs =
+		Math.max(0, promptCount - 1) *
+		Math.max(0, payload.sampling?.maxPromptDelayMs ?? 0);
 	const timeoutMs =
-		Math.max(1, payload.prompts.length) * PROVIDER_TIMEOUT_PER_PROMPT_MS;
+		promptCount * PROVIDER_TIMEOUT_PER_PROMPT_MS + samplingBudgetMs + 60_000;
 	plog.log(
 		`setup budget: ${AGENT_SETUP_TIMEOUT_MS / 1000}s | execution budget: ${timeoutMs / 60000}min (${payload.prompts.length} prompt(s))`,
 	);
 
-	for (let cycle = 0; cycle < MAX_CYCLES; cycle++) {
+	for (let cycle = 0; cycle < maxCycles; cycle++) {
 		if (cycle > 0) {
 			const backoff = jitter(
 				exponentialBackoff(cycle - 1, INITIAL_BACKOFF, MAX_CYCLE_BACKOFF),
 			);
 			plog.warn(
-				`cycle ${cycle + 1}/${MAX_CYCLES}: backing off ${backoff / 1000}s before retry...`,
+				`cycle ${cycle + 1}/${maxCycles}: backing off ${backoff / 1000}s before retry...`,
 			);
 			await sleep(backoff);
 		}
@@ -405,6 +447,8 @@ export async function runWithRetryCycles(
 			accumulatedResults,
 			currentPayload,
 			cycle,
+			attemptsPerCycle,
+			maxCycles,
 			plog,
 			executor,
 			timeoutMs,
@@ -420,14 +464,14 @@ export async function runWithRetryCycles(
 		currentPayload = outcome.updatedPayload;
 	}
 
-	const totalAttempts = MAX_CYCLES * ATTEMPTS_PER_CYCLE;
+	const totalAttempts = maxCycles * attemptsPerCycle;
 	plog.error(
-		`exhausted — failed all ${totalAttempts} attempts across ${MAX_CYCLES} cycles`,
+		`exhausted — failed all ${totalAttempts} attempts across ${maxCycles} cycles`,
 	);
 	throw new ExternalServiceError(
 		provider,
-		`failed all ${totalAttempts} attempts across ${MAX_CYCLES} cycles`,
+		`failed all ${totalAttempts} attempts across ${maxCycles} cycles`,
 		503,
-		{ totalAttempts, cycles: MAX_CYCLES },
+		{ totalAttempts, cycles: maxCycles },
 	);
 }

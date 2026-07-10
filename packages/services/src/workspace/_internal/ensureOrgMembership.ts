@@ -1,5 +1,5 @@
-import { db, schema } from "@oneglanse/db";
-import { newId } from "@oneglanse/utils";
+import { db, schema } from "@answerloom/db";
+import { newId } from "@answerloom/utils";
 
 // Private — ensures a user belongs to an org, inserting a member row if missing.
 export async function ensureOrgMembership(

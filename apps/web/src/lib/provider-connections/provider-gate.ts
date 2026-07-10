@@ -1,5 +1,5 @@
-const SKIP_PROVIDER_GATE_STORAGE_KEY = "oneglanse.skip-provider-gate";
-export const SKIP_PROVIDER_GATE_EVENT = "oneglanse:skip-provider-gate";
+const SKIP_PROVIDER_GATE_STORAGE_KEY = "answerloom.skip-provider-gate";
+export const SKIP_PROVIDER_GATE_EVENT = "answerloom:skip-provider-gate";
 
 export function readSkipProviderGate(): boolean {
 	if (typeof window === "undefined") {

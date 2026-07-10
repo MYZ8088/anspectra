@@ -10,8 +10,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@oneglanse/ui";
-import { getFaviconUrls, getModelFavicon } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { getFaviconUrls, getModelFavicon } from "@answerloom/utils";
 
 export function VisibilityScoreboardSection(): React.JSX.Element {
 	return (

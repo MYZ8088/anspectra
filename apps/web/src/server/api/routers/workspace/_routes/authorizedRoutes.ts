@@ -1,4 +1,4 @@
-import { AuthError, ValidationError } from "@oneglanse/errors";
+import { AuthError, ValidationError } from "@answerloom/errors";
 import {
 	addMemberToWorkspaceByEmail,
 	getLastPromptRunTime,
@@ -11,7 +11,7 @@ import {
 	updateWorkspaceEnabledProviders,
 	updateWorkspaceSchedule,
 	updateWorkspaceSelectedPrompts,
-} from "@oneglanse/services";
+} from "@answerloom/services";
 import { authorizedWorkspaceProcedure } from "../../../procedures";
 import { parseCronExpressionOrThrow } from "../_helpers/scheduling";
 import {

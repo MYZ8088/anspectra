@@ -1,4 +1,4 @@
-import { Skeleton } from "@oneglanse/ui";
+import { Skeleton } from "@answerloom/ui";
 
 const CARD_SKELETON_KEYS = [
 	"card-skeleton-1",

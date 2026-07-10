@@ -1,8 +1,8 @@
 import "server-only";
 
+import { db } from "@answerloom/db";
+import type { Workspace } from "@answerloom/db";
 import { auth } from "@lib/auth/auth";
-import { db } from "@oneglanse/db";
-import type { Workspace } from "@oneglanse/db";
 import { inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 

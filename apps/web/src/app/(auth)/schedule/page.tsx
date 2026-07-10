@@ -1,4 +1,4 @@
-import { resolveAppMode } from "@oneglanse/types";
+import { resolveAppMode } from "@answerloom/types";
 import SchedulePageClient from "./schedule-page-client";
 
 export default async function SchedulePage({
@@ -6,7 +6,7 @@ export default async function SchedulePage({
 }: {
 	searchParams?: Promise<{ workspace?: string }>;
 }) {
-	const appMode = resolveAppMode(process.env.ONEGLANSE_APP_MODE);
+	const appMode = resolveAppMode(process.env.ANSWERLOOM_APP_MODE);
 	const params = await searchParams;
 
 	return (

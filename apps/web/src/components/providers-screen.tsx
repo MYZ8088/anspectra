@@ -1,4 +1,5 @@
 import { ProviderConnectionsPanel } from "@/components/provider-connections-panel";
+import { ProviderDiagnosticsPanel } from "@/components/provider-diagnostics-panel";
 
 const DEFAULT_PROVIDERS_TITLE = "Connect Providers";
 const DEFAULT_PROVIDERS_DESCRIPTION =
@@ -40,6 +41,9 @@ export function ProvidersScreen(props: {
 					showOnboardingActions={showOnboardingActions}
 					watchForExternalUpdates={watchForExternalUpdates}
 				/>
+				{workspaceId ? (
+					<ProviderDiagnosticsPanel workspaceId={workspaceId} />
+				) : null}
 			</div>
 		</div>
 	);

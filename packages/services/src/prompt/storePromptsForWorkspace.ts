@@ -1,71 +1,49 @@
-import { clickhouse } from "@oneglanse/db";
-import type { StorePromptsForWorkspaceArgs } from "@oneglanse/types";
-import { formatDateToClickHouse } from "@oneglanse/utils";
-import { v4 as uuidv4 } from "uuid";
-import { insertClickHouseWithFallback } from "./lib/insertClickHouseWithFallback.js";
+import { db, schema } from "@answerloom/db";
+import type { StorePromptsForWorkspaceArgs } from "@answerloom/types";
+import { and, eq, inArray } from "drizzle-orm";
+import { importCustomPrompts } from "../geo/promptLibrary.js";
 
+/**
+ * Compatibility facade for the original Prompt settings screen.
+ * New prompt writes live in PostgreSQL; ClickHouse user_prompts is historical only.
+ */
 export async function storePromptsForWorkspace(
 	args: StorePromptsForWorkspaceArgs,
 ): Promise<string[]> {
-	const { prompts, workspaceId, userId } = args;
-
-	const normalizedPrompts = Array.from(
-		new Set(prompts.map((p) => p.trim()).filter((p) => p !== "")),
-	);
-
-	const existing = await clickhouse.query({
-		query: `
-          SELECT prompt
-          FROM analytics.user_prompts
-          WHERE workspace_id = {workspaceId:String}
-        `,
-		query_params: { workspaceId },
-		format: "JSONEachRow",
+	const normalizedPrompts = [
+		...new Set(args.prompts.map((prompt) => prompt.trim()).filter(Boolean)),
+	];
+	const existing = await db.query.workspacePrompts.findMany({
+		where: and(
+			eq(schema.workspacePrompts.workspaceId, args.workspaceId),
+			eq(schema.workspacePrompts.origin, "user_custom"),
+			eq(schema.workspacePrompts.active, true),
+		),
 	});
-
-	const existingRows = (await existing.json()) as Array<{ prompt: string }>;
-	const existingPrompts = new Set(existingRows.map((r) => r.prompt));
-
-	const promptsToInsert = normalizedPrompts.filter(
-		(p) => !existingPrompts.has(p),
-	);
-
-	const promptsToDelete = existingRows
-		.map((r) => r.prompt)
-		.filter((p) => !normalizedPrompts.includes(p));
-
-	if (promptsToInsert.length > 0) {
-		const values = promptsToInsert.map((p) => ({
-			id: uuidv4(),
-			user_id: userId,
-			workspace_id: workspaceId,
-			prompt: p,
-			created_at: formatDateToClickHouse(new Date()),
-		}));
-
-		await insertClickHouseWithFallback("analytics.user_prompts", values, {
-			throwOnAllFailed: true,
-			onRecordFailed: (value) => {
-				console.error(
-					`Failed to insert prompt: "${value.prompt.slice(0, 50)}..."`,
-				);
-			},
+	const existingText = new Set(existing.map((row) => row.prompt.trim()));
+	const additions = normalizedPrompts.filter((prompt) => !existingText.has(prompt));
+	if (additions.length > 0) {
+		await importCustomPrompts({
+			workspaceId: args.workspaceId,
+			userId: args.userId,
+			importSource: "manual",
+			items: additions.map((prompt) => ({ prompt })),
 		});
 	}
-
-	if (promptsToDelete.length > 0) {
-		await clickhouse.command({
-			query: `
-            ALTER TABLE analytics.user_prompts
-            DELETE WHERE workspace_id = {workspaceId:String}
-              AND prompt IN ({promptsToDelete:Array(String)})
-          `,
-			query_params: {
-				workspaceId,
-				promptsToDelete,
-			},
-		});
+	const removedIds = existing
+		.filter((row) => !normalizedPrompts.includes(row.prompt.trim()))
+		.map((row) => row.id);
+	if (removedIds.length > 0) {
+		const now = new Date();
+		await db
+			.update(schema.workspacePrompts)
+			.set({
+				active: false,
+				archivedAt: now,
+				archivedReason: "Removed through legacy Prompt settings facade",
+				updatedAt: now,
+			})
+			.where(inArray(schema.workspacePrompts.id, removedIds));
 	}
-
 	return normalizedPrompts;
 }

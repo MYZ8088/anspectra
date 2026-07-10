@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, getModelFavicon, getProviderDisplayName } from "@oneglanse/utils";
+import { cn, getModelFavicon, getProviderDisplayName } from "@answerloom/utils";
 import { CheckCircle2, StopCircle, XCircle } from "lucide-react";
 
 export type ProviderRunDisplayPhase =
@@ -145,9 +145,7 @@ export function ProviderRunStatusCard(props: {
 						{phase === "completed" && (
 							<CheckCircle2 className="h-5 w-5 text-emerald-500" />
 						)}
-						{phase === "failed" && (
-							<XCircle className="h-5 w-5 text-red-500" />
-						)}
+						{phase === "failed" && <XCircle className="h-5 w-5 text-red-500" />}
 					</div>
 				</div>
 

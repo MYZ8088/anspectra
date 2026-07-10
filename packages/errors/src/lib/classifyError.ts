@@ -1,9 +1,11 @@
-import type { FailureType } from "@oneglanse/types";
+import type { FailureType } from "@answerloom/types";
+import { HumanChallengeError } from "../error/HumanChallengeError.js";
 import { toErrorMessage } from "./toErrorMessage.js";
 
 export type { FailureType };
 
 export function classifyError(err: unknown): FailureType {
+	if (err instanceof HumanChallengeError) return "human_challenge";
 	const msg = toErrorMessage(err).toLowerCase();
 
 	if (
@@ -14,6 +16,8 @@ export function classifyError(err: unknown): FailureType {
 		)
 	)
 		return "connection_error";
+	if (/human.?challenge|required.*captcha|qr.?login/i.test(msg))
+		return "human_challenge";
 	if (/bot.?detect|cloudflare|captcha|turnstile|challenge/i.test(msg))
 		return "bot_detection";
 	if (
@@ -36,7 +40,12 @@ export function classifyError(err: unknown): FailureType {
 		return "no_editor";
 	if (/session expired|login wall|redirected to login|logged.?out/i.test(msg))
 		return "logged_out";
-	if (/extraction.*fail|empty.*response/i.test(msg)) return "extraction_failed";
+	if (
+		/extraction.*fail|empty.*response|extracted response.*(?:incomplete|prompt echo)|response.*incomplete|prompt echo/i.test(
+			msg,
+		)
+	)
+		return "extraction_failed";
 	if (/timed?\s*out/i.test(msg)) return "timeout";
 	if (
 		/window is null|protocol error|browser has been closed|target crashed|browser.*disconnect/i.test(

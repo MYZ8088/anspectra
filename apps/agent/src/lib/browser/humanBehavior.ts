@@ -54,7 +54,6 @@ const graphemeSegmenter =
 		? new Intl.Segmenter(undefined, { granularity: "grapheme" })
 		: null;
 
-
 function bezierPoint(
 	t: number,
 	p0: number,
@@ -174,4 +173,3 @@ export async function pastePrompt(page: Page, text: string): Promise<void> {
 		}
 	}
 }
-

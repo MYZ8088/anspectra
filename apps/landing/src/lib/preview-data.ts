@@ -1,4 +1,4 @@
-import type { DashboardCompetitorData } from "@oneglanse/ui";
+import type { DashboardCompetitorData } from "@answerloom/ui";
 
 export const PREVIEW_BRAND = {
 	name: "HubSpot",

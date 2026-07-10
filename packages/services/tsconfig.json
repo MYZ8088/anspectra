@@ -4,6 +4,7 @@
 		/* 🚨 OVERRIDES */
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
+		"resolveJsonModule": true,
 		"noEmit": false,
 		"isolatedModules": true,
 		"composite": true,
@@ -14,7 +15,7 @@
 		"declaration": true,
 		"declarationMap": true
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src/**/*.ts", "src/**/*.json"],
 	"exclude": ["node_modules", "dist"],
 	"references": [
 		{ "path": "../types" },

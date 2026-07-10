@@ -8,7 +8,7 @@ import {
 	formPrimaryButtonClassName,
 } from "@/components/forms/auth-form-chrome";
 import { api } from "@/trpc/react";
-import { Button, Input, Label, toast } from "@oneglanse/ui";
+import { Button, Input, Label, toast } from "@answerloom/ui";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -145,9 +145,9 @@ export function CreateWorkspaceDialog({
 						placeholder="my-workspace"
 						value={formData.slug}
 						onChange={(e) => {
-						setSlugTouched(true);
-						setFormData({ ...formData, slug: e.target.value });
-					}}
+							setSlugTouched(true);
+							setFormData({ ...formData, slug: e.target.value });
+						}}
 						className={formFieldClassName}
 					/>
 				</div>

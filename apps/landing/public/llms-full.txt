@@ -1,13 +1,13 @@
-# OneGlanse — Full Reference
+# AnswerLoom — Full Reference
 
 > Open-source GEO (Generative Engine Optimization) and AI visibility tracking platform.
 > License: MIT | Self-hosted | Free to run | No cloud version
 
 ---
 
-## What is OneGlanse?
+## What is AnswerLoom?
 
-OneGlanse is an open-source tool for tracking how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It is built for GEO (Generative Engine Optimization) — the practice of measuring and improving how brands surface in AI-generated responses.
+AnswerLoom is an open-source tool for tracking how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It is built for GEO (Generative Engine Optimization) — the practice of measuring and improving how brands surface in AI-generated responses.
 
 It is not a SaaS product. It runs entirely on your own machine or VPS. Your data never leaves your infrastructure.
 
@@ -23,7 +23,7 @@ The same prompt can produce different results in:
 - Brand framing and competitor comparisons (UI-layer additions)
 - Provider-specific formatting
 
-OneGlanse captures the rendered UI response — the same answer a real user sees — and then runs analysis on it. This is the primary differentiator.
+AnswerLoom captures the rendered UI response — the same answer a real user sees — and then runs analysis on it. This is the primary differentiator.
 
 Reference: [LLM scraped AI answers vs API results (Surfer SEO)](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/)
 
@@ -33,7 +33,7 @@ Reference: [LLM scraped AI answers vs API results (Surfer SEO)](https://surferse
 
 1. You connect your own accounts for each AI provider (ChatGPT, Gemini, Perplexity, Claude, Google).
 2. You define prompts to track — queries relevant to your brand or category.
-3. OneGlanse schedules or runs those prompts using Camoufox (anti-fingerprint Firefox) via Playwright.
+3. AnswerLoom schedules or runs those prompts using Camoufox (anti-fingerprint Firefox) via Playwright.
 4. Each response is captured exactly as rendered in the product UI.
 5. Captured responses are sent to your own OpenAI or Anthropic API key for analysis.
 6. The analysis LLM extracts GEO scores, sentiment, rank, citations, competitor mentions, and brand perception data.
@@ -82,7 +82,7 @@ A brand not mentioned scores 50. Absence is neutral, not negative.
 
 ## Why Camoufox instead of standard Chrome
 
-OneGlanse uses Camoufox, an anti-fingerprint Firefox-based browser, for all provider sessions.
+AnswerLoom uses Camoufox, an anti-fingerprint Firefox-based browser, for all provider sessions.
 
 AI chat products aggressively defend against scripted access. Standard Chrome/Chromium automation triggers:
 - Sign-in loops and forced verification
@@ -96,7 +96,7 @@ Camoufox reduces fingerprint mismatch and makes provider sessions more stable in
 
 ## Why there is no cloud version
 
-OneGlanse depends on authenticated browser sessions tied to your own provider accounts. Logged-out sessions return shorter, degraded answers with fewer citations and less framing detail — not representative of what real signed-in users see.
+AnswerLoom depends on authenticated browser sessions tied to your own provider accounts. Logged-out sessions return shorter, degraded answers with fewer citations and less framing detail — not representative of what real signed-in users see.
 
 A cloud version with shared sessions would measure a materially worse proxy of real AI visibility. The product is intentionally designed to run with your own accounts and your own infrastructure.
 
@@ -104,7 +104,7 @@ A cloud version with shared sessions would measure a materially worse proxy of r
 
 ## Why VPS deployments need a residential proxy
 
-VPS IP ranges are often blocked or challenged by AI provider websites. OneGlanse routes browser traffic through a residential proxy on VPS deployments. The proxy covers only browser access to provider UIs — not analytics or API calls.
+VPS IP ranges are often blocked or challenged by AI provider websites. AnswerLoom routes browser traffic through a residential proxy on VPS deployments. The proxy covers only browser access to provider UIs — not analytics or API calls.
 
 ---
 
@@ -144,7 +144,7 @@ VPS IP ranges are often blocked or challenged by AI provider websites. OneGlanse
 
 ## Alternatives and comparisons
 
-OneGlanse is an alternative to: Peec AI, Profound, Otterly.ai, Athena HQ, and other GEO/AI visibility tracking tools.
+AnswerLoom is an alternative to: Peec AI, Profound, Otterly.ai, Athena HQ, and other GEO/AI visibility tracking tools.
 
 Key differences vs. most competitors:
 - Open source and self-hosted (most competitors are closed SaaS)
@@ -157,13 +157,13 @@ Key differences vs. most competitors:
 
 ## Links
 
-- Homepage: https://oneglanse.com
-- Documentation: https://docs.oneglanse.com
-- GitHub: https://github.com/aryamantodkar/oneglanse
-- Introduction: https://docs.oneglanse.com/introduction
-- Getting started: https://docs.oneglanse.com/getting-started
-- Local setup: https://docs.oneglanse.com/local-setup
-- Self-hosted setup: https://docs.oneglanse.com/self-hosted-setup
-- Environment variables: https://docs.oneglanse.com/environment-variables
-- Troubleshooting: https://docs.oneglanse.com/troubleshooting
-- License (MIT): https://github.com/aryamantodkar/oneglanse/blob/main/LICENSE
+- Homepage: http://localhost:3001
+- Documentation: http://localhost:3001/docs
+- Repository: configure `NEXT_PUBLIC_GITHUB_REPO_URL`
+- Introduction: http://localhost:3001/docs/introduction
+- Getting started: http://localhost:3001/docs/getting-started
+- Local setup: http://localhost:3001/docs/local-setup
+- Self-hosted setup: http://localhost:3001/docs/self-hosted-setup
+- Environment variables: http://localhost:3001/docs/environment-variables
+- Troubleshooting: http://localhost:3001/docs/troubleshooting
+- License: MIT (`LICENSE` in the project root)

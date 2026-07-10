@@ -1,13 +1,20 @@
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import {
+	copyFile,
+	mkdir,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..", "..");
-export const edgeNetworkName = "oneglanse-edge";
+export const edgeNetworkName = "answerloom-edge";
 
 const rootEnvFile = path.join(repoRoot, ".env");
 const rootEnvExampleFile = path.join(repoRoot, ".env.example");
@@ -19,16 +26,24 @@ const CAMOUFOX_PYTHON_CANDIDATES = [
 ];
 // Keep local auth/runtime bootstrap reproducible instead of following the
 // floating latest browser channel on every fresh machine.
-const CAMOUFOX_DEFAULT_PIP_SPEC = "cloverlabs-camoufox==0.5.5";
+const CAMOUFOX_DEFAULT_PIP_SPEC = "cloverlabs-camoufox[geoip]==0.5.5";
 const CAMOUFOX_DEFAULT_BROWSER_CHANNEL = "official/stable/135.0.1-beta.24";
-const PYTHON_VERSION_PROBE = [
-	"-c",
-	[
-		"import json",
-		"import sys",
-		"print(json.dumps({'major': sys.version_info.major, 'minor': sys.version_info.minor}))",
-	].join("; "),
-];
+const CAMOUFOX_RUNTIME_ROOT = path.join(
+	repoRoot,
+	".answerloom-storage",
+	"camoufox-venv",
+);
+const CAMOUFOX_RUNTIME_MANIFEST = path.join(
+	CAMOUFOX_RUNTIME_ROOT,
+	"answerloom-runtime.json",
+);
+const CAMOUFOX_RUNTIME_LOCK = path.join(
+	repoRoot,
+	".answerloom-storage",
+	"locks",
+	"camoufox-runtime.lock",
+);
+const CAMOUFOX_RUNTIME_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 const CAMOUFOX_FETCH_SCRIPT = [
 	"import camoufox.__main__ as camoufox_main",
 	"camoufox_main.click.confirm = lambda *args, **kwargs: True",
@@ -36,6 +51,22 @@ const CAMOUFOX_FETCH_SCRIPT = [
 ].join("; ");
 
 let cachedLocalCamoufoxPython = null;
+
+function managedCamoufoxPythonPath() {
+	return path.join(
+		CAMOUFOX_RUNTIME_ROOT,
+		process.platform === "win32" ? "Scripts" : "bin",
+		process.platform === "win32" ? "python.exe" : "python",
+	);
+}
+
+function managedCamoufoxEntrypointPath() {
+	return path.join(
+		CAMOUFOX_RUNTIME_ROOT,
+		process.platform === "win32" ? "Scripts" : "bin",
+		process.platform === "win32" ? "camoufox.exe" : "camoufox",
+	);
+}
 
 function buildRootEnvTemplate(rawTemplate) {
 	return rawTemplate
@@ -168,12 +199,12 @@ export async function ensureEnvFiles() {
 }
 
 const LOCAL_BUILD_PACKAGES = [
-	"@oneglanse/types",
-	"@oneglanse/errors",
-	"@oneglanse/db",
-	"@oneglanse/utils",
-	"@oneglanse/services",
-	"@oneglanse/ui",
+	"@answerloom/types",
+	"@answerloom/errors",
+	"@answerloom/db",
+	"@answerloom/utils",
+	"@answerloom/services",
+	"@answerloom/ui",
 ];
 
 export const LOCAL_WATCH_PACKAGES = [...LOCAL_BUILD_PACKAGES];
@@ -259,7 +290,7 @@ function encodeSegment(value) {
 export function buildLocalRuntimeEnv(localAppUrl) {
 	const postgresUser = process.env.POSTGRES_USER || "postgres";
 	const postgresPassword = process.env.POSTGRES_PASSWORD || "postgres";
-	const postgresDatabase = process.env.POSTGRES_DB || "oneglanse";
+	const postgresDatabase = process.env.POSTGRES_DB || "answerloom";
 	const redisPort = process.env.REDIS_PORT || "6379";
 	const localLocale =
 		process.env.CAMOUFOX_LOCALE ||
@@ -267,7 +298,7 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 		"en-US";
 	const localEnv = {
 		...process.env,
-		ONEGLANSE_APP_MODE: "local",
+		ANSWERLOOM_APP_MODE: "local",
 		APP_URL: localAppUrl,
 		API_BASE_URL: localAppUrl,
 		BETTER_AUTH_URL: localAppUrl,
@@ -276,12 +307,11 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 		CLICKHOUSE_URL: "http://localhost:8123",
 		REDIS_HOST: "localhost",
 		REDIS_PORT: redisPort,
-		CAMOUFOX_HEADLESS_MODE: "headless",
+		CAMOUFOX_HEADLESS_MODE:
+			process.env.CAMOUFOX_HEADLESS_MODE || "headful",
 		CAMOUFOX_LOCALE: localLocale,
-		// Firefox reads MOZ_HEADLESS during process bootstrap. Keep this scoped
-		// to the local desktop runtime so cloud/Xvfb sessions are unaffected.
-		MOZ_HEADLESS: "1",
 	};
+	delete localEnv.MOZ_HEADLESS;
 
 	localEnv.AGENT_AUTH_UPLOAD_URL = undefined;
 	localEnv.AGENT_AUTH_UPLOAD_TOKEN = undefined;
@@ -378,7 +408,15 @@ async function canRunCommand(command, args = ["--version"]) {
 
 async function getPythonVersion(command) {
 	try {
-		const { stdout } = await runCommandCapture(command, PYTHON_VERSION_PROBE);
+		const { stdout } = await runCommandCapture(command, [
+			"-c",
+			[
+				"import json",
+				"import sys",
+				"import venv",
+				"print(json.dumps({'major': sys.version_info.major, 'minor': sys.version_info.minor}))",
+			].join("; "),
+		]);
 		const parsed = JSON.parse(stdout);
 		if (
 			typeof parsed?.major === "number" &&
@@ -437,7 +475,9 @@ async function resolveLocalCamoufoxPython() {
 
 	const configured = process.env.CAMOUFOX_PYTHON_BIN?.trim();
 	const candidates = [
-		...(configured ? [configured] : []),
+		...(configured && !path.resolve(configured).startsWith(CAMOUFOX_RUNTIME_ROOT)
+			? [configured]
+			: []),
 		...CAMOUFOX_PYTHON_CANDIDATES,
 	];
 
@@ -467,63 +507,368 @@ async function resolveLocalCamoufoxPython() {
 	);
 }
 
-async function ensureCamoufoxPackage(pythonBin) {
-	try {
-		await runCommandCapture(pythonBin, ["-c", "import camoufox, browserforge"]);
-		return;
-	} catch {}
+const CAMOUFOX_RUNTIME_PROBE = [
+	"import json",
+	"import os",
+	"import sys",
+	"from importlib.metadata import PackageNotFoundError, version",
+	"import pip",
+	"import browserforge",
+	"import camoufox",
+	"import geoip2",
+	"from camoufox.utils import launch_options",
+	"package_version = None",
+	"for package_name in ('cloverlabs-camoufox', 'camoufox'):",
+	"    try:",
+	"        package_version = version(package_name)",
+	"        break",
+	"    except PackageNotFoundError:",
+	"        pass",
+	"options = launch_options(headless=True)",
+	"print(json.dumps({",
+	"    'python': sys.executable,",
+	"    'pythonVersion': sys.version.split()[0],",
+	"    'packageVersion': package_version,",
+	"    'geoip': True,",
+	"    'executablePath': options.get('executable_path'),",
+	"}))",
+].join("\n");
 
-	console.log("Installing Camoufox for local auth...");
-	try {
-		await runCommandCapture(pythonBin, ["-m", "ensurepip", "--upgrade"]);
-	} catch {}
-
-	const installArgs = ["-m", "pip", "install", "--upgrade"];
-	if (process.platform !== "win32") {
-		installArgs.push("--user");
-	}
-	if (process.platform === "linux") {
-		installArgs.push("--break-system-packages");
-	}
-	installArgs.push(
-		process.env.CAMOUFOX_PIP_SPEC?.trim() || CAMOUFOX_DEFAULT_PIP_SPEC,
-	);
-	await runCommand(pythonBin, installArgs);
+function desiredCamoufoxRuntime() {
+	return {
+		pipSpec:
+			process.env.CAMOUFOX_PIP_SPEC?.trim() || CAMOUFOX_DEFAULT_PIP_SPEC,
+		browserChannel:
+			process.env.CAMOUFOX_BROWSER_CHANNEL?.trim() ||
+			CAMOUFOX_DEFAULT_BROWSER_CHANNEL,
+	};
 }
 
-async function ensureCamoufoxBrowser(pythonBin) {
-	const desiredChannel =
-		process.env.CAMOUFOX_BROWSER_CHANNEL?.trim() ||
-		CAMOUFOX_DEFAULT_BROWSER_CHANNEL;
+function parseLastJsonObject(stdout) {
+	const jsonLine = [...stdout.trim().split(/\r?\n/)]
+		.reverse()
+		.find((line) => line.trimStart().startsWith("{"));
+	if (!jsonLine) throw new Error("Camoufox runtime probe returned no JSON");
+	return JSON.parse(jsonLine);
+}
 
-	let activeChannel = null;
-	let browserInstalled = false;
-
+async function readCamoufoxRuntimeManifest() {
 	try {
-		const [{ stdout: activeStdout }, { stdout: versionStdout }] =
-			await Promise.all([
-				runCommandCapture(pythonBin, ["-m", "camoufox", "active"]),
-				runCommandCapture(pythonBin, ["-m", "camoufox", "version"]),
-			]);
-		activeChannel = activeStdout.trim() || null;
-		browserInstalled = /\bInstalled\s+Yes\b/i.test(versionStdout);
-	} catch {}
+		return JSON.parse(await readFile(CAMOUFOX_RUNTIME_MANIFEST, "utf8"));
+	} catch {
+		return null;
+	}
+}
 
-	if (activeChannel === desiredChannel && browserInstalled) {
-		return;
+async function readManagedEntrypointShebang() {
+	if (process.platform === "win32") return null;
+	try {
+		return (await readFile(managedCamoufoxEntrypointPath(), "utf8"))
+			.split(/\r?\n/, 1)[0]
+			?.trim();
+	} catch {
+		return null;
+	}
+}
+
+export function validateCamoufoxRuntimeSnapshot(args) {
+	const failures = [];
+	if (!args.pythonExists) {
+		failures.push("managed Python is missing");
+	} else {
+		if (args.probeError) {
+			failures.push(`runtime import probe failed: ${args.probeError}`);
+		} else if (!args.probe?.executablePath || !args.browserExecutableExists) {
+			failures.push("Camoufox browser executable is missing");
+		}
+		if (args.activeChannelError) {
+			failures.push(`active channel probe failed: ${args.activeChannelError}`);
+		} else if (args.activeChannel !== args.desired.browserChannel) {
+			failures.push(
+				`browser channel mismatch (${args.activeChannel ?? "none"} != ${args.desired.browserChannel})`,
+			);
+		}
+		if (args.versionProbeError) {
+			failures.push(`browser version probe failed: ${args.versionProbeError}`);
+		} else if (!/\bInstalled\s+Yes\b/i.test(args.versionOutput ?? "")) {
+			failures.push("Camoufox browser is not installed");
+		}
+		if (
+			args.entrypointShebang &&
+			!args.entrypointShebang.includes(args.runtimeRoot)
+		) {
+			failures.push("Camoufox entrypoint points to a moved virtual environment");
+		}
+	}
+	if (!args.manifest) {
+		failures.push("runtime manifest is missing");
+	} else {
+		if (args.manifest.pipSpec !== args.desired.pipSpec) {
+			failures.push("pip specification changed");
+		}
+		if (args.manifest.browserChannel !== args.desired.browserChannel) {
+			failures.push("manifest browser channel changed");
+		}
+		if (
+			args.manifest.platform !== args.platform ||
+			args.manifest.arch !== args.arch
+		) {
+			failures.push("runtime platform changed");
+		}
+	}
+	return failures;
+}
+
+export async function inspectLocalCamoufoxRuntime() {
+	const pythonBin = managedCamoufoxPythonPath();
+	const desired = desiredCamoufoxRuntime();
+	const manifest = await readCamoufoxRuntimeManifest();
+	let probe = null;
+	let probeError = null;
+	let activeChannel = null;
+	let activeChannelError = null;
+	let versionOutput = null;
+	let versionProbeError = null;
+	let entrypointShebang = null;
+	const pythonExists = existsSync(pythonBin);
+
+	if (pythonExists) {
+		try {
+			const { stdout } = await runCommandCapture(pythonBin, [
+				"-c",
+				CAMOUFOX_RUNTIME_PROBE,
+			]);
+			probe = parseLastJsonObject(stdout);
+		} catch (error) {
+			probeError = error instanceof Error ? error.message : String(error);
+		}
+
+		try {
+			const { stdout } = await runCommandCapture(pythonBin, [
+				"-m",
+				"camoufox",
+				"active",
+			]);
+			activeChannel = stdout.trim() || null;
+		} catch (error) {
+			activeChannelError =
+				error instanceof Error ? error.message : String(error);
+		}
+
+		try {
+			const { stdout } = await runCommandCapture(pythonBin, [
+				"-m",
+				"camoufox",
+				"version",
+			]);
+			versionOutput = stdout;
+		} catch (error) {
+			versionProbeError =
+				error instanceof Error ? error.message : String(error);
+		}
+
+		entrypointShebang = await readManagedEntrypointShebang();
 	}
 
-	console.log("Preparing Camoufox browser runtime for local auth...");
-	await runCommand(pythonBin, ["-m", "camoufox", "set", desiredChannel]);
+	const failures = validateCamoufoxRuntimeSnapshot({
+		pythonExists,
+		probe,
+		probeError,
+		browserExecutableExists: Boolean(
+			probe?.executablePath && existsSync(probe.executablePath),
+		),
+		activeChannel,
+		activeChannelError,
+		versionOutput,
+		versionProbeError,
+		entrypointShebang,
+		runtimeRoot: CAMOUFOX_RUNTIME_ROOT,
+		manifest,
+		desired,
+		platform: process.platform,
+		arch: process.arch,
+	});
+
+	return {
+		ok: failures.length === 0,
+		pythonBin,
+		runtimeRoot: CAMOUFOX_RUNTIME_ROOT,
+		desired,
+		manifest,
+		probe,
+		activeChannel,
+		versionOutput,
+		entrypointShebang,
+		failures,
+	};
+}
+
+export async function acquireDirectoryLock(args) {
+	const timeoutMs = args.timeoutMs ?? CAMOUFOX_RUNTIME_LOCK_TIMEOUT_MS;
+	const staleMs = args.staleMs ?? timeoutMs;
+	const pollMs = args.pollMs ?? 500;
+	await mkdir(path.dirname(args.lockPath), { recursive: true });
+	const deadline = Date.now() + timeoutMs;
+
+	while (Date.now() < deadline) {
+		try {
+			await mkdir(args.lockPath);
+			await writeFile(
+				path.join(args.lockPath, "owner.json"),
+				JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }),
+				"utf8",
+			);
+			return async () => {
+				await rm(args.lockPath, { recursive: true, force: true });
+			};
+		} catch (error) {
+			if (error?.code !== "EEXIST") throw error;
+			try {
+				const lockStat = await stat(args.lockPath);
+				if (Date.now() - lockStat.mtimeMs > staleMs) {
+					await rm(args.lockPath, { recursive: true, force: true });
+					continue;
+				}
+			} catch {}
+			await new Promise((resolve) => setTimeout(resolve, pollMs));
+		}
+	}
+
+	throw new Error("Timed out waiting for the runtime installation lock.");
+}
+
+async function acquireCamoufoxRuntimeLock() {
+	return acquireDirectoryLock({
+		lockPath: CAMOUFOX_RUNTIME_LOCK,
+		timeoutMs: CAMOUFOX_RUNTIME_LOCK_TIMEOUT_MS,
+		staleMs: CAMOUFOX_RUNTIME_LOCK_TIMEOUT_MS,
+	});
+}
+
+async function rebuildManagedCamoufoxRuntime(basePython) {
+	const desired = desiredCamoufoxRuntime();
+	const pythonBin = managedCamoufoxPythonPath();
+	console.log(
+		`Rebuilding managed Camoufox runtime at ${path.relative(repoRoot, CAMOUFOX_RUNTIME_ROOT)}...`,
+	);
+	await rm(CAMOUFOX_RUNTIME_ROOT, { recursive: true, force: true });
+	await mkdir(path.dirname(CAMOUFOX_RUNTIME_ROOT), { recursive: true });
+	try {
+		await runCommand(basePython, ["-m", "venv", CAMOUFOX_RUNTIME_ROOT]);
+	} catch (error) {
+		await rm(CAMOUFOX_RUNTIME_ROOT, { recursive: true, force: true });
+		if (!(await canRunCommand("uv"))) throw error;
+		console.log(
+			"Standard venv creation could not seed pip; retrying with uv venv --seed.",
+		);
+		await runCommand("uv", [
+			"venv",
+			"--python",
+			basePython,
+			"--seed",
+			CAMOUFOX_RUNTIME_ROOT,
+		]);
+	}
+	await runCommand(pythonBin, [
+		"-m",
+		"pip",
+		"install",
+		"--upgrade",
+		"pip",
+		"setuptools",
+		"wheel",
+	]);
+	await runCommand(pythonBin, [
+		"-m",
+		"pip",
+		"install",
+		"--upgrade",
+		desired.pipSpec,
+	]);
+	await runCommand(pythonBin, [
+		"-m",
+		"camoufox",
+		"set",
+		desired.browserChannel,
+	]);
 	await runCommand(pythonBin, ["-c", CAMOUFOX_FETCH_SCRIPT]);
+
+	const { stdout } = await runCommandCapture(pythonBin, [
+		"-c",
+		CAMOUFOX_RUNTIME_PROBE,
+	]);
+	const probe = parseLastJsonObject(stdout);
+	await writeCamoufoxRuntimeManifest(basePython, probe);
+}
+
+async function writeCamoufoxRuntimeManifest(basePython, probe) {
+	const desired = desiredCamoufoxRuntime();
+	await writeFile(
+		CAMOUFOX_RUNTIME_MANIFEST,
+		JSON.stringify(
+			{
+				schemaVersion: 1,
+				pipSpec: desired.pipSpec,
+				browserChannel: desired.browserChannel,
+				platform: process.platform,
+				arch: process.arch,
+				basePython,
+				pythonVersion: probe.pythonVersion,
+				packageVersion: probe.packageVersion,
+				executablePath: probe.executablePath,
+				installedAt: new Date().toISOString(),
+			},
+			null,
+			2,
+		),
+		"utf8",
+	);
 }
 
 export async function ensureLocalCamoufoxRuntime() {
-	const pythonBin = await resolveLocalCamoufoxPython();
-	await ensureCamoufoxPackage(pythonBin);
-	await ensureCamoufoxBrowser(pythonBin);
-	process.env.CAMOUFOX_PYTHON_BIN = pythonBin;
-	return pythonBin;
+	const initial = await inspectLocalCamoufoxRuntime();
+	if (initial.ok) {
+		cachedLocalCamoufoxPython = initial.pythonBin;
+		process.env.CAMOUFOX_PYTHON_BIN = initial.pythonBin;
+		return initial.pythonBin;
+	}
+
+	const releaseLock = await acquireCamoufoxRuntimeLock();
+	try {
+		const afterLock = await inspectLocalCamoufoxRuntime();
+		if (!afterLock.ok) {
+			const onlyManifestMissing =
+				Boolean(afterLock.probe?.executablePath) &&
+				afterLock.activeChannel === afterLock.desired.browserChannel &&
+				afterLock.failures.every(
+					(failure) => failure === "runtime manifest is missing",
+				);
+			if (onlyManifestMissing) {
+				await writeCamoufoxRuntimeManifest(
+					afterLock.probe.python,
+					afterLock.probe,
+				);
+			} else {
+				console.log(
+					`Camoufox runtime needs repair: ${afterLock.failures.join("; ")}`,
+				);
+				const basePython = await resolveLocalCamoufoxPython();
+				await rebuildManagedCamoufoxRuntime(basePython);
+			}
+		}
+	} finally {
+		await releaseLock();
+	}
+
+	const finalState = await inspectLocalCamoufoxRuntime();
+	if (!finalState.ok) {
+		throw new Error(
+			`Camoufox runtime repair did not pass diagnostics: ${finalState.failures.join("; ")}`,
+		);
+	}
+	cachedLocalCamoufoxPython = finalState.pythonBin;
+	process.env.CAMOUFOX_PYTHON_BIN = finalState.pythonBin;
+	return finalState.pythonBin;
 }
 
 export async function ensureDockerNetwork(name) {

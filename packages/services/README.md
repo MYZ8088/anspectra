@@ -1,6 +1,6 @@
-# @oneglanse/services
+# @answerloom/services
 
-Business/service layer for OneGlanse.
+Business/service layer for AnswerLoom.
 
 This package is the domain boundary between app routers/components and raw data/storage/queue operations.
 
@@ -33,8 +33,8 @@ From `src/index.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/services build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/services typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/services build` | Compile TypeScript |
+| `pnpm --filter @answerloom/services typecheck` | TypeScript checks |
 
 ## Environment Variables
 
@@ -51,10 +51,10 @@ Validated in `src/env.ts`:
 
 - `apps/web` routers should call this package for business operations.
 - `apps/agent` worker should call this package for persistence and queue contracts.
-- Avoid importing `@oneglanse/db` directly from UI/page layers when a service API exists.
+- Avoid importing `@answerloom/db` directly from UI/page layers when a service API exists.
 
 ## Example
 
 ```ts
-import { submitAgentJobGroup, fetchAnalysedPrompts } from "@oneglanse/services";
+import { submitAgentJobGroup, fetchAnalysedPrompts } from "@answerloom/services";
 ```

@@ -28,8 +28,8 @@ import {
 	TableHeader,
 	TableRow,
 	toast,
-} from "@oneglanse/ui";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn } from "@answerloom/utils";
 import {
 	Building2,
 	Loader2,

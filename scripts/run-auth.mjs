@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, renameSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -18,15 +18,33 @@ import {
 	waitForHttp,
 } from "./lib/runtime.mjs";
 
-const PROVIDERS = ["chatgpt", "perplexity", "gemini", "google", "claude"];
+const PROVIDERS = [
+	"chatgpt",
+	"perplexity",
+	"gemini",
+	"google",
+	"claude",
+	"deepseek",
+	"doubao",
+	"hunyuan",
+	"qwen",
+];
 const localAppUrl = "http://localhost:3100";
 const localProvidersUrl = `${localAppUrl}/providers/local`;
 
 function getAuthRootDir() {
 	const configured = process.env.AGENT_AUTH_ROOT_DIR?.trim();
-	return configured
-		? path.resolve(configured)
-		: path.join(repoRoot, ".oneglanse-storage", "auth");
+	if (configured) return path.resolve(configured);
+	const storageRoot = path.join(repoRoot, ".answerloom-storage");
+	const legacyStorageRoot = path.join(repoRoot, ".oneglanse-storage");
+	if (!existsSync(storageRoot) && existsSync(legacyStorageRoot)) {
+		try {
+			renameSync(legacyStorageRoot, storageRoot);
+		} catch {
+			return path.join(legacyStorageRoot, "auth");
+		}
+	}
+	return path.join(storageRoot, "auth");
 }
 
 function formatBytes(bytes) {
@@ -212,7 +230,7 @@ function resolveUploadUrl() {
 		return explicitUrl.trim();
 	}
 
-	const vpsIp = process.env.ONEGLANSE_VPS_IP?.trim();
+	const vpsIp = process.env.ANSWERLOOM_VPS_IP?.trim();
 	if (!vpsIp) {
 		return undefined;
 	}
@@ -241,7 +259,7 @@ async function main() {
 	if (uploadOnly) {
 		if (!uploadUrl || !uploadToken) {
 			throw new Error(
-				"Upload config missing. Set AGENT_AUTH_UPLOAD_TOKEN and ONEGLANSE_VPS_IP (or AGENT_AUTH_UPLOAD_URL).",
+				"Upload config missing. Set AGENT_AUTH_UPLOAD_TOKEN and ANSWERLOOM_VPS_IP (or AGENT_AUTH_UPLOAD_URL).",
 			);
 		}
 		const uploadedProviders = await uploadExistingSessionsIfPresent(
@@ -263,14 +281,14 @@ async function main() {
 	await ensureLocalCamoufoxRuntime();
 	await buildLocalWorkspacePackages();
 	const localEnv = buildLocalRuntimeEnv(localAppUrl);
-	await terminateLocalProcesses([repoRoot, "@oneglanse/web", "next dev"]);
+	await terminateLocalProcesses([repoRoot, "@answerloom/web", "next dev"]);
 	const sessionSnapshotBefore = await captureSessionSnapshot();
 
 	const webChild = spawnCommand(
 		"pnpm",
 		[
 			"--filter",
-			"@oneglanse/web",
+			"@answerloom/web",
 			"exec",
 			"next",
 			"dev",
@@ -316,7 +334,7 @@ async function main() {
 
 		if (!uploadUrl || !uploadToken) {
 			console.log(
-				"Upload is not configured. Run `pnpm upload:vps` later after setting AGENT_AUTH_UPLOAD_TOKEN and ONEGLANSE_VPS_IP (or AGENT_AUTH_UPLOAD_URL).",
+				"Upload is not configured. Run `pnpm upload:vps` later after setting AGENT_AUTH_UPLOAD_TOKEN and ANSWERLOOM_VPS_IP (or AGENT_AUTH_UPLOAD_URL).",
 			);
 			return;
 		}

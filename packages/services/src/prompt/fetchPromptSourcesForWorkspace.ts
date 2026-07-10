@@ -1,8 +1,8 @@
 import type {
 	FetchPromptSourcesForWorkspaceArgs,
 	FetchPromptSourcesForWorkspaceResult,
-} from "@oneglanse/types";
-import { extractDomainStats, extractSourceStats } from "@oneglanse/utils";
+} from "@answerloom/types";
+import { extractDomainStats, extractSourceStats } from "@answerloom/utils";
 import { fetchPromptResponsesForWorkspace } from "./fetchPromptResponsesForWorkspace.js";
 
 export async function fetchPromptSourcesForWorkspace(

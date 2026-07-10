@@ -1,32 +1,29 @@
-# OneGlanse — Open-source GEO & AI Visibility Tracker
+# AnswerLoom — Open-source GEO & AI Visibility Tracker
 
-**OneGlanse** is the open-source tool for tracking how your brand appears in AI-generated responses. It monitors ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview — not via model APIs, but through the actual product UIs the same way a real user would. Free to run. Fully self-hosted. MIT licensed.
+**AnswerLoom** is the open-source tool for tracking how your brand appears in AI-generated responses. It monitors ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview — not via model APIs, but through the actual product UIs the same way a real user would. Free to run. Fully self-hosted. MIT licensed.
 
 > **Keywords:** GEO · generative engine optimization · AI visibility tracking · AI brand monitoring · open-source GEO tool · self-hosted AI tracker · ChatGPT brand tracking · Perplexity brand tracking
 
 <p align="center">
-  <img src="docs/images/hero-icon.png" alt="OneGlanse dashboard showing AI visibility, rank, sources, and prompt analytics" width="100%" />
+  <img src="docs/images/hero-icon.png" alt="AnswerLoom dashboard showing AI visibility, rank, sources, and prompt analytics" width="100%" />
 </p>
 
-OneGlanse monitors how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It is open source, MIT licensed, and costs nothing to run on your own machine or VPS.
+AnswerLoom monitors how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It is open source, MIT licensed, and costs nothing to run on your own machine or VPS.
 
-**It doesn't call the model API.** It opens the actual ChatGPT, Gemini, Perplexity, Claude, and AI Overview interfaces in a real browser, the same way a user would, and captures exactly what gets rendered: the full response, inline citations, recommended sources, and how your brand is positioned relative to competitors. API responses omit all of this. OneGlanse captures what users actually see.
+**It doesn't call the model API.** It opens the actual ChatGPT, Gemini, Perplexity, Claude, and AI Overview interfaces in a real browser, the same way a user would, and captures exactly what gets rendered: the full response, inline citations, recommended sources, and how your brand is positioned relative to competitors. API responses omit all of this. AnswerLoom captures what users actually see.
 
-**That is the core differentiator.** OneGlanse is built for GEO measurement against production chat surfaces, not benchmark-style API output. The answer visible in ChatGPT, Gemini, Perplexity, Claude, or Google AI Overview is often not the same as the raw API completion for the same prompt. The UI layer can add or suppress citations, reorder recommendations, inject product-specific formatting, and change how competitors and sources are presented. If you care about what users actually see, you need the UI response, not just the API response. The same distinction is discussed in Surfer's write-up on [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
+**That is the core differentiator.** AnswerLoom is built for GEO measurement against production chat surfaces, not benchmark-style API output. The answer visible in ChatGPT, Gemini, Perplexity, Claude, or Google AI Overview is often not the same as the raw API completion for the same prompt. The UI layer can add or suppress citations, reorder recommendations, inject product-specific formatting, and change how competitors and sources are presented. If you care about what users actually see, you need the UI response, not just the API response. The same distinction is discussed in Surfer's write-up on [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
 
-**After capturing responses, OneGlanse uses OpenAI or Anthropic to analyze them.** Once a prompt run completes, the captured responses are sent to the LLM of your choice (OpenAI GPT or Claude) using your own API key. The LLM extracts GEO scores, sentiment, visibility, rank position, competitor mentions, citation sources, and the AI perception breakdown you see in the dashboard. You bring your own key. The call goes directly from your machine to OpenAI or Anthropic. Nothing passes through any third-party server.
+**After capturing responses, AnswerLoom uses OpenAI or Anthropic to analyze them.** Once a prompt run completes, the captured responses are sent to the LLM of your choice (OpenAI GPT or Claude) using your own API key. The LLM extracts GEO scores, sentiment, visibility, rank position, competitor mentions, citation sources, and the AI perception breakdown you see in the dashboard. You bring your own key. The call goes directly from your machine to OpenAI or Anthropic. Nothing passes through any third-party server.
 
 **Your data stays on your machine.** Responses, analytics, and auth sessions are stored in a PostgreSQL and ClickHouse instance you own and control, whether running locally via Docker or on your own VPS. No data is ever sent to an external server.
 
-**You use your own provider accounts.** OneGlanse authenticates to ChatGPT, Gemini, Perplexity, Claude, and Google using your own existing logins. No shared credentials. No scraped accounts. Your sessions, stored locally.
+**You use your own provider accounts.** AnswerLoom authenticates to ChatGPT, Gemini, Perplexity, Claude, and Google using your own existing logins. No shared credentials. No scraped accounts. Your sessions, stored locally.
 
-[Docs](https://docs.oneglanse.com) · [oneglanse.com](https://oneglanse.com)
+[Project docs](docs/) · [Local app](http://localhost:3000)
 
-The public surfaces are deployed separately:
-
-- `oneglanse.com` (landing site) is deployed on Vercel
-- `docs.oneglanse.com` (documentation) is deployed on Mintlify
-- the self-host flow in this repo deploys only the app runtime
+Public landing, documentation, and app URLs are configurable through environment
+variables. The self-host flow in this repo deploys the app runtime.
 
 ---
 
@@ -34,13 +31,13 @@ The public surfaces are deployed separately:
 
 **Requirements:** Node.js 20+, pnpm 10+, Docker
 
-**WSL is not supported for Camoufox browser automation.** OneGlanse depends on Camoufox opening real provider browser windows for auth and UI capture. Run the local setup from native macOS, native Linux, or native Windows instead of inside WSL. WSL/WSLg may show a Camoufox taskbar icon without a usable login window, which prevents choosing the provider account reliably.
+**WSL is not supported for Camoufox browser automation.** AnswerLoom depends on Camoufox opening real provider browser windows for auth and UI capture. Run the local setup from native macOS, native Linux, or native Windows instead of inside WSL. WSL/WSLg may show a Camoufox taskbar icon without a usable login window, which prevents choosing the provider account reliably.
 
 If you don't have pnpm: `npm install -g pnpm@latest`
 
 ```bash
-git clone https://github.com/aryamantodkar/oneglanse
-cd oneglanse
+# From your AnswerLoom checkout:
+cd answerloom
 cp .env.example .env
 ```
 
@@ -53,6 +50,11 @@ OPENAI_API_KEY=sk-...
 # or, to use Claude instead:
 ANTHROPIC_API_KEY=sk-ant-...
 ANALYSIS_LLM_PROVIDER=claude
+
+# or, to use AIHubMix DeepSeek V4 Pro instead:
+AIHUBMIX_API_KEY=...
+AIHUBMIX_ANALYSIS_MODEL=deepseek-v4-pro
+ANALYSIS_LLM_PROVIDER=aihubmix
 ```
 
 Then start the app:
@@ -69,7 +71,7 @@ Once you're in, go to `/providers` to connect your AI provider accounts, then ad
 
 ## Docs and Self-Hosting
 
-For VPS deployment, recurring scheduling, provider auth transfer, and all configuration options, see **[docs.oneglanse.com](https://docs.oneglanse.com)**
+For VPS deployment, recurring scheduling, provider auth transfer, and all configuration options, see the **[project docs](docs/)**.
 
 The landing site is deployed separately on Vercel, and the docs are deployed separately on Mintlify. `pnpm self-host` is only for the app stack. On machines where the published app images are not available for the current architecture yet, it automatically falls back to a local Docker build.
 
@@ -89,25 +91,25 @@ The landing site is deployed separately on Vercel, and the docs are deployed sep
 
 ---
 
-<img width="100%" alt="OneGlanse Dashboard" src="https://github.com/user-attachments/assets/d5438aff-67bc-4556-baa8-939906a59c02" />
+<img width="100%" alt="AnswerLoom Dashboard" src="https://github.com/user-attachments/assets/d5438aff-67bc-4556-baa8-939906a59c02" />
 
 **Your overall GEO score, top competitor, rank position, and most-cited sources in one view.** The dashboard shows your visibility score across all AI models, which competitor co-appears most often alongside your brand, your average rank position across all prompts, and which domains the AI products cite when your category comes up.
 
 ---
 
-<img width="100%" alt="OneGlanse Prompt Responses" src="https://github.com/user-attachments/assets/09fae3f5-4e3c-4920-9d19-c32d9a1da0d5" />
+<img width="100%" alt="AnswerLoom Prompt Responses" src="https://github.com/user-attachments/assets/09fae3f5-4e3c-4920-9d19-c32d9a1da0d5" />
 
 **The actual AI response, scored.** Every captured response is tagged with a GEO score, sentiment score, visibility percentage, and rank position. The perception panel on the right extracts how the model is framing your brand: what it says your pricing signal is, what you're best known for, and what specific claims it repeats most often about you.
 
 ---
 
-<img width="100%" alt="OneGlanse Source Intelligence" src="https://github.com/user-attachments/assets/caace32a-1e68-44e8-9b71-f582e9dc9de0" />
+<img width="100%" alt="AnswerLoom Source Intelligence" src="https://github.com/user-attachments/assets/caace32a-1e68-44e8-9b71-f582e9dc9de0" />
 
 **Which sources drive your AI presence and how you compare.** The left panel shows every article and domain being cited about your brand, with the exact article title so you know why that domain ranks. The competitor chart on the right tracks your position against rivals across three dimensions: Presence (are you mentioned), Recommendation (are you recommended), and Sentiment (how positively you're framed).
 
 ---
 
-<img width="100%" alt="OneGlanse Analytics" src="https://github.com/user-attachments/assets/aac7d04b-e7b9-4e58-b780-2afd33b6c960" />
+<img width="100%" alt="AnswerLoom Analytics" src="https://github.com/user-attachments/assets/aac7d04b-e7b9-4e58-b780-2afd33b6c960" />
 
 **Per-prompt breakdown, not aggregated averages.** Every prompt you track gets its own row: GEO score, sentiment, visibility percentage, and rank position. You can see exactly which queries you own and which ones you're losing, and track how both change over time.
 
@@ -115,9 +117,9 @@ The landing site is deployed separately on Vercel, and the docs are deployed sep
 
 ## Why There Is No Cloud Version
 
-OneGlanse is built around collecting responses from the real logged-in chat interfaces of ChatGPT, Gemini, Perplexity, Claude, and Google. That means the product depends on authenticated browser sessions tied to your own provider accounts.
+AnswerLoom is built around collecting responses from the real logged-in chat interfaces of ChatGPT, Gemini, Perplexity, Claude, and Google. That means the product depends on authenticated browser sessions tied to your own provider accounts.
 
-OneGlanse does not use logged-out sessions for GEO tracking because logged-out experiences are materially worse for measuring what real users actually see:
+AnswerLoom does not use logged-out sessions for GEO tracking because logged-out experiences are materially worse for measuring what real users actually see:
 
 - they are more likely to trigger bot detection or rate limits
 - they often return shorter, stripped-down answers
@@ -126,7 +128,7 @@ OneGlanse does not use logged-out sessions for GEO tracking because logged-out e
 
 That matters because GEO is not just about "did the model mention me". It is also about how your brand is framed, which competitors are shown beside you, and which sources the product actually surfaces to users. Logged-out experiences are thinner and less representative of what real signed-in users see.
 
-That is why we do not offer a hosted cloud product with shared sessions. OneGlanse is designed to run with your own accounts, your own browser sessions, your own proxy setup when needed, and your own infrastructure. It is the more reliable and more accurate way to measure AI visibility without pretending API output or stripped-down logged-out pages are equivalent to the real user experience.
+That is why we do not offer a hosted cloud product with shared sessions. AnswerLoom is designed to run with your own accounts, your own browser sessions, your own proxy setup when needed, and your own infrastructure. It is the more reliable and more accurate way to measure AI visibility without pretending API output or stripped-down logged-out pages are equivalent to the real user experience.
 
 ---
 
@@ -134,20 +136,20 @@ That is why we do not offer a hosted cloud product with shared sessions. OneGlan
 
 Most GEO tooling talks about "tracking ChatGPT" or "tracking Gemini" while actually querying model APIs. That is not the same thing.
 
-OneGlanse uses the real chat UIs because those interfaces are where end users see:
+AnswerLoom uses the real chat UIs because those interfaces are where end users see:
 
 - inline citations and source cards
 - recommendation ordering
 - brand comparisons and product framing
 - provider-specific formatting and UI-level post-processing
 
-Those layers are critical to GEO analysis and are exactly the layers that often differ from API output. OneGlanse captures the rendered answer first, then runs analysis on top of that captured UI response.
+Those layers are critical to GEO analysis and are exactly the layers that often differ from API output. AnswerLoom captures the rendered answer first, then runs analysis on top of that captured UI response.
 
 ---
 
 ## Why Camoufox Instead Of Chrome
 
-OneGlanse uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
+AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
 
 That is a deliberate product decision, not an implementation accident.
 
@@ -166,9 +168,9 @@ The main issue is not just "browser compatibility". It is the combination of:
 - session reputation
 - IP reputation
 
-Camoufox gives OneGlanse a browser runtime that is materially better suited for authenticated UI collection against anti-bot-protected chat products. It reduces fingerprint mismatch and makes provider sessions more stable than standard Chrome-style automation in this use case.
+Camoufox gives AnswerLoom a browser runtime that is materially better suited for authenticated UI collection against anti-bot-protected chat products. It reduces fingerprint mismatch and makes provider sessions more stable than standard Chrome-style automation in this use case.
 
-Credit to the Camoufox project for making that possible. OneGlanse builds on their work rather than pretending this is solved by plain Playwright + Chrome alone.
+Credit to the Camoufox project for making that possible. AnswerLoom builds on their work rather than pretending this is solved by plain Playwright + Chrome alone.
 
 ---
 
@@ -186,7 +188,7 @@ That is why self-hosted VPS runs require a residential proxy:
 
 Without that proxy layer, provider access from a VPS is often unstable or blocked outright.
 
-For ThorData specifically, whitelist your VPS IP first, then generate the endpoint with `Whitelisted IPs`, `API Link`, and `Sticky session`. Use a valid target-audience country where the providers are supported, and save that generated API link as `THORDATA_PROXY_API_URL`. The full walkthrough is in the self-hosted docs: [docs.oneglanse.com](https://docs.oneglanse.com).
+For ThorData specifically, whitelist your VPS IP first, then generate the endpoint with `Whitelisted IPs`, `API Link`, and `Sticky session`. Use a valid target-audience country where the providers are supported, and save that generated API link as `THORDATA_PROXY_API_URL`. The full walkthrough is in the [self-hosted docs](docs/self-hosted-setup.mdx).
 
 ---
 
@@ -282,13 +284,13 @@ The brand's absolute position in the reading order of the full response, not its
 
 ---
 
-If you spot a scoring inaccuracy or think the methodology could be improved, please [open an issue](https://github.com/aryamantodkar/oneglanse/issues) or submit a PR against [`analysisPrompt.ts`](packages/services/src/analysis/analysisPrompt.ts). Contributions to the scoring logic are especially welcome.
+If you spot a scoring inaccuracy or think the methodology could be improved, open an issue in your configured AnswerLoom repository or submit a change against [`analysisPrompt.ts`](packages/services/src/analysis/analysisPrompt.ts).
 
 ---
 
 ## Telemetry
 
-OneGlanse collects anonymous usage telemetry to help understand how many people are running the project.
+AnswerLoom collects anonymous usage telemetry to help understand how many people are running the project.
 
 **What is collected:**
 - A one-way SHA-256 hash of your internal user ID. This cannot be reversed to an email address or any personal information

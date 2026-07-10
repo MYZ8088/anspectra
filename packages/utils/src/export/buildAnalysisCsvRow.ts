@@ -1,4 +1,4 @@
-import type { AnalysisRecord } from "@oneglanse/types";
+import type { AnalysisRecord } from "@answerloom/types";
 import { joinCitedTexts, joinSourceUrls } from "../sources/index.js";
 
 export function buildAnalysisCsvRow(

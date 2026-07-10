@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AuthError } from "@oneglanse/errors";
+import { AuthError } from "@answerloom/errors";
 import { t } from "../trpc";
 
 export const isAuthenticated = t.middleware(async ({ next, ctx }) => {

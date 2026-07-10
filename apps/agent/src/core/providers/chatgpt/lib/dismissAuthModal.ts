@@ -1,4 +1,4 @@
-import { logger } from "@oneglanse/utils";
+import { logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 import {
 	canUseOsLevelInput,

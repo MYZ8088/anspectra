@@ -1,4 +1,4 @@
-import { submitAgentJobGroup } from "@oneglanse/services";
+import { submitAgentJobGroup } from "@answerloom/services";
 
 type SubmitAgentRunResult =
 	| { jobId: string; status: "queued" }

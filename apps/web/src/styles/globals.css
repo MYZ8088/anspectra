@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@oneglanse/ui/styles/shared.css";
+@import "@answerloom/ui/styles/shared.css";
 
 @plugin "@tailwindcss/typography";
 

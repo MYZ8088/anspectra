@@ -8,6 +8,55 @@
 			"when": 1760174127780,
 			"tag": "0000_famous_smiling_tiger",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1782588122340,
+			"tag": "0001_add_deepseek_provider",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1782720000000,
+			"tag": "0002_add_china_providers",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1783623802000,
+			"tag": "0003_geo_saas_core",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1783662424552,
+			"tag": "0004_yao_geo_full_cycle",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1783664000000,
+			"tag": "0005_separate_sample_analysis_status",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1783665000000,
+			"tag": "0006_page_snapshot_history",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1783690000000,
+			"tag": "0007_answerloom_prompt_provenance",
+			"breakpoints": true
 		}
 	]
 }

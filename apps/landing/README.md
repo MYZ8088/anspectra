@@ -1,6 +1,6 @@
-# @oneglanse/landing
+# @answerloom/landing
 
-Public marketing site for OneGlanse, deployed separately on Vercel.
+Public marketing site for AnswerLoom, deployed separately on Vercel.
 
 ## Responsibilities
 
@@ -20,11 +20,11 @@ Public marketing site for OneGlanse, deployed separately on Vercel.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/landing dev` | Start Next.js dev server |
-| `pnpm --filter @oneglanse/landing build` | Build production bundle |
-| `pnpm --filter @oneglanse/landing start` | Start built app |
-| `pnpm --filter @oneglanse/landing typecheck` | TypeScript checks |
-| `pnpm --filter @oneglanse/landing lint` | Biome lint/check |
+| `pnpm --filter @answerloom/landing dev` | Start Next.js dev server |
+| `pnpm --filter @answerloom/landing build` | Build production bundle |
+| `pnpm --filter @answerloom/landing start` | Start built app |
+| `pnpm --filter @answerloom/landing typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/landing lint` | Biome lint/check |
 
 ## Environment Variables
 
@@ -34,15 +34,15 @@ Public marketing site for OneGlanse, deployed separately on Vercel.
 ## Local Development
 
 ```bash
-pnpm --filter @oneglanse/landing dev
+pnpm --filter @answerloom/landing dev
 ```
 
 If port `3000` is already used by another app, run with a custom `PORT`.
 
 ## Dependencies
 
-- `@oneglanse/ui`
-- `@oneglanse/types`
-- `@oneglanse/utils`
+- `@answerloom/ui`
+- `@answerloom/types`
+- `@answerloom/utils`
 
 These ensure landing previews stay aligned with product domain and shared components.

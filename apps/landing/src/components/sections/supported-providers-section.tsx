@@ -1,4 +1,4 @@
-import { getModelFavicon, modelSelectors } from "@oneglanse/utils";
+import { getModelFavicon, modelSelectors } from "@answerloom/utils";
 import { CheckCircle2 } from "lucide-react";
 
 const PROVIDER_ITEMS = modelSelectors.filter(

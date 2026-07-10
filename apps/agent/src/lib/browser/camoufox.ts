@@ -1,7 +1,9 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
-import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
-import { type Provider, resolveAppMode } from "@oneglanse/types";
+import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
+import { type Provider, resolveAppMode } from "@answerloom/types";
 
 const execFileAsync = promisify(execFile);
 const PYTHON_CANDIDATES = ["python3.12", "python3.11", "python3.10", "python3"];
@@ -13,11 +15,13 @@ const DEFAULT_CAMOUFOX_HEADLESS_MODE = "virtual";
 const PYTHON_PROBE_SCRIPT = `
 import json
 import sys
+import camoufox
 
 print(json.dumps({
     "major": sys.version_info.major,
     "minor": sys.version_info.minor,
     "version": sys.version.split()[0],
+    "camoufox": True,
 }))
 `;
 
@@ -112,7 +116,26 @@ const CAMOUFOX_HUMANIZE = true;
 const CAMOUFOX_HUMANIZE_MAX_TIME_S = 1.5;
 
 function isLocalAppMode(): boolean {
-	return resolveAppMode(process.env.ONEGLANSE_APP_MODE) === "local";
+	return (
+		resolveAppMode(process.env.ANSWERLOOM_APP_MODE) === "local"
+	);
+}
+
+function findManagedCamoufoxPython(): string | null {
+	let current = path.resolve(process.cwd());
+	while (true) {
+		const candidate = path.join(
+			current,
+			".answerloom-storage",
+			"camoufox-venv",
+			"bin",
+			process.platform === "win32" ? "python.exe" : "python",
+		);
+		if (existsSync(candidate)) return candidate;
+		const parent = path.dirname(current);
+		if (parent === current) return null;
+		current = parent;
+	}
 }
 
 function getHumanizeValue(): false | true | number {
@@ -172,6 +195,7 @@ async function resolvePythonBinary(provider: Provider): Promise<string> {
 
 	const candidates = [
 		process.env.CAMOUFOX_PYTHON_BIN?.trim(),
+		findManagedCamoufoxPython(),
 		...PYTHON_CANDIDATES,
 	].filter((candidate): candidate is string => Boolean(candidate));
 

@@ -1,32 +1,48 @@
-import type { Provider } from "@oneglanse/types";
+import type { Provider } from "@answerloom/types";
 import {
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	PROVIDER_RESPONSE_GENERATION_SELECTORS,
-} from "@oneglanse/utils";
+} from "@answerloom/utils";
 import type { Page } from "playwright";
+
+const STRICT_RESPONSE_STATE_SELECTORS: Partial<Record<Provider, string[]>> = {
+	deepseek: [".ds-markdown:not(.ds-think-content *)"],
+	doubao: [
+		'[data-message-id]:not([class*="justify-end"]) .md-box-root',
+	],
+	hunyuan: ["#chat-content .hyc-common-markdown", ".hyc-common-markdown"],
+	qwen: [
+		".qwen-chat-message-assistant .response-message-content.phase-answer",
+		".qwen-chat-message-assistant .custom-qwen-markdown",
+		".qwen-chat-message-assistant .qwen-markdown",
+	],
+};
 
 export async function getGenerationStateSignature(
 	page: Page,
 	provider: Provider,
-) : Promise<string> {
-	return await page.evaluate((selectors) =>
-		(selectors || [])
-			.map((selector) => {
-				const parts = Array.from(document.querySelectorAll(selector)).map((node) => {
-					const element = node as HTMLElement;
-					const style = window.getComputedStyle(element);
-					const visible =
-						element.offsetParent !== null &&
-						style.visibility !== "hidden" &&
-						style.display !== "none";
-					const text = (element.textContent || "").trim();
-					const ariaLabel = element.getAttribute("aria-label") || "";
-					const disabled = element.getAttribute("disabled") ? "1" : "0";
-					return `${visible ? 1 : 0}:${text}:${ariaLabel}:${disabled}`;
-				});
-				return `${selector}=>${parts.join("|")}`;
-			})
-			.join("||"),
+): Promise<string> {
+	return await page.evaluate(
+		(selectors) =>
+			(selectors || [])
+				.map((selector) => {
+					const parts = Array.from(document.querySelectorAll(selector)).map(
+						(node) => {
+							const element = node as HTMLElement;
+							const style = window.getComputedStyle(element);
+							const visible =
+								element.offsetParent !== null &&
+								style.visibility !== "hidden" &&
+								style.display !== "none";
+							const text = (element.textContent || "").trim();
+							const ariaLabel = element.getAttribute("aria-label") || "";
+							const disabled = element.getAttribute("disabled") ? "1" : "0";
+							return `${visible ? 1 : 0}:${text}:${ariaLabel}:${disabled}`;
+						},
+					);
+					return `${selector}=>${parts.join("|")}`;
+				})
+				.join("||"),
 		PROVIDER_RESPONSE_GENERATION_SELECTORS[provider] || [],
 	);
 }
@@ -35,18 +51,19 @@ export async function hasVisibleGenerationIndicator(
 	page: Page,
 	provider: Provider,
 ): Promise<boolean> {
-	return await page.evaluate((selectors) =>
-		(selectors || []).some((selector) =>
-			Array.from(document.querySelectorAll(selector)).some((node) => {
-				const element = node as HTMLElement;
-				const style = window.getComputedStyle(element);
-				return (
-					element.offsetParent !== null &&
-					style.visibility !== "hidden" &&
-					style.display !== "none"
-				);
-			}),
-		),
+	return await page.evaluate(
+		(selectors) =>
+			(selectors || []).some((selector) =>
+				Array.from(document.querySelectorAll(selector)).some((node) => {
+					const element = node as HTMLElement;
+					const style = window.getComputedStyle(element);
+					return (
+						element.offsetParent !== null &&
+						style.visibility !== "hidden" &&
+						style.display !== "none"
+					);
+				}),
+			),
 		PROVIDER_RESPONSE_GENERATION_SELECTORS[provider] || [],
 	);
 }
@@ -66,14 +83,17 @@ export async function getResponseStateSignature(
 			);
 		};
 
-		const elements = (selectors || [])
-			.flatMap((selector) => Array.from(document.querySelectorAll(selector)))
-			.filter(
+		let latest: HTMLElement | null = null;
+		for (const selector of selectors || []) {
+			const candidates = Array.from(document.querySelectorAll(selector)).filter(
 				(el): el is HTMLElement =>
-					visible(el) && (el.innerText || "").trim().length > 0,
+					visible(el) && (el.innerText || "").trim().length >= 20,
 			);
-
-		const latest = elements.at(-1) ?? null;
+			if (candidates.length > 0) {
+				latest = candidates.at(-1) ?? null;
+				break;
+			}
+		}
 		if (!latest) {
 			return { signature: "", textLength: 0 };
 		}
@@ -83,5 +103,9 @@ export async function getResponseStateSignature(
 			signature: `${text.length}:${latest.innerHTML.length}:${latest.childElementCount}:${text.slice(-120)}`,
 			textLength: text.length,
 		};
-	}, PROVIDER_MODEL_RESPONSE_SELECTORS[provider] || []);
+	},
+		STRICT_RESPONSE_STATE_SELECTORS[provider] ??
+			PROVIDER_MODEL_RESPONSE_SELECTORS[provider] ??
+			[],
+	);
 }

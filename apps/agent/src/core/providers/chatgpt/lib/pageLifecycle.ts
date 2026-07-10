@@ -1,5 +1,5 @@
-import type { ProviderConfig } from "../../types.js";
 import { resetProviderPage } from "../../_shared/resetProviderPage.js";
+import type { ProviderConfig } from "../../types.js";
 import { dismissChatgptAuthModal } from "./dismissAuthModal.js";
 
 export const CHATGPT_URL = "https://chatgpt.com/";

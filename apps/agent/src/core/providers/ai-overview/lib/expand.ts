@@ -1,4 +1,4 @@
-import { logger } from "@oneglanse/utils";
+import { logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 
 const AI_OVERVIEW_SOURCE_ROOT_SELECTOR = '[data-container-id="rhs-col"]';
@@ -71,7 +71,9 @@ export async function expandAIOverviewSources(page: Page): Promise<void> {
 		}
 
 		const button = page
-			.locator(`${AI_OVERVIEW_SOURCE_ROOT_SELECTOR} ${AI_OVERVIEW_BUTTON_SELECTOR}`)
+			.locator(
+				`${AI_OVERVIEW_SOURCE_ROOT_SELECTOR} ${AI_OVERVIEW_BUTTON_SELECTOR}`,
+			)
 			.nth(match.index);
 		const visible = await button.isVisible().catch(() => false);
 		if (!visible) continue;

@@ -16,12 +16,12 @@ import {
 } from "@/lib/provider-connections/provider-gate";
 import type { ProviderConnectionsState } from "@/lib/provider-connections/types";
 import { api } from "@/trpc/react";
-import type { Workspace } from "@oneglanse/db";
+import type { Workspace } from "@answerloom/db";
 import {
 	type AppMode,
 	canAccessPeopleInMode,
 	isInteractiveAuthAllowedInMode,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -30,8 +30,8 @@ import {
 	DropdownMenuTrigger,
 	SidebarTrigger,
 	toast,
-} from "@oneglanse/ui";
-import { cn } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { cn } from "@answerloom/utils";
 import { ChevronUp, Loader2, User2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,8 +41,15 @@ function getPageHeader(pathname: string | null): string | null {
 	if (!pathname) return null;
 
 	if (pathname.startsWith("/dashboard")) {
-		return "Dashboard";
+		return "Overview";
 	}
+
+	if (pathname.startsWith("/monitor")) return "Monitor";
+	if (pathname.startsWith("/prompt-library")) return "Prompt Library";
+	if (pathname.startsWith("/runs")) return "Runs";
+	if (pathname.startsWith("/opportunities")) return "Opportunities";
+	if (pathname.startsWith("/content")) return "Content";
+	if (pathname.startsWith("/experiments")) return "Experiments";
 
 	if (pathname.startsWith("/prompts")) {
 		return "Prompts";

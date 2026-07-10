@@ -1,12 +1,12 @@
-import { db, schema } from "@oneglanse/db";
-import { NotFoundError, ValidationError } from "@oneglanse/errors";
+import { db, schema } from "@answerloom/db";
+import { NotFoundError, ValidationError } from "@answerloom/errors";
 import type {
 	AddMemberToWorkspaceArgs,
 	AddMemberToWorkspaceResult,
 	RemoveMemberFromWorkspaceArgs,
 	RemoveMemberFromWorkspaceResult,
-} from "@oneglanse/types";
-import { parseWorkspaceJoinCode } from "@oneglanse/utils";
+} from "@answerloom/types";
+import { parseWorkspaceJoinCode } from "@answerloom/utils";
 import { and, eq, isNull } from "drizzle-orm";
 import { ensureOrgMembership } from "./_internal/ensureOrgMembership.js";
 import type {

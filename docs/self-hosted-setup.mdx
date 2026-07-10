@@ -1,17 +1,17 @@
 ---
 title: Self-Hosted Setup
-description: Deploy the OneGlanse app on your own VPS with nginx, SSL, and provider auth upload: step by step with copy-paste commands.
+description: Deploy the AnswerLoom app on your own VPS with nginx, SSL, and provider auth upload: step by step with copy-paste commands.
 ---
 
 ## Interactive setup (recommended)
 
 Before you run the setup script, make sure you are logged in as a non-root user with `sudo` access. The script is designed for that flow and will stop if you run it as `root`.
 
-If you're on Ubuntu 22.04 / 24.04, the setup script handles everything for the app deployment path: dependencies, repo clone, `.env` config, Docker image pull, nginx, SSL, and firewall: in one session:
+If you're on Ubuntu 22.04 / 24.04, copy your AnswerLoom checkout to the server first. The setup script then handles dependencies, `.env` configuration, Docker images, nginx, SSL, and firewall.
 
 ```bash
-# On your VPS (as a non-root user with sudo privileges):
-bash <(curl -fsSL https://raw.githubusercontent.com/aryamantodkar/oneglanse/main/scripts/setup-vps.sh)
+# On your VPS, from the AnswerLoom checkout:
+bash scripts/setup-vps.sh
 ```
 
 If your VPS is freshly reinstalled and only has `root`, create a non-root sudo user first, then reconnect as that user before running the setup script:
@@ -31,13 +31,13 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 ssh deploy@YOUR_VPS_IP
 ```
 
-When the script prompts for `Your domain for the app`, enter the hostname you want to serve OneGlanse on, such as `app.yourdomain.com`. The script configures nginx and requests the TLS certificate for that exact domain.
+When the script prompts for `Your domain for the app`, enter the hostname you want to serve AnswerLoom on, such as `app.yourdomain.com`. The script configures nginx and requests the TLS certificate for that exact domain.
 
-Or clone first and run locally:
+Or configure your own repository URL and clone first:
 
 ```bash
-git clone https://github.com/aryamantodkar/oneglanse /tmp/oneglanse
-bash /tmp/oneglanse/scripts/setup-vps.sh
+git clone "$ANSWERLOOM_REPOSITORY_URL" /tmp/answerloom
+bash /tmp/answerloom/scripts/setup-vps.sh
 ```
 
 The script is interactive: it asks for your domain, LLM key, and proxy URL, then does the rest. If you leave the auth upload token blank, it generates one automatically, and it handles first-run Docker group access for the setup user in the same session.
@@ -54,9 +54,9 @@ The VPS flow is intentionally simple:
 
 ## Manual setup
 
-This guide deploys OneGlanse on a fresh Ubuntu 22.04 / 24.04 VPS. At the end you'll have:
+This guide deploys AnswerLoom on a fresh Ubuntu 22.04 / 24.04 VPS. At the end you'll have:
 
-- OneGlanse running behind nginx with HTTPS
+- AnswerLoom running behind nginx with HTTPS
 - Postgres, ClickHouse, and Redis running in Docker
 - Provider sessions uploaded from your local machine
 
@@ -67,7 +67,7 @@ This guide intentionally deploys only the app.
 
 Important context before you start:
 
-- OneGlanse collects responses from real provider UIs, not official model APIs
+- AnswerLoom collects responses from real provider UIs, not official model APIs
 - provider auth is captured locally with `pnpm auth`
 - VPS browser traffic needs a residential proxy because datacenter IPs are often blocked by provider websites
 
@@ -122,8 +122,8 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 ## 3. Clone and configure
 
 ```bash
-git clone https://github.com/aryamantodkar/oneglanse /home/$USER/oneglanse
-cd /home/$USER/oneglanse
+git clone "$ANSWERLOOM_REPOSITORY_URL" /home/$USER/answerloom
+cd /home/$USER/answerloom
 cp .env.example .env
 ```
 
@@ -159,7 +159,7 @@ Why the proxy is mandatory on VPS:
 
 - VPS traffic usually originates from datacenter IP ranges
 - provider websites frequently challenge or block those IPs
-- OneGlanse collects from authenticated web UIs, so network reputation matters
+- AnswerLoom collects from authenticated web UIs, so network reputation matters
 
 The proxy is what makes VPS-based scheduling viable. Without it, direct provider access from the VPS is often unreliable.
 
@@ -195,7 +195,7 @@ You should see containers for `web`, `agent-worker`, `postgres`, `clickhouse`, a
 Create the nginx site config:
 
 ```bash
-sudo nano /etc/nginx/sites-available/oneglanse
+sudo nano /etc/nginx/sites-available/answerloom
 ```
 
 Paste this: replace `app.yourdomain.com` with your domain:
@@ -223,7 +223,7 @@ server {
 Enable the site and reload:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/oneglanse /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/answerloom /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
@@ -254,12 +254,12 @@ sudo certbot renew --dry-run
 
 Provider auth must be captured on your **local machine** (it needs a real browser). Once captured, upload the sessions to the VPS.
 
-OneGlanse uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for this flow. That is intentional: plain Chrome / Chromium automation is more likely to trigger login loops, verification challenges, or unstable sessions on provider websites. Camoufox is a better fit for authenticated scraping against anti-bot-protected chat interfaces.
+AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for this flow. That is intentional: plain Chrome / Chromium automation is more likely to trigger login loops, verification challenges, or unstable sessions on provider websites. Camoufox is a better fit for authenticated scraping against anti-bot-protected chat interfaces.
 
 **On your local machine:** set these in your local `.env`:
 
 ```bash
-ONEGLANSE_VPS_IP=YOUR_VPS_IP
+ANSWERLOOM_VPS_IP=YOUR_VPS_IP
 AGENT_AUTH_UPLOAD_TOKEN=replace-with-a-strong-secret   # same as on VPS
 ```
 
@@ -283,10 +283,10 @@ pnpm upload:vps
 
 Navigate to `https://app.yourdomain.com`, create your account, and start adding prompts.
 
-Before you run prompts from the VPS, make sure `THORDATA_PROXY_API_URL` in `/home/$USER/oneglanse/.env` points to your real residential proxy endpoint. If you deployed with a placeholder or later changed the proxy configuration, update that value and rerun:
+Before you run prompts from the VPS, make sure `THORDATA_PROXY_API_URL` in `/home/$USER/answerloom/.env` points to your real residential proxy endpoint. If you deployed with a placeholder or later changed the proxy configuration, update that value and rerun:
 
 ```bash
-cd /home/$USER/oneglanse
+cd /home/$USER/answerloom
 node scripts/run-compose.mjs bootstrap
 ```
 
@@ -299,7 +299,7 @@ Without the correct proxy endpoint, VPS prompt runs are likely to be blocked, ch
 Pull and redeploy without downtime:
 
 ```bash
-cd /home/$USER/oneglanse
+cd /home/$USER/answerloom
 git pull
 node scripts/run-compose.mjs bootstrap
 ```
@@ -336,7 +336,7 @@ The app ports (3000, 5432, 8123, 6379) stay internal. Port `3333` is only for `p
 
 **502 Bad Gateway:** the web container isn't running yet. Check:
 ```bash
-docker logs oneglanse-web --tail 50
+docker logs answerloom-web --tail 50
 ```
 
 **SSL certificate failed:** DNS hasn't propagated yet. Wait a few minutes and retry:
@@ -344,7 +344,7 @@ docker logs oneglanse-web --tail 50
 sudo certbot --nginx -d app.yourdomain.com
 ```
 
-**Providers disconnected after reboot:** sessions survive restarts (they're in the volume at `/opt/oneglanse/storage`). If they expire, re-run `pnpm upload:vps` from your local machine.
+**Providers disconnected after reboot:** sessions survive restarts (they're in the volume at `/opt/answerloom/storage`). If they expire, re-run `pnpm upload:vps` from your local machine.
 
 **VPS ran out of disk:** ClickHouse data grows over time. Check usage:
 ```bash

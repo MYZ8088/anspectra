@@ -1,5 +1,5 @@
-import { cancelProviderRun, redis, waitForRedis } from "@oneglanse/services";
-import { PROVIDER_LIST } from "@oneglanse/types";
+import { cancelProviderRun, redis, waitForRedis } from "@answerloom/services";
+import { PROVIDER_LIST } from "@answerloom/types";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { validWorkspace } from "../../middleware/validWorkspace";

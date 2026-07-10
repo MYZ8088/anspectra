@@ -1,4 +1,4 @@
-import type { Source } from "@oneglanse/types";
+import type { Source } from "@answerloom/types";
 import type { Locator, Page } from "playwright";
 import {
 	canUseOsLevelInput,
@@ -70,9 +70,10 @@ export async function extractSourcesFromPerplexity(
 		provider: "perplexity",
 	})) as RawSource[];
 
-	const clickedToClose = await clickButtonViaDispatch(page, sourcesButton).catch(
-		() => false,
-	);
+	const clickedToClose = await clickButtonViaDispatch(
+		page,
+		sourcesButton,
+	).catch(() => false);
 	if (!clickedToClose) {
 		const escaped = await pressKeyLikeUser(page, "Escape").catch(() => false);
 		if (!escaped && canUseOsLevelInput(page)) {

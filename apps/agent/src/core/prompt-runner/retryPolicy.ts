@@ -3,19 +3,21 @@ import {
 	ValidationError,
 	classifyError,
 	toErrorMessage,
-} from "@oneglanse/errors";
+} from "@answerloom/errors";
 import {
 	type AskPromptResult,
+	type PromptAttemptUpdate,
 	type PromptPayload,
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@oneglanse/types";
-import { exponentialBackoff, logger } from "@oneglanse/utils";
+} from "@answerloom/types";
+import { exponentialBackoff, logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
 import { executePrompt } from "./executePrompt.js";
+import { describePromptFailure } from "./failureDetails.js";
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1_000;
@@ -83,10 +85,13 @@ export async function executePromptWithRetry(
 	partialResults: AskPromptResult[],
 	remainingPrompts: PromptPayload["prompts"],
 	proxyProven: boolean,
+	onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>,
 ): Promise<{ result: AskPromptResult; proxyNowProven: boolean }> {
 	const config = PROVIDER_CONFIGS[provider];
-	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ONEGLANSE_APP_MODE));
-	const maxAttempts = MAX_RETRIES;
+	const useProxy = shouldUseProxyInMode(
+		resolveAppMode(env.ANSWERLOOM_APP_MODE),
+	);
+	const maxAttempts = useProxy ? MAX_RETRIES : 2;
 	let lastError: unknown = null;
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -101,6 +106,13 @@ export async function executePromptWithRetry(
 			);
 			await page.waitForTimeout(backoffDelay);
 		}
+		await onAttemptUpdate?.({
+			promptId: promptEntry.id,
+			attemptIndex: attempt,
+			status: "started",
+			phase: "submission",
+			pageUrl: page.url(),
+		}).catch(() => {});
 
 		try {
 			const { response, sources } = await executePrompt(
@@ -121,6 +133,13 @@ export async function executePromptWithRetry(
 				response,
 				sources,
 			};
+			await onAttemptUpdate?.({
+				promptId: promptEntry.id,
+				attemptIndex: attempt,
+				status: "completed",
+				phase: "completed",
+				pageUrl: page.url(),
+			}).catch(() => {});
 
 			const proxyNowProven = useProxy && !proxyProven;
 			if (proxyNowProven) {
@@ -131,10 +150,39 @@ export async function executePromptWithRetry(
 		} catch (err) {
 			lastError = err;
 			const failureType = classifyError(err);
+			const details = describePromptFailure(err);
+			await onAttemptUpdate?.({
+				promptId: promptEntry.id,
+				attemptIndex: attempt,
+				status: "failed",
+				phase: details.phase,
+				failureCategory: details.category,
+				failureCode: details.code,
+				failureMessage: toErrorMessage(err),
+				retryable:
+					details.retryable &&
+					attempt < maxAttempts &&
+					failureType !== "human_challenge" &&
+					failureType !== "logged_out",
+				pageUrl: page.url(),
+			}).catch(() => {});
+			if (failureType === "human_challenge") {
+				logger.warn(
+					`human verification required for prompt ${promptIndex + 1} — pausing without retry`,
+				);
+				throw err;
+			}
 
 			if (failureType === "logged_out") {
 				logger.warn(
 					`session expired for prompt ${promptIndex + 1} — aborting provider run (not a proxy issue)`,
+				);
+				throw err;
+			}
+
+			if (failureType === "browser_crash") {
+				logger.warn(
+					`browser context closed for prompt ${promptIndex + 1} — handing control to the persistent-session retry cycle`,
 				);
 				throw err;
 			}

@@ -1,4 +1,4 @@
-import { DatabaseError, Logger } from "@oneglanse/errors";
+import { DatabaseError, Logger } from "@answerloom/errors";
 import { Redis } from "ioredis";
 import { env } from "../env.js";
 

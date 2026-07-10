@@ -1,6 +1,6 @@
-import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
-import type { Provider } from "@oneglanse/types";
-import { logger, withTimeout } from "@oneglanse/utils";
+import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
+import type { Provider } from "@answerloom/types";
+import { logger, withTimeout } from "@answerloom/utils";
 import type { Locator, Page } from "playwright";
 import {
 	clickLocatorLikeUser,

@@ -1,5 +1,5 @@
-import type { ProviderConfig } from "../../types.js";
 import { resetProviderPage } from "../../_shared/resetProviderPage.js";
+import type { ProviderConfig } from "../../types.js";
 import { handleGeminiConsentPage } from "./session.js";
 
 export const GEMINI_URL = "https://gemini.google.com/";

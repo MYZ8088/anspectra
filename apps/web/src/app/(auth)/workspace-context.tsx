@@ -1,6 +1,6 @@
 "use client";
 
-import type { Workspace } from "@oneglanse/db";
+import type { Workspace } from "@answerloom/db";
 import { createContext, useContext } from "react";
 
 type WorkspaceContextValue = {

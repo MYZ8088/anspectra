@@ -1,9 +1,9 @@
-import { clickhouse } from "@oneglanse/db";
+import { clickhouse } from "@answerloom/db";
 import type {
 	AnalysisRecord,
 	BrandAnalysisResult,
 	PromptResponse,
-} from "@oneglanse/types";
+} from "@answerloom/types";
 
 /**
  * Fetch ALL responses (analyzed and unanalyzed) with metadata
@@ -74,7 +74,8 @@ export async function fetchAnalysedPrompts(args: {
 			created_at: row.created_at,
 			// ClickHouse ALTER UPDATE is asynchronous, so prompt_analysis may exist
 			// before prompt_responses.is_analysed flips to true.
-			is_analysed: row.is_analysed === true || parsedBrandAnalysis !== undefined,
+			is_analysed:
+				row.is_analysed === true || parsedBrandAnalysis !== undefined,
 		};
 	});
 

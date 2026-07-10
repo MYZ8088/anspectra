@@ -1,9 +1,10 @@
 "use client";
 
 import { ExportMenu } from "@/components/export-menu";
+import { GeoOverviewBand } from "@/components/geo-overview-band";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { AnalysisRecord } from "@oneglanse/types";
+import type { AnalysisRecord } from "@answerloom/types";
 import {
 	AggregateStatsRow,
 	BrandComparisonChart,
@@ -12,8 +13,8 @@ import {
 	type PromptGroup,
 	PromptResponsesList,
 	TopSources,
-} from "@oneglanse/ui";
-import { filterAnalysisRecords } from "@oneglanse/utils";
+} from "@answerloom/ui";
+import { filterAnalysisRecords } from "@answerloom/utils";
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -171,19 +172,48 @@ export default function Dashboard() {
 			</div>
 		);
 	}
-	if (isLoading) return <DashboardSkeleton />;
+	if (isLoading)
+		return (
+			<>
+				<div className="web-page-wide">
+					<div className="web-page-wide-inner">
+						<GeoOverviewBand workspaceId={workspaceId} />
+					</div>
+				</div>
+				<DashboardSkeleton />
+			</>
+		);
 	if (
 		!analysedPromptData ||
 		(Array.isArray(analysedPromptData) && analysedPromptData.length === 0)
 	) {
-		return <EmptyState workspaceId={workspaceId} />;
+		return (
+			<>
+				<div className="web-page-wide">
+					<div className="web-page-wide-inner">
+						<GeoOverviewBand workspaceId={workspaceId} />
+					</div>
+				</div>
+				<EmptyState workspaceId={workspaceId} />
+			</>
+		);
 	}
 	if (!hasAnyAnalysisInWorkspace)
-		return <NoAnalysisState workspaceId={workspaceId} />;
+		return (
+			<>
+				<div className="web-page-wide">
+					<div className="web-page-wide-inner">
+						<GeoOverviewBand workspaceId={workspaceId} />
+					</div>
+				</div>
+				<NoAnalysisState workspaceId={workspaceId} />
+			</>
+		);
 
 	return (
 		<div className="web-page-wide">
 			<div className="web-page-wide-inner">
+				<GeoOverviewBand workspaceId={workspaceId} />
 				<div className="ui-stagger space-y-5 sm:space-y-6">
 					{/* Filters */}
 					<div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">

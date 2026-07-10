@@ -1,4 +1,4 @@
-import type { Source } from "@oneglanse/types";
+import type { Source } from "@answerloom/types";
 import type { Locator, Page } from "playwright";
 import {
 	type RawSource,

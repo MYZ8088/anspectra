@@ -1,4 +1,4 @@
-# @oneglanse/utils
+# @answerloom/utils
 
 Shared helper utilities used across the monorepo.
 
@@ -24,17 +24,17 @@ Shared helper utilities used across the monorepo.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @oneglanse/utils build` | Compile TypeScript |
-| `pnpm --filter @oneglanse/utils typecheck` | TypeScript checks |
+| `pnpm --filter @answerloom/utils build` | Compile TypeScript |
+| `pnpm --filter @answerloom/utils typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import { formatDate, getDomain, filterAnalysisRecords } from "@oneglanse/utils";
+import { formatDate, getDomain, filterAnalysisRecords } from "@answerloom/utils";
 ```
 
 ## Contribution Guidance
 
 - Keep helpers deterministic and side-effect minimal.
-- Put domain orchestration in `@oneglanse/services`, not in utility functions.
+- Put domain orchestration in `@answerloom/services`, not in utility functions.
 - Prefer small focused modules with explicit named exports.

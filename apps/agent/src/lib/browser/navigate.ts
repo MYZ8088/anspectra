@@ -1,5 +1,5 @@
-import { ExternalServiceError, toErrorMessage } from "@oneglanse/errors";
-import { RETRYABLE_ERRORS, logger } from "@oneglanse/utils";
+import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
+import { RETRYABLE_ERRORS, logger } from "@answerloom/utils";
 import type { Page } from "playwright";
 
 function jitter(baseMs: number, factor = 0.3): number {
@@ -43,7 +43,21 @@ export async function navigateWithRetry(
 			return;
 		} catch (err) {
 			const message = toErrorMessage(err);
-			const isRetryable = RETRYABLE_ERRORS.some((e) => message.includes(e));
+			const navigationWasSuperseded =
+				/NS_BINDING_ABORTED|ERR_ABORTED|frame was detached/i.test(message);
+			if (navigationWasSuperseded) {
+				await page
+					.waitForLoadState("domcontentloaded", { timeout: 10_000 })
+					.catch(() => null);
+				try {
+					const current = new URL(page.url());
+					const target = new URL(url);
+					if (current.origin === target.origin) return;
+				} catch {}
+			}
+			const isRetryable =
+				navigationWasSuperseded ||
+				RETRYABLE_ERRORS.some((e) => message.includes(e));
 
 			if (!isRetryable || attempt === maxRetries) {
 				throw new ExternalServiceError(

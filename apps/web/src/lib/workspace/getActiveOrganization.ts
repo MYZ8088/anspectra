@@ -1,8 +1,10 @@
-import { db, schema } from "@oneglanse/db";
-import type { Organization } from "@oneglanse/db";
+import { db, schema } from "@answerloom/db";
+import type { Organization } from "@answerloom/db";
 import { eq } from "drizzle-orm";
 
-export async function getActiveOrganization(userId: string | undefined): Promise<Organization | null | undefined> {
+export async function getActiveOrganization(
+	userId: string | undefined,
+): Promise<Organization | null | undefined> {
 	if (!userId) return null;
 
 	const memberUser = await db.query.member.findFirst({
