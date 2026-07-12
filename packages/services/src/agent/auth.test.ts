@@ -3,7 +3,7 @@ import { findProfileOwnerPidInProcessList } from "./auth.js";
 
 describe("persistent provider profile ownership", () => {
 	it("finds the primary Camoufox process and ignores content processes", () => {
-		const profileDir = "/tmp/answerloom/runtime/hunyuan/profile";
+		const profileDir = "/tmp/aloom/runtime/hunyuan/profile";
 		const processList = [
 			`402 /Applications/Camoufox.app/Contents/MacOS/plugin-container -profile ${profileDir}`,
 			`401 /Applications/Camoufox.app/Contents/MacOS/camoufox -no-remote -profile ${profileDir} -juggler-pipe`,
@@ -14,12 +14,12 @@ describe("persistent provider profile ownership", () => {
 
 	it("does not match a different provider profile", () => {
 		const processList =
-			"401 /Applications/Camoufox.app/Contents/MacOS/camoufox -profile /tmp/answerloom/runtime/doubao/profile";
+			"401 /Applications/Camoufox.app/Contents/MacOS/camoufox -profile /tmp/aloom/runtime/doubao/profile";
 
 		expect(
 			findProfileOwnerPidInProcessList(
 				processList,
-				"/tmp/answerloom/runtime/hunyuan/profile",
+				"/tmp/aloom/runtime/hunyuan/profile",
 			),
 		).toBeNull();
 	});

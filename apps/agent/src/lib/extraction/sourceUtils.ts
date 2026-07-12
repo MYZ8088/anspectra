@@ -1,5 +1,5 @@
-import type { Provider, Source } from "@answerloom/types";
-import { getDomain, getFaviconUrls } from "@answerloom/utils";
+import type { Provider, Source } from "@aloom/types";
+import { getDomain, getFaviconUrls } from "@aloom/utils";
 import type { Locator, Page } from "playwright";
 
 /**

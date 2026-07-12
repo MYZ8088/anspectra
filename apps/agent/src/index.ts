@@ -1,4 +1,4 @@
-import { logger } from "@answerloom/utils";
+import { logger } from "@aloom/utils";
 import { env } from "./env.js";
 import { closeAllProviderSessions } from "./lib/browser/providerSessionManager.js";
 
@@ -19,9 +19,8 @@ async function startRuntime() {
 		return;
 	}
 
-	await import("./api.js");
 	const workerModule = await import("./worker.js");
-	const { redis } = await import("@answerloom/services");
+	const { redis } = await import("@aloom/services");
 	stopRuntime = async () => {
 		if (workerModule.workers.length > 0) {
 			await Promise.all(workerModule.workers.map((worker) => worker.close()));

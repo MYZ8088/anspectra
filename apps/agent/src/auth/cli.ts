@@ -11,20 +11,19 @@ import {
 	saveAuthSession,
 	saveReusableIdentitySessions,
 	saveRuntimeProviderAuthSession,
-	uploadAuthSession,
 	writeProviderAuthStatus,
-} from "@answerloom/services";
+} from "@aloom/services";
 import {
 	AUTH_PROVIDER_LIST,
 	type AuthProvider,
 	type Provider,
-} from "@answerloom/types";
+} from "@aloom/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getProviderDisplayName,
 	logger,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import {
 	type Browser,
 	type BrowserContext,
@@ -692,10 +691,11 @@ async function waitForManualBrowserClose(
 		);
 	}
 	await saveReusableIdentitySessions(finalState);
-	const savedState = runtimeProvider
-		? await saveRuntimeProviderAuthSession(runtimeProvider, finalState)
-		: await saveAuthSession(provider, finalState);
-	await uploadAuthSession(provider, savedState);
+	if (runtimeProvider) {
+		await saveRuntimeProviderAuthSession(runtimeProvider, finalState);
+	} else {
+		await saveAuthSession(provider, finalState);
+	}
 	await context.close().catch(() => {});
 }
 

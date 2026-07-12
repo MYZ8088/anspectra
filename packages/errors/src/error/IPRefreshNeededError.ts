@@ -1,4 +1,4 @@
-import type { AskPromptResult } from "@answerloom/types";
+import type { AskPromptResult } from "@aloom/types";
 
 /**
  * Custom error thrown when a prompt fails all retries and needs an IP refresh

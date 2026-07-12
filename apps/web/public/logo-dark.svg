@@ -1,12 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <title>AnswerLoom</title>
-  <path d="M22 94C36 91 42 78 48 63L58 36C61 28 70 27 74 35" stroke="#FF7475" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M70 34C74 26 83 28 86 36L105 94" stroke="#20B8A3" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M29 95C43 112 83 115 101 94" stroke="#F9FAFB" stroke-width="10" stroke-linecap="round"/>
-  <path d="M38 82C53 69 73 66 91 75" stroke="#FF7475" stroke-width="10" stroke-linecap="round"/>
-  <path d="M66 70C75 69 84 71 91 75" stroke="#20B8A3" stroke-width="10" stroke-linecap="round"/>
-  <circle cx="20" cy="95" r="10" fill="#FF7475"/>
-  <circle cx="106" cy="95" r="10" fill="#20B8A3"/>
-  <circle cx="20" cy="95" r="3.5" fill="#111827"/>
-  <circle cx="106" cy="95" r="3.5" fill="#111827"/>
+  <title>Aloom</title>
+  <path fill="#F7F8FA" d="M18 112 58 16h20v74h36v22H66V30L35 112H18Z"/>
+  <path fill="#20BCE3" d="m47 85 9-18 9 18H47Z"/>
 </svg>

@@ -1,26 +1,16 @@
-# AnswerLoom Documentation
+# Aloom documentation
 
-> AnswerLoom is the open-source GEO and AI visibility tracking platform. These docs cover setup, configuration, and deployment.
+Aloom is an Apache-2.0 licensed GEO detection and recurring monitoring tool for
+the official Doubao, DeepSeek, Yuanbao, and Qwen Web interfaces.
 
-## What is AnswerLoom?
+Key properties:
+- Fixed 54-template packs per language with six deterministic suites.
+- One fresh official Web conversation per prompt.
+- Headed, automatically minimized Camoufox with visible human-verification recovery.
+- Provider cookies and profiles remain on the local collector machine.
+- AIHubMix analyzes captured answers but never supplies monitoring samples.
+- Each answer is analyzed independently, then aggregated deterministically.
+- Failed and blocked checkpoints remain in report denominators.
 
-AnswerLoom monitors how your brand appears in real AI products — ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview — using browser automation against the actual product UIs. It captures inline citations, ranked recommendations, brand framing, and competitor co-mentions that never appear in raw model API output.
-
-It is open source (MIT), self-hosted, and free to run. All data stays on your own machine or VPS.
-
-## Documentation pages
-
-- Introduction: http://localhost:3001/docs/introduction
-- Getting started: http://localhost:3001/docs/getting-started
-- Local setup: http://localhost:3001/docs/local-setup
-- Self-hosted setup (VPS + Docker): http://localhost:3001/docs/self-hosted-setup
-- Environment variables: http://localhost:3001/docs/environment-variables
-- Troubleshooting: http://localhost:3001/docs/troubleshooting
-- API reference: http://localhost:3001/docs/api-reference
-
-## Links
-
-- Homepage: http://localhost:3001
-- Repository: configure `NEXT_PUBLIC_GITHUB_REPO_URL`
-- Full reference (llms-full.txt): http://localhost:3001/llms-full.txt
-- License: MIT (`LICENSE` in the project root)
+Start with `introduction.mdx`, `local-setup.mdx`, and
+`self-hosted-setup.mdx`.

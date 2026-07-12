@@ -1,8 +1,10 @@
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	readConversationIdentity,
 	startFreshProviderConversation,
 } from "../_shared/freshConversation.js";
+import { applyOfficialWebMode } from "../_shared/providerModes.js";
 import type { ProviderConfig } from "../types.js";
 import { extractResponseFromDeepseek } from "./lib/extractResponse.js";
 import { extractSourcesFromDeepseek } from "./lib/extractSources.js";
@@ -12,6 +14,9 @@ export const deepseekConfig: ProviderConfig = {
 	url: DEEPSEEK_URL,
 	label: "DeepSeek",
 	displayName: "DeepSeek",
+	supportedModes: GEO_PROVIDER_MODE_CAPABILITIES.deepseek,
+	applyMode: (page, mode) =>
+		applyOfficialWebMode({ page, provider: "deepseek", mode }),
 	beforeRetryHook: resetDeepseekPage,
 	betweenPromptsHook: resetDeepseekPage,
 	startFreshConversation: async (page) => {

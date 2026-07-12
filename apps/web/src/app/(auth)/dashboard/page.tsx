@@ -3,6 +3,7 @@
 import { formPrimaryButtonClassName } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
+import { PROVIDER_MODE_LABELS } from "@aloom/types";
 import {
 	Button,
 	Dialog,
@@ -11,7 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
-} from "@answerloom/ui";
+} from "@aloom/ui";
 import {
 	AlertTriangle,
 	ArrowRight,
@@ -92,9 +93,12 @@ export default function Dashboard() {
 			(sample) =>
 				!query ||
 				sample.prompt.toLocaleLowerCase().includes(query) ||
-				sample.provider.includes(query) ||
-				sample.intent.includes(query) ||
-				(sample.errorCode ?? "").includes(query),
+					sample.provider.includes(query) ||
+					sample.intent.includes(query) ||
+					sample.requestedMode.includes(query) ||
+					(sample.actualMode ?? "").includes(query) ||
+					(sample.errorCode ?? "").includes(query) ||
+					(sample.analysisErrorCode ?? "").includes(query),
 		);
 	}, [report.data?.samples, sampleQuery]);
 
@@ -149,6 +153,7 @@ export default function Dashboard() {
 
 	const overall = report.data.slices.overall[0];
 	const providerRows = report.data.slices.provider;
+	const providerModeRows = report.data.slices.provider_mode;
 	const exposureRows = report.data.slices.brand_exposure;
 	const heatmap = new Map(
 		report.data.slices.intent_stage.map((row) => [row.key, row]),
@@ -234,6 +239,52 @@ export default function Dashboard() {
 						90% of planned samples are complete.
 					</div>
 				) : null}
+
+				<section className="grid gap-6 border-y border-stone-200 py-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)] dark:border-neutral-800">
+					<div>
+						<h2 className="text-base font-semibold">Executive readout</h2>
+						<ul className="mt-3 space-y-2 text-sm leading-6 text-stone-600 dark:text-stone-300">
+							{report.data.executiveSummary.map((statement) => (
+								<li key={statement} className="flex gap-2">
+									<span className="mt-2 size-1.5 shrink-0 rounded-full bg-blue-600" />
+									<span>{statement}</span>
+								</li>
+							))}
+						</ul>
+					</div>
+					<div>
+						<h2 className="text-base font-semibold">Analysis boundary</h2>
+						<p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
+							Each answer is analysed in its own schema-validated model call. This
+							report combines those validated fields deterministically; it never
+							sends all prompt answers in one model context.
+						</p>
+						<dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+							<div>
+								<dt className="text-stone-500">Checkpoints</dt>
+								<dd className="mt-0.5 font-medium tabular-nums">
+									{report.data.methodology.checkpointSamples}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-stone-500">Unique prompts</dt>
+								<dd className="mt-0.5 font-medium tabular-nums">
+									{report.data.methodology.uniquePromptHashes}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-stone-500">Answers per AI call</dt>
+								<dd className="mt-0.5 font-medium tabular-nums">1</dd>
+							</div>
+							<div>
+								<dt className="text-stone-500">Largest answer</dt>
+								<dd className="mt-0.5 font-medium tabular-nums">
+									{report.data.methodology.largestResponseCharacters.toLocaleString()} chars
+								</dd>
+							</div>
+						</dl>
+					</div>
+				</section>
 
 				<section className="grid overflow-hidden rounded-md border border-stone-200 sm:grid-cols-3 xl:grid-cols-6 dark:border-neutral-800">
 					<Metric
@@ -396,6 +447,46 @@ export default function Dashboard() {
 				</section>
 
 				<section>
+					<h2 className="text-base font-semibold">Official Web modes</h2>
+					<div className="mt-4 overflow-auto border-y border-stone-200 dark:border-neutral-800">
+						<table className="w-full min-w-[620px] text-left text-sm">
+							<thead className="text-xs text-stone-500">
+								<tr>
+									<th className="px-3 py-3">Provider / mode</th>
+									<th className="px-3 py-3">Complete</th>
+									<th className="px-3 py-3">Mention</th>
+									<th className="px-3 py-3">Recommendation</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
+								{providerModeRows.map((row) => {
+									const [provider, mode = "default"] = row.key.split(":");
+									return (
+										<tr key={row.key}>
+											<td className="px-3 py-3 font-medium">
+												{PROVIDER_LABELS[provider ?? ""] ?? provider} ·{" "}
+												{PROVIDER_MODE_LABELS[
+													mode as keyof typeof PROVIDER_MODE_LABELS
+												] ?? mode}
+											</td>
+											<td className="px-3 py-3 tabular-nums">
+												{row.completed}/{row.planned}
+											</td>
+											<td className="px-3 py-3 tabular-nums">
+												{row.mentionRate.value}%
+											</td>
+											<td className="px-3 py-3 tabular-nums">
+												{row.recommendationRate.value}%
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+				</section>
+
+				<section>
 					<h2 className="text-base font-semibold">Competitor presence</h2>
 					<div className="mt-4 overflow-auto border-y border-stone-200 dark:border-neutral-800">
 						<table className="w-full min-w-[520px] text-left text-sm">
@@ -429,6 +520,22 @@ export default function Dashboard() {
 				</section>
 
 				<section className="space-y-4">
+					{report.data.failures.length ? (
+						<div className="border-y border-stone-200 py-4 dark:border-neutral-800">
+							<h2 className="text-base font-semibold">Failure breakdown</h2>
+							<div className="mt-3 flex flex-wrap gap-2">
+								{report.data.failures.map((failure) => (
+									<span
+										key={`${failure.kind}:${failure.code}`}
+										className="rounded border border-stone-200 px-2.5 py-1.5 text-xs dark:border-neutral-800"
+									>
+										{failure.kind} · {failure.code.replaceAll("_", " ")} ·{" "}
+										<strong>{failure.count}</strong>
+									</span>
+								))}
+							</div>
+						</div>
+					) : null}
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<h2 className="text-base font-semibold">Sample evidence</h2>
 						<Link
@@ -443,15 +550,16 @@ export default function Dashboard() {
 						<Input
 							value={sampleQuery}
 							onChange={(event) => setSampleQuery(event.target.value)}
-							placeholder="Filter prompts, providers, or errors"
+							placeholder="Filter prompts, providers, modes, or errors"
 							className="border-0 shadow-none"
 						/>
 					</div>
 					<div className="overflow-auto border-b border-stone-200 dark:border-neutral-800">
-						<table className="w-full min-w-[800px] table-fixed text-left text-sm">
+						<table className="w-full min-w-[920px] table-fixed text-left text-sm">
 							<thead className="text-xs text-stone-500">
 								<tr>
 									<th className="w-28 px-3 py-3">Provider</th>
+									<th className="w-36 px-3 py-3">Mode</th>
 									<th className="w-28 px-3 py-3">Status</th>
 									<th className="w-36 px-3 py-3">Dimension</th>
 									<th className="px-3 py-3">Prompt</th>
@@ -463,6 +571,17 @@ export default function Dashboard() {
 									<tr key={sample.checkpointId}>
 										<td className="px-3 py-3 font-medium">
 											{PROVIDER_LABELS[sample.provider] ?? sample.provider}
+										</td>
+										<td className="px-3 py-3 text-xs text-stone-500">
+											{PROVIDER_MODE_LABELS[
+												sample.actualMode ?? sample.requestedMode
+											]}
+											{sample.actualMode &&
+											sample.actualMode !== sample.requestedMode ? (
+												<span className="mt-1 block">
+													Requested {PROVIDER_MODE_LABELS[sample.requestedMode]}
+												</span>
+											) : null}
 										</td>
 										<td className="px-3 py-3 text-xs">
 											<span
@@ -536,6 +655,19 @@ export default function Dashboard() {
 										"No answer was captured."}
 								</div>
 							</div>
+							{selectedSample.analysisStatus === "failed" ? (
+								<div className="border-l-2 border-red-500 bg-red-50 px-4 py-3 dark:bg-red-950/20">
+									<p className="text-xs font-semibold uppercase text-red-700 dark:text-red-300">
+										Analysis failed
+									</p>
+									<p className="mt-1 text-sm text-red-900 dark:text-red-100">
+										{selectedSample.analysisErrorCode ?? "analysis_failed"}
+										{selectedSample.analysisErrorMessage
+											? `: ${selectedSample.analysisErrorMessage}`
+											: ""}
+									</p>
+								</div>
+							) : null}
 							<div>
 								<p className="text-xs font-semibold uppercase text-stone-500">
 									Visible sources
@@ -563,6 +695,20 @@ export default function Dashboard() {
 								</div>
 							</div>
 							<dl className="grid gap-3 border-t border-stone-200 pt-4 sm:grid-cols-2 dark:border-neutral-800">
+								<div>
+									<dt className="text-xs text-stone-500">Official Web mode</dt>
+									<dd className="mt-1">
+										{PROVIDER_MODE_LABELS[
+											selectedSample.actualMode ?? selectedSample.requestedMode
+										]}
+									</dd>
+								</div>
+								<div>
+									<dt className="text-xs text-stone-500">Answer size</dt>
+									<dd className="mt-1 tabular-nums">
+										{selectedSample.responseLength.toLocaleString()} characters
+									</dd>
+								</div>
 								<div>
 									<dt className="text-xs text-stone-500">Conversation ID</dt>
 									<dd className="mt-1 break-all">

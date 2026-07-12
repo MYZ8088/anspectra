@@ -1,4 +1,5 @@
 import type { AnalysisModelInput } from "./analysis.js";
+import type { ProviderMode } from "./geo.js";
 import type { SourceLookup } from "./sources.js";
 
 export type UserPrompt = {
@@ -17,6 +18,7 @@ export type PromptPayload = {
 		prompt: string;
 	}[];
 	created_at: string;
+	providerMode?: ProviderMode;
 	sampling?: {
 		minPromptDelayMs: number;
 		maxPromptDelayMs: number;

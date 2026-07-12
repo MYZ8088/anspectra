@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+import { ExternalServiceError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
+import { logger } from "@aloom/utils";
 import type { Locator, Page } from "playwright";
 import {
 	clickLocatorLikeUser,

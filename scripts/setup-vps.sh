@@ -1,283 +1,122 @@
 #!/usr/bin/env bash
-# AnswerLoom VPS setup — Ubuntu 22.04 / 24.04
-# Run as a non-root user with sudo privileges.
+# Aloom control-plane setup for Ubuntu 22.04 / 24.04.
+# Official Web collection remains on a paired macOS or Windows computer.
 set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-info()    { echo -e "${CYAN}→${NC} $*"; }
-success() { echo -e "${GREEN}✓${NC} $*"; }
-warn()    { echo -e "${YELLOW}!${NC} $*"; }
-fatal()   { echo -e "${RED}✗${NC} $*" >&2; exit 1; }
-header()  { echo -e "\n${BOLD}$*${NC}"; }
-
+info() { echo -e "${CYAN}->${NC} $*"; }
+success() { echo -e "${GREEN}OK${NC} $*"; }
+fatal() { echo -e "${RED}ERROR${NC} $*" >&2; exit 1; }
+header() { echo -e "\n${BOLD}$*${NC}"; }
 require_cmd() { command -v "$1" >/dev/null 2>&1; }
-has_group() { id -nG "$USER" | tr ' ' '\n' | grep -qx "$1"; }
-docker_socket_access() { docker info >/dev/null 2>&1; }
-
-DOCKER_GROUP_PENDING=0
 
 if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
   fatal "Run this script as a non-root user with sudo privileges."
 fi
 
-# ─── Gather inputs ────────────────────────────────────────────────────────────
-
-header "AnswerLoom — VPS Setup"
-echo "This script installs all dependencies, clones the repo, configures nginx + HTTPS,"
-echo "and starts the app-only self-hosted stack."
+header "Aloom control-plane setup"
+read -rp "Public app domain (for example aloom.example.com): " DOMAIN
+[[ -z "$DOMAIN" ]] && fatal "A public domain is required."
+read -rp "Install directory [/home/$USER/aloom]: " INSTALL_DIR
+INSTALL_DIR="${INSTALL_DIR:-/home/$USER/aloom}"
+read -rp "Repository URL [https://github.com/MYZ8088/aloom.git]: " REPOSITORY_URL
+REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/MYZ8088/aloom.git}"
+read -rsp "AIHubMix API key: " AIHUBMIX_KEY
 echo ""
-warn "Run this as the user who will own the AnswerLoom process (not root)."
-echo ""
+[[ -z "$AIHUBMIX_KEY" ]] && fatal "AIHubMix API key is required."
 
-read -rp "Your domain for the app (e.g. app.yourdomain.com): " DOMAIN
-[[ -z "$DOMAIN" ]] && fatal "Domain is required."
-
-read -rp "Install directory [/home/$USER/answerloom]: " INSTALL_DIR
-INSTALL_DIR="${INSTALL_DIR:-/home/$USER/answerloom}"
-
-echo ""
-echo "LLM provider for response analysis:"
-select LLM_CHOICE in "OpenAI (GPT)" "Anthropic (Claude)"; do
-  case $REPLY in
-    1) LLM_PROVIDER="openai"; break ;;
-    2) LLM_PROVIDER="claude"; break ;;
-    *) echo "Enter 1 or 2." ;;
-  esac
-done
-
-if [[ "$LLM_PROVIDER" == "openai" ]]; then
-  read -rsp "OpenAI API key (sk-...): " OPENAI_KEY; echo ""
-  [[ -z "$OPENAI_KEY" ]] && fatal "OpenAI key is required."
-else
-  read -rsp "Anthropic API key (sk-ant-...): " ANTHROPIC_KEY; echo ""
-  [[ -z "$ANTHROPIC_KEY" ]] && fatal "Anthropic key is required."
-fi
-
-read -rp "Residential proxy API URL (required on VPS): " PROXY_URL
-[[ -z "$PROXY_URL" ]] && fatal "Residential proxy API URL is required on VPS."
-
-read -rsp "Auth upload token [auto-generate if blank]: " AUTH_TOKEN; echo ""
-if [[ -z "$AUTH_TOKEN" ]]; then
-  if require_cmd openssl; then
-    AUTH_TOKEN="$(openssl rand -hex 32)"
-  else
-    AUTH_TOKEN="$(node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))")"
-  fi
-  info "Generated auth upload token automatically."
-fi
-
-echo ""
-info "Settings:"
-echo "  Domain:       $DOMAIN"
-echo "  Install dir:  $INSTALL_DIR"
-echo "  LLM:          $LLM_PROVIDER"
-echo ""
-read -rp "Continue? (y/N) " CONFIRM
-[[ "$CONFIRM" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
-
-# ─── Install dependencies ─────────────────────────────────────────────────────
-
-header "1 / 6 — Installing dependencies"
-
+header "1 / 5 - Dependencies"
 if ! require_cmd docker; then
-  info "Installing Docker..."
   curl -fsSL https://get.docker.com | sh
-else
-  success "Docker already installed"
-fi
-
-if ! has_group docker; then
-  info "Adding $USER to the docker group..."
   sudo usermod -aG docker "$USER"
-  DOCKER_GROUP_PENDING=1
-else
-  success "User already has docker group access"
+  info "Docker installed. Reconnect after setup if the current shell lacks Docker access."
 fi
-
 if ! require_cmd node; then
-  info "Installing Node.js 20..."
   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
   sudo apt-get install -y nodejs
-else
-  success "Node.js already installed ($(node -v))"
 fi
+sudo apt-get update
+sudo apt-get install -y git nginx certbot python3-certbot-nginx
 
-if ! require_cmd git; then
-  info "Installing git..."
-  sudo apt-get install -y git
-else
-  success "git already installed"
-fi
-
-if ! require_cmd nginx; then
-  info "Installing nginx + certbot..."
-  sudo apt install -y nginx certbot python3-certbot-nginx
-else
-  success "nginx already installed"
-fi
-
-# ─── Clone / update repo ──────────────────────────────────────────────────────
-
-header "2 / 6 — Cloning AnswerLoom"
-
+header "2 / 5 - Source"
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-  info "Repo exists at $INSTALL_DIR — pulling latest..."
-  git -C "$INSTALL_DIR" pull
+  git -C "$INSTALL_DIR" pull --ff-only
 else
-  info "Cloning into $INSTALL_DIR..."
-  git clone --depth 1 https://github.com/aryamantodkar/answerloom "$INSTALL_DIR"
+  git clone "$REPOSITORY_URL" "$INSTALL_DIR"
 fi
-
 cd "$INSTALL_DIR"
+corepack enable
+corepack prepare pnpm@10.16.0 --activate
+pnpm install --frozen-lockfile
 
-# ─── Configure .env ───────────────────────────────────────────────────────────
-
-header "3 / 6 — Configuring .env"
-
-if [[ ! -f .env ]]; then
-  cp .env.example .env
-  info "Created .env from .env.example"
-fi
-
+header "3 / 5 - Configuration"
+[[ -f .env ]] || cp .env.example .env
 set_env() {
-  local key="$1" val="$2"
+  local key="$1" value="$2"
   if grep -q "^${key}=" .env; then
-    sed -i "s|^${key}=.*|${key}=${val}|" .env
+    sed -i "s|^${key}=.*|${key}=${value}|" .env
   else
-    echo "${key}=${val}" >> .env
+    printf '%s=%s\n' "$key" "$value" >> .env
   fi
 }
-
-needs_secret() {
-  local key="$1" current=""
-  current="$(grep "^${key}=" .env | head -n1 | cut -d= -f2- || true)"
-  [[ -z "$current" || "$current" == "replace-me" || "$current" == "changeme" ]]
-}
-
-set_env "APP_URL"      "https://${DOMAIN}"
+set_env "APP_URL" "https://${DOMAIN}"
 set_env "API_BASE_URL" "https://${DOMAIN}"
-set_env "AGENT_AUTH_UPLOAD_TOKEN" "$AUTH_TOKEN"
-set_env "ANSWERLOOM_APP_MODE" "self-host"
+set_env "ALOOM_APP_MODE" "self-host"
+set_env "ANALYSIS_LLM_PROVIDER" "aihubmix"
+set_env "AIHUBMIX_API_KEY" "$AIHUBMIX_KEY"
+set_env "BETTER_AUTH_SECRET" "$(openssl rand -hex 32)"
+set_env "INTERNAL_CRON_SECRET" "$(openssl rand -hex 32)"
 
-if [[ "$LLM_PROVIDER" == "openai" ]]; then
-  set_env "OPENAI_API_KEY" "$OPENAI_KEY"
-else
-  set_env "ANTHROPIC_API_KEY" "$ANTHROPIC_KEY"
-  set_env "ANALYSIS_LLM_PROVIDER" "claude"
-fi
-
-set_env "THORDATA_PROXY_API_URL" "$PROXY_URL"
-if needs_secret "BETTER_AUTH_SECRET"; then
-  set_env "BETTER_AUTH_SECRET" "$(openssl rand -hex 32)"
-fi
-if needs_secret "INTERNAL_CRON_SECRET"; then
-  set_env "INTERNAL_CRON_SECRET" "$(node -e "console.log(require('node:crypto').randomUUID())")"
-fi
-
-success ".env configured"
-
-# ─── Start the stack ──────────────────────────────────────────────────────────
-
-header "4 / 6 — Starting AnswerLoom"
-
-info "Starting the app from published Docker images..."
-if docker_socket_access; then
-  node scripts/run-compose.mjs bootstrap
-elif [[ "$DOCKER_GROUP_PENDING" -eq 1 ]]; then
-  info "Current shell does not yet include the docker group — bootstrapping with sudo using the docker group for this first run."
-  printf -v SELF_HOST_CMD 'cd %q && node scripts/run-compose.mjs bootstrap' "$INSTALL_DIR"
-  sudo -u "$USER" -g docker env "HOME=$HOME" "PATH=$PATH" bash -lc "$SELF_HOST_CMD"
-else
-  fatal "Current shell cannot access Docker. Run 'newgrp docker' or sign out and back in, then re-run this script."
-fi
-
-info "Waiting for web container to become healthy..."
-for i in $(seq 1 30); do
-  if curl -sf http://127.0.0.1:3000 >/dev/null 2>&1; then
-    success "Web app is responding on port 3000"
+header "4 / 5 - Control plane"
+pnpm self-host:build
+for attempt in $(seq 1 40); do
+  if curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
+    success "Aloom is responding on 127.0.0.1:3000"
     break
   fi
   sleep 3
-  if [[ $i -eq 30 ]]; then
-    warn "Web app not responding after 90s — check 'docker logs answerloom-web'"
-  fi
+  [[ "$attempt" -eq 40 ]] && fatal "Aloom did not become ready. Check docker compose logs."
 done
 
-# ─── Configure nginx ──────────────────────────────────────────────────────────
-
-header "5 / 6 — Configuring nginx"
-
-NGINX_CONF="/etc/nginx/sites-available/answerloom"
-
-sudo tee "$NGINX_CONF" > /dev/null <<EOF
+header "5 / 5 - HTTPS"
+NGINX_CONF="/etc/nginx/sites-available/aloom"
+sudo tee "$NGINX_CONF" >/dev/null <<EOF
 server {
     listen 80;
     server_name ${DOMAIN};
 
     location / {
-        proxy_pass         http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header   Upgrade \$http_upgrade;
-        proxy_set_header   Connection 'upgrade';
-        proxy_set_header   Host \$host;
-        proxy_set_header   X-Real-IP \$remote_addr;
-        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_read_timeout 120s;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300s;
     }
 }
 EOF
-
-if [[ ! -L /etc/nginx/sites-enabled/answerloom ]]; then
-  sudo ln -s "$NGINX_CONF" /etc/nginx/sites-enabled/answerloom
-fi
+sudo ln -sfn "$NGINX_CONF" /etc/nginx/sites-enabled/aloom
 sudo rm -f /etc/nginx/sites-enabled/default
-
 sudo nginx -t
 sudo systemctl reload nginx
-success "nginx configured for $DOMAIN"
-
-info "Obtaining SSL certificate via Let's Encrypt..."
-sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "admin@${DOMAIN}" || \
-  warn "certbot failed — DNS may not have propagated yet. Run: sudo certbot --nginx -d $DOMAIN"
-
-# ─── Firewall ─────────────────────────────────────────────────────────────────
-
-header "6 / 6 — Configuring firewall"
-
+sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "admin@${DOMAIN}"
 if require_cmd ufw; then
   sudo ufw allow OpenSSH
   sudo ufw allow 'Nginx Full'
-  sudo ufw allow 3333/tcp
   sudo ufw --force enable
-  success "ufw configured (SSH + HTTP/HTTPS + auth upload allowed)"
-else
-  warn "ufw not found — configure your firewall manually"
 fi
 
-# ─── Done ─────────────────────────────────────────────────────────────────────
-
+success "Control plane ready at https://${DOMAIN}"
 echo ""
-echo -e "${GREEN}${BOLD}Setup complete!${NC}"
+echo "Next steps on a macOS or Windows collector machine:"
+echo "  1. Open Providers and create a collector pairing."
+echo "  2. Set COLLECTOR_API_URL=https://${DOMAIN} and the one-time token."
+echo "  3. Run pnpm camoufox:setup, pnpm camoufox:doctor, and pnpm collector."
 echo ""
-echo "  App URL:        https://${DOMAIN}"
-echo "  Install dir:    ${INSTALL_DIR}"
-echo ""
-echo "Next steps:"
-echo "  1. On your local machine, set in .env:"
-echo "       ANSWERLOOM_VPS_IP=<your VPS IP>"
-echo "       AGENT_AUTH_UPLOAD_TOKEN=${AUTH_TOKEN}"
-echo "  2. Run: pnpm auth  (sign in to providers locally)"
-echo "  3. Run: pnpm upload:vps  (transfer sessions to this VPS)"
-echo "  4. Open https://${DOMAIN}, create your account, and add prompts."
-echo ""
-echo "To update in the future:"
-echo "  cd ${INSTALL_DIR} && git pull && node scripts/run-compose.mjs bootstrap"
-echo ""
+echo "Provider cookies and browser profiles remain on that collector machine."

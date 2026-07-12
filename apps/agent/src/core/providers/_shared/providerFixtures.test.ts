@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";

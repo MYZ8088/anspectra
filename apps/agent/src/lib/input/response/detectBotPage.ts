@@ -1,9 +1,9 @@
-import { HumanChallengeError } from "@answerloom/errors";
+import { HumanChallengeError } from "@aloom/errors";
 import {
 	CHALLENGE_KIND_LIST,
 	type ChallengeKind,
 	type Provider,
-} from "@answerloom/types";
+} from "@aloom/types";
 import type { Page } from "playwright";
 
 type BotPageState = {

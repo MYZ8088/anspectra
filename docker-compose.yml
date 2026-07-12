@@ -1,4 +1,4 @@
-name: answerloom
+name: aloom
 
 services:
   # ----------------------------
@@ -13,8 +13,8 @@ services:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
         CAMOUFOX_PIP_SPEC: "${CAMOUFOX_PIP_SPEC:-cloverlabs-camoufox[geoip]==0.5.5}"
         CAMOUFOX_BROWSER_CHANNEL: "${CAMOUFOX_BROWSER_CHANNEL:-official/stable/135.0.1-beta.24}"
-    image: ${ANSWERLOOM_AGENT_IMAGE:-answerloom/collector:local}
-    container_name: answerloom-collector
+    image: ${ALOOM_AGENT_IMAGE:-aloom/collector:local}
+    container_name: aloom-collector
     restart: unless-stopped
     stop_grace_period: 16m
     shm_size: "2gb"
@@ -22,13 +22,11 @@ services:
       - .env
     environment:
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ANSWERLOOM_STORAGE_ROOT:-/opt/answerloom/storage}:/storage
-    ports:
-      - "3333:3333"
+      - ${ALOOM_STORAGE_ROOT:-/opt/aloom/storage}:/storage
     depends_on:
       redis:
         condition: service_healthy
@@ -62,7 +60,7 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
-    container_name: answerloom-redis
+    container_name: aloom-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -90,15 +88,15 @@ services:
     build:
       context: .
       dockerfile: ./packages/db/Dockerfile
-    image: ${ANSWERLOOM_POSTGRES_IMAGE:-answerloom/postgres:local}
-    container_name: answerloom-postgres
+    image: ${ALOOM_POSTGRES_IMAGE:-aloom/postgres:local}
+    container_name: aloom-postgres
     restart: always
     command:
       - postgres
       - -c
       - shared_preload_libraries=pg_cron
       - -c
-      - cron.database_name=${POSTGRES_DB:-answerloom}
+      - cron.database_name=${POSTGRES_DB:-aloom}
     env_file:
       - .env
     volumes:
@@ -117,7 +115,7 @@ services:
           cpus: '0.25'
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-answerloom}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-aloom}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -127,7 +125,7 @@ services:
   # ----------------------------
   clickhouse:
     image: clickhouse/clickhouse-server:latest
-    container_name: answerloom-clickhouse
+    container_name: aloom-clickhouse
     restart: unless-stopped
     env_file:
       - .env
@@ -162,8 +160,8 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ANSWERLOOM_WEB_IMAGE:-answerloom/web:local}
-    container_name: answerloom-web
+    image: ${ALOOM_WEB_IMAGE:-aloom/web:local}
+    container_name: aloom-web
     restart: unless-stopped
     env_file:
       - .env
@@ -171,11 +169,11 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ANSWERLOOM_STORAGE_ROOT:-/opt/answerloom/storage}:/storage:ro
+      - ${ALOOM_STORAGE_ROOT:-/opt/aloom/storage}:/storage:ro
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -210,12 +208,12 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ANSWERLOOM_WEB_IMAGE:-answerloom/web:local}
-    container_name: answerloom-migrate
+    image: ${ALOOM_WEB_IMAGE:-aloom/web:local}
+    container_name: aloom-migrate
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-answerloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
     depends_on:
       db:
         condition: service_healthy
@@ -223,23 +221,23 @@ services:
     working_dir: /workspace
     networks:
       - data
-    command: pnpm --filter @answerloom/db db:migrate
+    command: pnpm --filter @aloom/db db:migrate
 
 # ----------------------------
 # Volumes
 # ----------------------------
 volumes:
   db_data:
-    name: answerloom-db-data
+    name: aloom-db-data
   clickhouse_data:
-    name: answerloom-clickhouse-data
+    name: aloom-clickhouse-data
   redis_data:
-    name: answerloom-redis-data
+    name: aloom-redis-data
 
 networks:
   edge:
     external: true
-    name: answerloom-edge
+    name: aloom-edge
   frontend:
     driver: bridge
   backend:

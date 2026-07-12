@@ -1,12 +1,14 @@
-import { clickhouse, db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
-import type { BrandAnalysisResult } from "@answerloom/types";
+import { clickhouse, db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
+import type { BrandAnalysisResult } from "@aloom/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 
 export type ScorecardSample = {
 	id: string;
 	provider: string;
+	requestedMode?: string;
+	actualMode?: string | null;
 	status: string;
 	analysisStatus: string;
 	sourceExposure: string | null;
@@ -108,7 +110,7 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 	const stabilityGroups = new Map<string, BrandAnalysisResult[]>();
 	for (const sample of analysed) {
 		if (!sample.analysis || !sample.prompt?.promptHash) continue;
-		const key = `${sample.provider}:${sample.prompt.promptHash}`;
+		const key = `${sample.provider}:${sample.actualMode ?? sample.requestedMode ?? "default"}:${sample.prompt.promptHash}`;
 		stabilityGroups.set(key, [
 			...(stabilityGroups.get(key) ?? []),
 			sample.analysis,
@@ -387,6 +389,8 @@ export async function getBaselineScorecard(args: {
 		return {
 			id: checkpoint.id,
 			provider: checkpoint.provider,
+			requestedMode: checkpoint.requestedMode,
+			actualMode: checkpoint.actualMode,
 			status: checkpoint.status,
 			analysisStatus: checkpoint.analysisStatus,
 			sourceExposure: checkpoint.sourceExposure,

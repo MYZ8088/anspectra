@@ -5,7 +5,7 @@ import { env } from "@/env";
 export default function LoginPage() {
 	const showGoogle = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 	return (
-		<AuthPageShell subtitle="The only open-source platform to track, measure, and improve your brand’s visibility across AI and LLMs">
+		<AuthPageShell subtitle="Measure how your product appears across Doubao, DeepSeek, Yuanbao, and Qwen.">
 			<LoginForm showGoogle={showGoogle} />
 		</AuthPageShell>
 	);

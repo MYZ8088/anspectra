@@ -1,66 +1,54 @@
 ---
 title: Introduction
-description: AnswerLoom is the open-source GEO tracker that shows how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview.
+description: Aloom measures product visibility in the official Doubao, DeepSeek, Yuanbao, and Qwen Web interfaces.
 ---
-## Built on real AI outputs
 
-AnswerLoom captures responses directly from product interfaces, not raw model APIs.
+![Aloom official Web detection report](/images/aloom-detection.png)
 
-That distinction matters.
+## Detection, not approximation
 
-UI responses include:
-- Citations and sources users actually see
-- Ranked recommendations and comparisons
-- Framing, tone, and positioning
+Aloom is an open-source GEO detection and recurring monitoring product. It
+collects the answer rendered in the official Doubao, DeepSeek, Yuanbao, and
+Qwen Web interfaces. Model API output is never substituted for a monitoring
+sample.
 
-These layers are stripped out in API responses, but they define real-world visibility.
+Each formal series starts from a fixed, versioned prompt pack. Every prompt is
+executed in a fresh conversation and records the requested mode, actual mode,
+answer, visible sources, conversation identity, and collection status.
 
-AnswerLoom is intentionally **UI-first**:
+## Fixed prompt coverage
 
-- It opens the real ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview interfaces
-- It captures the rendered answer that a user actually sees
-- It analyzes that captured UI response afterward
+The Aloom GEO Detection Pack contains 54 templates per language: nine intents
+across six buyer stages. Ready-made suites select deterministic parts of that
+matrix, from an 18-question Quick Scan to the complete 54-question Full Matrix.
 
-This is the main differentiator in the product. We are not trying to approximate AI visibility by querying official APIs. We measure the live consumer surfaces where recommendation order, citations, source cards, and framing actually appear.
+Sampling depth is separate from prompt coverage:
 
-If you want the underlying model completion, APIs are useful. If you want GEO truth, the UI matters more.
+- Single runs one sample per prompt and provider.
+- Reliable runs two rounds at least six hours apart.
+- Stability runs three rounds across three calendar days.
 
-You can read more about the API-vs-UI gap here: [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
+## Local browser privacy
 
-## Why AnswerLoom uses Camoufox
+Official Web collection runs on the user's macOS or Windows collector with one
+persistent Camoufox profile per provider. Normal sampling uses a headed window
+that is automatically minimized. Explicit inspection, sign-in, QR confirmation,
+CAPTCHA, or another human-verification event restores that same real window.
 
-AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, for provider sessions.
+Cookies, local storage, and browser profiles never leave the collector machine.
+The control plane receives only task events and captured samples through
+outbound HTTPS requests authenticated by a workspace-scoped device token.
 
-We do not use standard Chrome / Chromium automation as the primary runtime because provider web apps are heavily protected against scripted access. In practice, plain Chrome-style automation is much more likely to trigger sign-in loops, verification challenges, unstable sessions, or failed UI rendering.
+## Analysis and reporting
 
-The issue is not only "headless vs headful". Provider detection systems also look at browser fingerprint consistency and automation signals. Camoufox is materially better suited for this workflow, which is why AnswerLoom depends on it for stable authenticated scraping of real chat interfaces.
+Each captured answer is analyzed independently against a strict JSON Schema.
+Aloom can extract and repair common JSON defects, try a configured fallback
+model, and run one conservative repair pass. Analysis failures remain separate
+from collection failures.
 
-## Your data stays yours
+Reports are then aggregated deterministically across provider, official Web
+mode, language, intent, decision stage, blind or aided exposure, product,
+competitor, audience, region, and individual prompt. Failed or blocked samples
+remain in the denominator.
 
-AnswerLoom is fully open source and self-hostable.
-
-All data, including responses, analytics, and auth sessions, lives in infrastructure you control:
-- Local machine or private VPS
-- Your own database
-- Your own provider accounts
-
-Analysis requests go directly from your environment to model providers like OpenAI or Anthropic. No proxy servers. No third-party data pipelines.
-
-Credentials are never stored externally.
-
-## Why VPS runs need a proxy
-
-Self-hosted VPS runs usually come from datacenter IP ranges. Those IPs are routinely blocked, challenged, or rate-limited by AI provider websites.
-
-That means a VPS can be perfect for scheduling and persistence, but a poor direct network origin for browser traffic. AnswerLoom solves that by routing provider traffic through a residential proxy on VPS deployments.
-
-The proxy is not for analytics or API calls. It is specifically for browser access to provider websites from a server environment where datacenter IP reputation would otherwise break collection.
-
-## Deployment options
-
-Choose the setup that fits your workflow:
-
-- **Local:** run the full stack locally with interactive provider auth
-- **Self-hosted:** deploy on your own VPS for scheduled tracking and full control
-
-Start with [Getting Started](/getting-started), then follow either [Local Setup](/local-setup) or [Self-Hosted Setup](/self-hosted-setup).
+Start with [Getting Started](/getting-started).

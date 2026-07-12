@@ -2,7 +2,7 @@ import type {
 	PromptResponse,
 	Source,
 	SourceGroupResult,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { removeUrlParams } from "../url/removeUrlParams.js";
 import { groupSourcesByUrl } from "./groupSourcesByUrl.js";
 

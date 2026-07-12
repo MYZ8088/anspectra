@@ -7,7 +7,7 @@ import {
 	getFaviconUrls,
 	getModelFavicon,
 	getUrlPath,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import {
 	BarChart3,
 	ChevronRight,

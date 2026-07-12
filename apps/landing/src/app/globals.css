@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@answerloom/ui/styles/shared.css";
+@import "@aloom/ui/styles/shared.css";
 
 @plugin "@tailwindcss/typography";
 
@@ -96,19 +96,11 @@
 	body {
 		@apply bg-background text-foreground;
 		margin: 0;
-		background: radial-gradient(
-				circle at top,
-				rgba(241, 245, 249, 0.9),
-				transparent 42%
-			), linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+		background: #ffffff;
 	}
 
 	.dark body {
-		background: radial-gradient(
-				circle at top,
-				rgba(38, 38, 38, 0.65),
-				transparent 34%
-			), linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+		background: #111111;
 	}
 }
 
@@ -122,14 +114,14 @@
 	}
 
 	.landing-surface {
-		@apply rounded-[16px] border border-black/5 bg-white/92 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.24),0_10px_18px_-14px_rgba(15,23,42,0.12)] backdrop-blur-sm dark:border-white/8 dark:bg-neutral-950/88 dark:shadow-[0_24px_54px_-32px_rgba(0,0,0,0.72)];
+		@apply rounded-lg border border-black/5 bg-white shadow-[0_20px_45px_-28px_rgba(15,23,42,0.24),0_10px_18px_-14px_rgba(15,23,42,0.12)] dark:border-white/8 dark:bg-neutral-950 dark:shadow-[0_24px_54px_-32px_rgba(0,0,0,0.72)];
 	}
 
 	.landing-soft-card {
-		@apply rounded-[14px] border border-black/5 bg-white/90 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.24),0_8px_16px_-12px_rgba(15,23,42,0.12)] dark:border-white/8 dark:bg-neutral-950/84 dark:shadow-[0_20px_42px_-26px_rgba(0,0,0,0.72)];
+		@apply rounded-lg border border-black/5 bg-white shadow-[0_16px_36px_-28px_rgba(15,23,42,0.24),0_8px_16px_-12px_rgba(15,23,42,0.12)] dark:border-white/8 dark:bg-neutral-950 dark:shadow-[0_20px_42px_-26px_rgba(0,0,0,0.72)];
 	}
 
 	.landing-muted-card {
-		@apply rounded-[12px] bg-slate-50/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:bg-white/6;
+		@apply rounded-lg bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:bg-white/6;
 	}
 }

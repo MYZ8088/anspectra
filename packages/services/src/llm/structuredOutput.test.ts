@@ -1,4 +1,4 @@
-import { ValidationError } from "@answerloom/errors";
+import { ValidationError } from "@aloom/errors";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
@@ -29,35 +29,35 @@ const request = {
 	schema: ResultSchema,
 	schemaName: "test_result",
 	systemPrompt: "Return a result.",
-	userPrompt: "Analyze AnswerLoom.",
+	userPrompt: "Analyze Aloom.",
 };
 
 describe("parseStructuredOutput", () => {
 	it("extracts fenced JSON from commentary containing an apostrophe", () => {
 		const result = parseStructuredOutput({
 			rawOutput:
-				'Here\'s the result:\n```json\n{"name":"AnswerLoom","score":72}\n```\nDone.',
+				'Here\'s the result:\n```json\n{"name":"Aloom","score":72}\n```\nDone.',
 			schema: ResultSchema,
 		});
 		expect(result).toEqual({
-			data: { name: "AnswerLoom", score: 72 },
+			data: { name: "Aloom", score: 72 },
 			parseMode: "extracted_json",
 		});
 	});
 
 	it("repairs common JSON syntax defects locally", () => {
 		const result = parseStructuredOutput({
-			rawOutput: "{name:'AnswerLoom',score:72,}",
+			rawOutput: "{name:'Aloom',score:72,}",
 			schema: ResultSchema,
 		});
-		expect(result.data).toEqual({ name: "AnswerLoom", score: 72 });
+		expect(result.data).toEqual({ name: "Aloom", score: 72 });
 		expect(result.parseMode).toBe("repaired_json");
 	});
 
 	it("rejects syntactically valid JSON that violates the schema", () => {
 		expect(() =>
 			parseStructuredOutput({
-				rawOutput: '{"name":"AnswerLoom","score":"high"}',
+				rawOutput: '{"name":"Aloom","score":"high"}',
 				schema: ResultSchema,
 			}),
 		).toThrow("Invalid structured JSON");
@@ -69,13 +69,13 @@ describe("generateStructuredOutput", () => {
 		const primary = model({
 			model: "primary",
 			generate: async () => ({
-				text: '{"name":"AnswerLoom","score":"high"}',
+				text: '{"name":"Aloom","score":"high"}',
 			}),
 		});
 		const fallback = model({
 			model: "fallback",
 			generate: async () => ({
-				text: '{"name":"AnswerLoom","score":81}',
+				text: '{"name":"Aloom","score":81}',
 			}),
 		});
 		const result = await generateStructuredOutput({
@@ -94,7 +94,7 @@ describe("generateStructuredOutput", () => {
 				if (responseFormat === "json_schema") {
 					throw new Error("response_format json_schema is not supported");
 				}
-				return { text: '{"name":"AnswerLoom","score":77}' };
+				return { text: '{"name":"Aloom","score":77}' };
 			},
 		});
 		const result = await generateStructuredOutput({
@@ -111,14 +111,14 @@ describe("generateStructuredOutput", () => {
 	it("runs one model repair stage after both generation models fail", async () => {
 		const primary = model({
 			model: "primary",
-			generate: async () => ({ text: '{"name":"AnswerLoom"}' }),
+			generate: async () => ({ text: '{"name":"Aloom"}' }),
 		});
 		const fallback = model({
 			model: "fallback",
 			generate: async ({ stage }) => ({
 				text:
 					stage === "repair"
-						? '{"name":"AnswerLoom","score":0}'
+						? '{"name":"Aloom","score":0}'
 						: '{"score":42}',
 			}),
 		});
@@ -127,7 +127,7 @@ describe("generateStructuredOutput", () => {
 			generators: [primary, fallback],
 			repairGenerator: fallback,
 		});
-		expect(result.data).toEqual({ name: "AnswerLoom", score: 0 });
+		expect(result.data).toEqual({ name: "Aloom", score: 0 });
 		expect(result.attempts.map((attempt) => attempt.stage)).toEqual([
 			"generate",
 			"generate",
@@ -138,7 +138,7 @@ describe("generateStructuredOutput", () => {
 	it("retains every raw output and attempt when recovery is exhausted", async () => {
 		const primary = model({
 			model: "primary",
-			generate: async () => ({ text: '{"name":"AnswerLoom"}' }),
+			generate: async () => ({ text: '{"name":"Aloom"}' }),
 		});
 		const fallback = model({
 			model: "fallback",

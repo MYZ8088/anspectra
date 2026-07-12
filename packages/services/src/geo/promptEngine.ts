@@ -3,7 +3,7 @@ import type {
 	DetectionDimensionFilter,
 	DetectionSuiteKey,
 	SamplingDepth,
-} from "@answerloom/types";
+} from "@aloom/types";
 import enPackJson from "./presets/yao-full-v1.1.en-US.json" with {
 	type: "json",
 };
@@ -661,7 +661,7 @@ export function listDetectionSuites() {
 
 export function getDetectionPromptCatalog() {
 	return {
-		name: "AnswerLoom GEO Detection Pack",
+		name: "Aloom GEO Detection Pack",
 		version: "1.1.0",
 		sourceCommit: YAO_PACK_SOURCE_COMMIT,
 		license: "MIT",

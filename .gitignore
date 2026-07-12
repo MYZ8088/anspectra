@@ -47,6 +47,8 @@ coverage/
 .claude/
 
 .oneglanse-storage/
+.answerloom-storage/
+.prismetra-storage/
 
 # Improvement reports
 improvements/
@@ -58,7 +60,7 @@ CODEBASE_MEMORY.md
 mockData/
 llm_results.json
 
-.answerloom-storage/
+.aloom-storage/
 
 # Local reference repositories
 external/

@@ -1,4 +1,4 @@
-import { AuthError, ValidationError } from "@answerloom/errors";
+import { AuthError, ValidationError } from "@aloom/errors";
 import {
 	addMemberToWorkspaceByEmail,
 	getWorkspaceById,
@@ -8,7 +8,7 @@ import {
 	updateOrganizationName,
 	updateWorkspaceDetails,
 	updateWorkspaceEnabledProviders,
-} from "@answerloom/services";
+} from "@aloom/services";
 import { authorizedWorkspaceProcedure } from "../../../procedures";
 import {
 	addMemberInputSchema,

@@ -1,54 +1,43 @@
 ---
 title: Reference
-description: Commands, routes, and runtime behavior reference for AnswerLoom.
+description: Aloom commands, product routes, and collection behavior.
 ---
 
-## Useful Commands
+## Commands
 
 ```bash
-pnpm local                   # Start full local stack from local source and refresh Docker service/base images when available
-pnpm auth                    # Capture provider sessions locally; prompts to upload to VPS at the end
-pnpm upload:vps              # Re-upload existing local sessions to VPS without re-running the auth flow
-pnpm self-host               # Pull latest published images and start the self-hosted stack; auto-builds locally if your architecture is not published yet
-pnpm self-host:build         # Build from source and start the self-hosted stack
-pnpm typecheck               # Typecheck the monorepo
-pnpm build                   # Build all packages
+pnpm local                 # local control plane, data services, and collector
+pnpm collector             # local collector only
+pnpm auth                  # local provider sign-in helper
+pnpm camoufox:setup        # provision the pinned Python/browser runtime
+pnpm camoufox:doctor       # validate Python, Camoufox, browser, GeoIP, and paths
+pnpm check:english         # reject user-facing non-English product text
+pnpm check:privacy         # reject secrets, profiles, cookies, and raw run data
+pnpm test                  # unit and DOM fixture tests
+pnpm typecheck             # workspace TypeScript validation
+pnpm build                 # production build with language and privacy gates
 ```
 
-## Key Routes
+## Product routes
 
-| Route | Description |
+| Route | Purpose |
 |---|---|
-| `/dashboard` | Visibility metrics and GEO scores |
-| `/prompts` | Manage and run prompts |
-| `/sources` | Source and citation attribution |
-| `/providers` | Connect and manage provider auth sessions |
-| `/schedule` | Manual run trigger (local) or recurring schedule editor (self-host) |
-| `/people` | Team members |
+| `/dashboard` | Selected formal series and hierarchical detection report |
+| `/monitor` | Product scan, suite selection, prompt preview, and new detection |
+| `/prompt-library` | Read-only preset packs and frozen workspace sets |
+| `/runs` | Checkpoints, provider progress, failure classes, and human verification |
+| `/schedule` | Weekly or monthly frozen detection schedules |
+| `/providers` | Local sessions, collector pairing, and diagnostics |
+| `/settings` | Workspace and account settings |
 
-## App Modes
+## Formal providers
 
-| Capability | Local | Self-Host |
-|---|---|---|
-| Interactive provider auth | Yes | N/A |
-| Manual prompt runs | Yes | Yes |
-| Recurring scheduling | N/A | Yes |
-| Full data ownership | Yes | Yes |
-
-## Auth Groups
-
-Each auth group covers one or more runtime providers:
-
-| Auth Group | Covers |
+| Provider | Supported official modes |
 |---|---|
-| Google | Gemini, AI Overview |
-| ChatGPT | ChatGPT |
-| Perplexity | Perplexity |
-| Claude | Claude |
+| Doubao | Provider default, Fast, Expert |
+| DeepSeek | Provider default, Fast, Expert, Reasoning, Web Search, Reasoning + Web Search |
+| Yuanbao | Provider default, Automatic Search, Reasoning |
+| Qwen | Provider default, Auto, Fast, Reasoning |
 
-## Storage Model
-
-- **Portable auth bundles:** one per auth group, transferable to VPS, source of truth
-- **Persistent runtime profiles:** one per provider, machine-local, seeded from the auth bundle
-
-If a runtime profile is missing or the auth bundle has changed, the profile is reseeded automatically. Otherwise the existing profile is reused.
+Every baseline sample uses a fresh conversation. An unavailable requested mode
+fails explicitly and is never silently replaced by another mode.

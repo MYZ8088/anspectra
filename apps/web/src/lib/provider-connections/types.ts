@@ -2,7 +2,7 @@ import type {
 	AuthProvider,
 	Provider,
 	ProviderAuthStatus,
-} from "@answerloom/types";
+} from "@aloom/types";
 
 export type ProviderConnectionAction = "connect" | "refresh";
 

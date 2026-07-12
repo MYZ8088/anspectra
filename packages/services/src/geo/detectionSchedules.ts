@@ -1,11 +1,36 @@
-import { db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
+import { db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
+import {
+	GEO_PROVIDER_MODE_CAPABILITIES,
+	type Provider,
+	type ProviderMode,
+} from "@aloom/types";
 import { CronExpressionParser } from "cron-parser";
 import { and, asc, eq, lte } from "drizzle-orm";
 import { GEO_WEB_PROVIDERS, startGeoCollectionRun } from "./runs.js";
 
 type ScheduleCadence = "weekly" | "monthly";
+
+export function resolveDetectionScheduleModes(
+	providers: Provider[],
+	requested: Partial<Record<Provider, ProviderMode>> = {},
+): Partial<Record<Provider, ProviderMode>> {
+	return Object.fromEntries(
+		providers.map((provider) => {
+			const mode = requested[provider] ?? "default";
+			const supported =
+				GEO_PROVIDER_MODE_CAPABILITIES[
+					provider as keyof typeof GEO_PROVIDER_MODE_CAPABILITIES
+				];
+			if (!supported?.includes(mode as never)) {
+				throw new ValidationError(
+					`${provider} does not support official Web mode "${mode}"`,
+				);
+			}
+			return [provider, mode];
+		}),
+	) as Partial<Record<Provider, ProviderMode>>;
+}
 
 function validateTimezone(timezone: string): void {
 	try {
@@ -80,6 +105,7 @@ export async function saveDetectionSchedule(args: {
 	userId: string;
 	promptSetId: string;
 	providers: Provider[];
+	providerModes?: Partial<Record<Provider, ProviderMode>>;
 	cadence: ScheduleCadence;
 	timezone: string;
 	localTime: string;
@@ -108,6 +134,10 @@ export async function saveDetectionSchedule(args: {
 	if (providers.length === 0) {
 		throw new ValidationError("Select at least one supported Web provider");
 	}
+	const providerModes = resolveDetectionScheduleModes(
+		providers,
+		args.providerModes,
+	);
 	const nextRunAt = nextDetectionScheduleAt(args);
 	const [schedule] = await db
 		.insert(schema.detectionSchedules)
@@ -116,6 +146,7 @@ export async function saveDetectionSchedule(args: {
 			promptSetId: args.promptSetId,
 			createdByUserId: args.userId,
 			providers,
+			providerModes,
 			cadence: args.cadence,
 			timezone: args.timezone,
 			localTime: args.localTime,
@@ -133,6 +164,7 @@ export async function saveDetectionSchedule(args: {
 			set: {
 				createdByUserId: args.userId,
 				providers,
+				providerModes,
 				cadence: args.cadence,
 				timezone: args.timezone,
 				localTime: args.localTime,
@@ -233,6 +265,9 @@ export async function dispatchDueDetectionSchedules(): Promise<number> {
 				userId: schedule.createdByUserId,
 				promptSetId: schedule.promptSetId,
 				providers: (schedule.providers ?? []) as Provider[],
+				providerModes: (schedule.providerModes ?? {}) as Partial<
+					Record<Provider, ProviderMode>
+				>,
 				requiredPurpose: "baseline",
 			});
 			await db

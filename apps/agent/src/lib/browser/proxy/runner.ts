@@ -3,7 +3,7 @@ import {
 	IPRefreshNeededError,
 	classifyError,
 	toErrorMessage,
-} from "@answerloom/errors";
+} from "@aloom/errors";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,12 +11,12 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@answerloom/types";
+} from "@aloom/types";
 import {
 	createProviderLogger,
 	exponentialBackoff,
 	logger,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { runAgents } from "../../../core/runAgents.js";
 
@@ -50,7 +50,8 @@ export type AgentFactory = () => Promise<{
 	proxy?: string | null;
 	cleanup?: () => Promise<void>;
 	invalidateProxyHint?: () => Promise<void>;
-	preserveForHuman?: () => void;
+	preserveForHuman?: () => Promise<void>;
+	resumedFromHumanChallenge?: boolean;
 }>;
 
 export type BrowserAttempt = {
@@ -62,6 +63,7 @@ export type BrowserAttempt = {
 	// Invalidates the shared Google proxy hint in Redis so the next retry cycle
 	// picks a fresh proxy instead of reusing the same blocked/dead session.
 	invalidateProxyHint?: () => Promise<void>;
+	resumedFromHumanChallenge?: boolean;
 };
 
 export type AttemptExecutor = (
@@ -76,7 +78,7 @@ type Refs = {
 	proxy: string | null;
 	cleanup?: (() => Promise<void>) | null;
 	invalidateProxyHint?: (() => Promise<void>) | null;
-	preserveForHuman?: (() => void) | null;
+	preserveForHuman?: (() => Promise<void>) | null;
 };
 
 function jitter(baseMs: number, factor = 0.3): number {
@@ -215,7 +217,7 @@ async function runRetryCycle(
 	completedByPromptId?: Map<string, AskPromptResult>,
 ): Promise<{ done: true } | { done: false; updatedPayload: PromptPayload }> {
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(process.env.ANSWERLOOM_APP_MODE),
+		resolveAppMode(process.env.ALOOM_APP_MODE),
 	);
 	let nextPayload = currentPayload;
 
@@ -331,7 +333,7 @@ async function runRetryCycle(
 
 			if (failureType === "human_challenge") {
 				plog.warn("human verification required — pausing without retry");
-				refs.preserveForHuman?.();
+					await refs.preserveForHuman?.();
 				throw err;
 			}
 
@@ -417,7 +419,7 @@ export async function runWithRetryCycles(
 ): Promise<AskPromptResult[]> {
 	const plog = createProviderLogger(provider);
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(process.env.ANSWERLOOM_APP_MODE),
+		resolveAppMode(process.env.ALOOM_APP_MODE),
 	);
 	const attemptsPerCycle = useProxy ? ATTEMPTS_PER_CYCLE : 2;
 	const maxCycles = useProxy ? MAX_CYCLES : 1;
@@ -439,6 +441,7 @@ export async function runWithRetryCycles(
 				options?.onPromptProgress,
 				onSampleComplete,
 				options?.onAttemptUpdate,
+				attempt.resumedFromHumanChallenge ?? false,
 			));
 
 	// Scale execution timeout by prompt count so multi-prompt jobs don't time out mid-run.

@@ -1,4 +1,5 @@
 import type { Source } from "./sources.js";
+import type { ProviderMode } from "./geo.js";
 
 export interface AskPromptResult {
 	userId: string;
@@ -11,6 +12,8 @@ export interface AskPromptResult {
 	conversationUrl?: string | null;
 	conversationIsolation?: "fresh" | "multi_turn_experiment";
 	sourceExposure?: "exposed" | "not_exposed";
+	requestedMode?: ProviderMode;
+	actualMode?: ProviderMode;
 }
 
 export const PROVIDER_LIST = [
@@ -47,8 +50,8 @@ export function canConfigureRecurringScheduleInMode(appMode: AppMode): boolean {
 	return appMode !== "local";
 }
 
-export function shouldUseProxyInMode(appMode: AppMode): boolean {
-	return appMode !== "local";
+export function shouldUseProxyInMode(_appMode: AppMode): boolean {
+	return false;
 }
 
 export function isInteractiveAuthAllowedInMode(appMode: AppMode): boolean {

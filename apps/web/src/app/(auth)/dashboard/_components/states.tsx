@@ -3,7 +3,7 @@ import {
 	EmptyStatePanel,
 	Skeleton,
 	WorkspaceRequiredState,
-} from "@answerloom/ui";
+} from "@aloom/ui";
 import { BarChart3, Building2, Link2, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 

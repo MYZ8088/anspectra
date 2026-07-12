@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_MODE_LIST } from "@answerloom/types";
+import { APP_MODE_LIST } from "@aloom/types";
 import dotenv from "dotenv";
 import { z } from "zod";
 
@@ -42,13 +42,10 @@ const AgentEnvSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "test", "production"])
 		.default("development"),
-	ANSWERLOOM_APP_MODE: z.enum(APP_MODE_LIST).default("local"),
-	AGENT_AUTH_UPLOAD_TOKEN: z.string().trim().optional(),
+	ALOOM_APP_MODE: z.enum(APP_MODE_LIST).default("local"),
 	COLLECTOR_API_URL: z.string().trim().url().optional(),
 	COLLECTOR_DEVICE_TOKEN: z.string().trim().optional(),
 	DEBUG_ENABLED: asBoolean(false).default(false),
-	PROXY_SCHEME: z.enum(["http", "https"]).optional(),
-	THORDATA_PROXY_API_URL: z.string().trim().url().optional(),
 	REDIS_HOST: z.string().trim().default("redis"),
 	REDIS_PORT: asNumber(6379).default(6379),
 	REDIS_PASSWORD: z.string().default(""),
@@ -56,5 +53,5 @@ const AgentEnvSchema = z.object({
 
 export const env = AgentEnvSchema.parse({
 	...process.env,
-	ANSWERLOOM_APP_MODE: process.env.ANSWERLOOM_APP_MODE,
+	ALOOM_APP_MODE: process.env.ALOOM_APP_MODE,
 });

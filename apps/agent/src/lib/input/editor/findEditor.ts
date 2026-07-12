@@ -1,6 +1,6 @@
-import { NotFoundError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
-import { PROVIDER_EDITOR_SELECTORS } from "@answerloom/utils";
+import { NotFoundError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
+import { PROVIDER_EDITOR_SELECTORS } from "@aloom/utils";
 import type { Locator, Page } from "playwright";
 
 export type EditorCandidate = {

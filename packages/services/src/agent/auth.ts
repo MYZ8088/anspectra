@@ -1,10 +1,9 @@
 import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import { gzipSync } from "node:zlib";
 import {
 	AUTH_PROVIDER_LIST,
 	type AppMode,
@@ -14,12 +13,12 @@ import {
 	type ProviderAuthStatus,
 	isInteractiveAuthAllowedInMode,
 	resolveAppMode,
-} from "@answerloom/types";
+} from "@aloom/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getAuthProviderForProvider,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 
 type PersistedAuthStatus = {
 	connecting: ProviderAuthStatus["connecting"];
@@ -64,8 +63,11 @@ type RuntimeProfileSeedPlan = {
 
 type ReusableIdentityProvider = "google" | "apple" | "facebook";
 
-const DEFAULT_LOCAL_STORAGE_ROOT = ".answerloom-storage";
-const LEGACY_LOCAL_STORAGE_ROOT = ".oneglanse-storage";
+const DEFAULT_LOCAL_STORAGE_ROOT = ".aloom-storage";
+const LEGACY_LOCAL_STORAGE_ROOTS = [
+	".answerloom-storage",
+	".oneglanse-storage",
+] as const;
 const authLaunchInFlight = new Set<AuthProvider>();
 const execFileAsync = promisify(execFile);
 const PERSISTENT_PROFILE_AUTH_PROVIDERS = new Set<AuthProvider>([
@@ -74,7 +76,7 @@ const PERSISTENT_PROFILE_AUTH_PROVIDERS = new Set<AuthProvider>([
 	"hunyuan",
 	"qwen",
 ]);
-const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
+const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
 const REUSABLE_IDENTITY_PROVIDER_CONFIG: Record<
 	ReusableIdentityProvider,
 	{
@@ -118,48 +120,23 @@ function resolveMonorepoRoot(startDir = process.cwd()): string {
 	}
 }
 
-function getUploadConfig(): {
-	url: string;
-	token: string;
-} | null {
-	const url = process.env.AGENT_AUTH_UPLOAD_URL?.trim();
-	const token = process.env.AGENT_AUTH_UPLOAD_TOKEN?.trim();
-	if (!url && !token) {
-		return null;
-	}
-
-	if (!url || !token) {
-		throw new Error(
-			"AGENT_AUTH_UPLOAD_URL and AGENT_AUTH_UPLOAD_TOKEN must be set together.",
-		);
-	}
-
-	return { url, token };
-}
-
-function isRemoteSyncConfigured(): boolean {
-	return getAppMode() === "local" && getUploadConfig() !== null;
-}
-
 function getStorageRootDir(): string {
 	if (getAppMode() !== "local") {
 		return "/storage";
 	}
 	const monorepoRoot = resolveMonorepoRoot();
 	const storageRoot = path.join(monorepoRoot, DEFAULT_LOCAL_STORAGE_ROOT);
-	const legacyStorageRoot = path.join(monorepoRoot, LEGACY_LOCAL_STORAGE_ROOT);
-	if (!existsSync(storageRoot) && existsSync(legacyStorageRoot)) {
-		try {
-			renameSync(legacyStorageRoot, storageRoot);
-		} catch {
-			return legacyStorageRoot;
+	if (!existsSync(storageRoot)) {
+		for (const legacyRoot of LEGACY_LOCAL_STORAGE_ROOTS) {
+			const legacyStorageRoot = path.join(monorepoRoot, legacyRoot);
+			if (existsSync(legacyStorageRoot)) return legacyStorageRoot;
 		}
 	}
 	return storageRoot;
 }
 
 export function getAppMode(): AppMode {
-	return resolveAppMode(process.env.ANSWERLOOM_APP_MODE);
+	return resolveAppMode(process.env.ALOOM_APP_MODE);
 }
 
 export function isInteractiveAuthLaunchAllowed(): boolean {
@@ -538,7 +515,7 @@ function clearRuntimeProfileDirectory(provider: Provider): void {
 async function getSpawnEnv(): Promise<NodeJS.ProcessEnv> {
 	const spawnEnv: NodeJS.ProcessEnv = {
 		...process.env,
-		ANSWERLOOM_APP_MODE: getAppMode(),
+		ALOOM_APP_MODE: getAppMode(),
 		AGENT_AUTH_ROOT_DIR: getAgentAuthRootDir(),
 	};
 
@@ -846,7 +823,7 @@ export async function saveAuthSession(
 	await writeProviderAuthStatus(provider, {
 		connecting: false,
 		lastUpdatedAt: now,
-		syncedAt: isRemoteSyncConfigured() ? null : now,
+		syncedAt: now,
 		error: null,
 		launcherPid: null,
 	});
@@ -885,62 +862,9 @@ export async function resetProviderAuthData(
 	});
 }
 
-export async function uploadAuthSession(
-	provider: AuthProvider,
-	state?: StorageState,
-): Promise<void> {
-	if (getAppMode() !== "local") {
-		return;
-	}
-
-	const uploadConfig = getUploadConfig();
-	if (!uploadConfig) {
-		return;
-	}
-
-	const payloadState = state ?? (await readAuthSession(provider));
-	if (!hasUsableAuthState(payloadState)) {
-		throw new Error(
-			`${AUTH_PROVIDER_DISPLAY[provider].displayName} session is missing or invalid.`,
-		);
-	}
-
-	const response = await fetch(uploadConfig.url, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"Content-Encoding": "gzip",
-			Authorization: `Bearer ${uploadConfig.token}`,
-		},
-		body: gzipSync(
-			JSON.stringify({
-				provider,
-				session: payloadState,
-			}),
-		),
-	});
-
-	if (!response.ok) {
-		throw new Error(
-			`Auth session upload failed (${response.status}): ${await response.text()}`,
-		);
-	}
-
-	await writeProviderAuthStatus(provider, {
-		...(await readPersistedAuthStatus(provider)),
-		connecting: false,
-		lastUpdatedAt: new Date().toISOString(),
-		syncedAt: new Date().toISOString(),
-		error: null,
-		launcherPid: null,
-	});
-}
-
 export async function readProviderAuthStatuses(): Promise<
 	ProviderAuthStatus[]
 > {
-	const remoteSyncConfigured = isRemoteSyncConfigured();
-
 	return Promise.all(
 		AUTH_PROVIDER_LIST.map(async (provider) => {
 			const [storedStatus, sessionState, sessionUpdatedAt] = await Promise.all([
@@ -949,10 +873,9 @@ export async function readProviderAuthStatuses(): Promise<
 				getSessionUpdatedAt(provider),
 			]);
 			const connected = hasUsableAuthState(sessionState);
-			const syncedAt =
-				connected && !remoteSyncConfigured
-					? (storedStatus?.syncedAt ?? sessionUpdatedAt)
-					: (storedStatus?.syncedAt ?? null);
+			const syncedAt = connected
+				? (storedStatus?.syncedAt ?? sessionUpdatedAt)
+				: null;
 
 			return {
 				provider,
@@ -1101,7 +1024,7 @@ export async function spawnProviderAuthLogin(
 }> {
 	if (!isInteractiveAuthLaunchAllowed()) {
 		throw new Error(
-			"Interactive provider login is disabled in this environment. Open the local Providers screen and configure AGENT_AUTH_UPLOAD_URL/AGENT_AUTH_UPLOAD_TOKEN to sync sessions here.",
+			"Interactive provider login must run on the local collector machine.",
 		);
 	}
 
@@ -1224,6 +1147,6 @@ export async function getMissingRuntimeProviders(
 export function getAuthModuleState() {
 	return {
 		interactiveConnectAllowed: isInteractiveAuthLaunchAllowed(),
-		remoteSyncConfigured: isRemoteSyncConfigured(),
+		remoteSyncConfigured: false,
 	};
 }

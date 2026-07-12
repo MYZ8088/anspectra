@@ -1,14 +1,14 @@
 import "../styles/globals.css";
 import { appIcons } from "@/lib/app-metadata";
 import { TRPCReactProvider } from "@/trpc/react";
-import { Toaster } from "@answerloom/ui";
+import { Toaster } from "@aloom/ui";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
-	title: "AnswerLoom",
+	title: "Aloom",
 	description:
 		"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 	robots: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 	},
 	icons: appIcons,
 	openGraph: {
-		title: "AnswerLoom",
+		title: "Aloom",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		type: "website",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "AnswerLoom",
+		title: "Aloom",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		images: ["/twitter-image"],

@@ -1,5 +1,5 @@
 import "server-only";
-import { redis } from "@answerloom/services";
+import { redis } from "@aloom/services";
 
 export interface RateLimitConfig {
 	limit: number;

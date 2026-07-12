@@ -1,0 +1,14 @@
+<!doctype html><html><body>
+<button data-mode="instant" data-state="on">Instant</button>
+<button data-mode="expert" data-state="off">Expert</button>
+<button data-toggle="reasoning" role="switch" data-state="off">DeepThink</button>
+<button data-toggle="search" role="switch" data-state="off">Search</button>
+<script>
+for (const button of document.querySelectorAll('[data-mode]')) button.addEventListener('click', () => {
+  for (const peer of document.querySelectorAll('[data-mode]')) peer.dataset.state = peer === button ? 'on' : 'off';
+});
+for (const button of document.querySelectorAll('[data-toggle]')) button.addEventListener('click', () => {
+  button.dataset.state = button.dataset.state === 'on' ? 'off' : 'on';
+});
+</script>
+</body></html>

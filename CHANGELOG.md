@@ -1,52 +1,29 @@
 # Changelog
 
-All notable changes to AnswerLoom will be documented here.
+All notable Aloom changes are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
----
-
-## [Unreleased]
-
----
-
-## [1.0.0] - 2026-04-19
-
-Initial public release.
+## Unreleased
 
 ### Added
-- ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview providers
-- UI-first browser capture via Camoufox + Playwright: captures rendered responses, inline citations, and source attribution
-- GEO scoring: visibility, sentiment, rank position, recommendation type: per prompt, over time
-- Competitor co-mention tracking and citation source attribution
-- AI perception analysis (pricing signal, key claims, brand framing) via OpenAI or Anthropic
-- ClickHouse analytics backend for high-volume time-series prompt data
-- PostgreSQL + Drizzle ORM for relational data (workspaces, prompts, users)
-- BullMQ job queue for parallel provider workers
-- Better Auth with email/password and optional Google OAuth
-- `pnpm local`: single command local dev stack (Docker + migrations + browser runtime)
-- `pnpm self-host`: single command VPS deployment
-- Provider auth session upload from local machine to VPS (`pnpm upload:vps`)
-- ThorData residential proxy support for VPS runs
-- Claude API support for response analysis (`ANALYSIS_LLM_PROVIDER=claude`)
-- AI Overview response extraction using `innerHTML` bypass for CSS-clipped content
-- Open-source contribution infrastructure: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, issue templates, PR template
-- VPS deployment guide with nginx, SSL, and provider auth upload
-- `docs/environment-variables.mdx`: full environment variable reference
-- `docs/troubleshooting.mdx`: common failure modes and fixes
+
+- Aloom GEO Detection Pack v1.1 with 54 fixed templates per language.
+- Six deterministic suites and three independent sampling depths.
+- Persistent task-bound Camoufox profiles for Doubao, DeepSeek, Yuanbao, and Qwen.
+- Official provider mode selection and verification.
+- Per-answer strict-Schema analysis with deterministic hierarchical reports.
+- Weekly and monthly frozen detection schedules.
+- Repository language and privacy build gates.
 
 ### Changed
-- Cloud mode removed: only `local` and `self-host` modes remain
-- README rewritten with accurate product positioning and per-screenshot descriptions
-- Docs simplified: introduction trimmed, api-reference cleaned to commands/routes/modes
 
-### Fixed
-- Redis service using raw `console.log`: replaced with structured Logger
-- `.env.example` missing `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ANTHROPIC_API_KEY`
-- `ANSWERLOOM_APP_MODE` default in `.env.example` corrected to `local`
+- Product scope is detection and recurring monitoring only.
+- Aloom is licensed under Apache-2.0; upstream MIT notices remain intact.
+- Normal provider collection is headless and becomes visible only for explicit inspection or human verification.
+- Self-hosted deployments run the control and data planes; official Web sessions remain on a paired user computer.
 
 ### Removed
-- Unused `RateLimitError` class
-- SOCKS4/SOCKS5 proxy support: only HTTP/HTTPS CONNECT tunneling remains
-- Dead mode-guard functions (`canAccessScheduleInMode`, `canAccessProvidersInMode`, `canRunPromptsNowInMode`)
-- `mockData/` JSON files and `llm_results.json` purged from git history
+
+- Arbitrary custom prompts from formal detection.
+- Optimization, content generation, publishing, and intervention flows from the active product.
+- Provider auth-session upload and server-side cookie storage.
+- VPS browser collection and automatic proxy rotation.

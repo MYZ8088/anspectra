@@ -1,4 +1,4 @@
-import type { AnalysisRecord } from "@answerloom/types";
+import type { AnalysisRecord } from "@aloom/types";
 import { joinCitedTexts, joinSourceUrls } from "../sources/index.js";
 
 export function buildAnalysisCsvRow(

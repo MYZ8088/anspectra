@@ -1,4 +1,4 @@
-import { cn } from "@answerloom/utils";
+import { cn } from "@aloom/utils";
 import type { ReactNode } from "react";
 
 type HeadingTag = "h1" | "h2" | "h3";

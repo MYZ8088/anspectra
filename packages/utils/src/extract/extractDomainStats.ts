@@ -1,4 +1,4 @@
-import type { DomainStats, PromptResponse } from "@answerloom/types";
+import type { DomainStats, PromptResponse } from "@aloom/types";
 import { getDomain } from "../url/getDomain.js";
 
 type DomainAccumulator = { totalOccurrences: number; sourceTextCount: number };

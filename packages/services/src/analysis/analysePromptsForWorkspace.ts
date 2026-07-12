@@ -1,7 +1,7 @@
-import { clickhouse, db, schema } from "@answerloom/db";
-import { BaseError, toErrorMessage } from "@answerloom/errors";
-import type { PromptAnalysis, PromptResponse } from "@answerloom/types";
-import { eq } from "drizzle-orm";
+import { clickhouse, db, schema } from "@aloom/db";
+import { BaseError, toErrorMessage } from "@aloom/errors";
+import type { PromptAnalysis, PromptResponse } from "@aloom/types";
+import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getWorkspaceById } from "../workspace/index.js";
 import { type AnalysisExecution, runAnalysisDetailed } from "./runAnalysis.js";
@@ -40,13 +40,15 @@ export async function analysePromptsForWorkspace(args: {
 	workspaceId: string;
 	batchSize?: number;
 	analyzeAll?: boolean;
+	runId?: string;
 }): Promise<{
 	analysedCount: number;
 	failedCount: number;
 	errors: Array<{ responseId: string; modelProvider: string; error: string }>;
 	remainingCount: number;
+	processedResponseIds: string[];
 }> {
-	const { workspaceId, batchSize = 50, analyzeAll = false } = args;
+	const { workspaceId, batchSize = 50, analyzeAll = false, runId } = args;
 	const [workspace, profile, ledger] = await Promise.all([
 		getWorkspaceById({ workspaceId }),
 		db.query.brandProfiles.findFirst({
@@ -66,6 +68,29 @@ export async function analysePromptsForWorkspace(args: {
 			status: fact.status,
 		})),
 	};
+	const scopedCheckpoints = runId
+		? await db.query.sampleCheckpoints.findMany({
+				where: and(
+					eq(schema.sampleCheckpoints.runId, runId),
+					eq(schema.sampleCheckpoints.status, "completed"),
+					eq(schema.sampleCheckpoints.analysisStatus, "running"),
+				),
+			})
+		: [];
+	const scopedResponseIds = runId
+		? scopedCheckpoints.flatMap((checkpoint) =>
+				checkpoint.analyticsSampleId ? [checkpoint.analyticsSampleId] : [],
+			)
+		: null;
+	if (runId && scopedResponseIds?.length === 0) {
+		return {
+			analysedCount: 0,
+			failedCount: 0,
+			errors: [],
+			remainingCount: 0,
+			processedResponseIds: [],
+		};
+	}
 
 	let totalAnalyzed = 0;
 	let totalFailed = 0;
@@ -74,6 +99,7 @@ export async function analysePromptsForWorkspace(args: {
 		modelProvider: string;
 		error: string;
 	}> = [];
+	const processedResponseIds = new Set<string>();
 
 	// offset advances the cursor independently of ClickHouse mutation completion.
 	// ALTER TABLE UPDATE is async — without OFFSET, the same rows are returned
@@ -87,11 +113,16 @@ export async function analysePromptsForWorkspace(args: {
                 SELECT *
                 FROM analytics.prompt_responses
                 WHERE workspace_id = {workspaceId:String}
-                  AND is_analysed = false
+				  ${scopedResponseIds ? "AND id IN ({responseIds:Array(String)})" : "AND is_analysed = false"}
                 LIMIT {batchSize:UInt32}
                 OFFSET {offset:UInt32}
             `,
-			query_params: { workspaceId, batchSize, offset },
+			query_params: {
+				workspaceId,
+				batchSize,
+				offset,
+				...(scopedResponseIds ? { responseIds: scopedResponseIds } : {}),
+			},
 			format: "JSONEachRow",
 		});
 
@@ -197,6 +228,8 @@ export async function analysePromptsForWorkspace(args: {
 					modelProvider: resp.model_provider,
 					error: errorMessage,
 				});
+			} finally {
+				processedResponseIds.add(resp.id);
 			}
 		}
 
@@ -246,9 +279,23 @@ export async function analysePromptsForWorkspace(args: {
 			}
 		}
 	}
+	if (scopedResponseIds) {
+		for (const responseId of scopedResponseIds) {
+			if (processedResponseIds.has(responseId)) continue;
+			processedResponseIds.add(responseId);
+			allErrors.push({
+				responseId,
+				modelProvider: "unknown",
+				error: "Captured answer could not be loaded for analysis",
+			});
+			totalFailed += 1;
+		}
+	}
 
 	// Check remaining count
-	const remainingResult = await clickhouse.query({
+	const remainingResult = scopedResponseIds
+		? null
+		: await clickhouse.query({
 		query: `
             SELECT count() as count
             FROM analytics.prompt_responses
@@ -257,15 +304,20 @@ export async function analysePromptsForWorkspace(args: {
         `,
 		query_params: { workspaceId },
 		format: "JSONEachRow",
-	});
+		});
 
-	const remainingData: Array<{ count: string }> = await remainingResult.json();
-	const remainingCount = Number(remainingData[0]?.count || 0);
+	const remainingData: Array<{ count: string }> = remainingResult
+		? await remainingResult.json()
+		: [];
+	const remainingCount = scopedResponseIds
+		? 0
+		: Number(remainingData[0]?.count || 0);
 
 	return {
 		analysedCount: totalAnalyzed,
 		failedCount: totalFailed,
 		errors: allErrors,
 		remainingCount,
+		processedResponseIds: [...processedResponseIds],
 	};
 }

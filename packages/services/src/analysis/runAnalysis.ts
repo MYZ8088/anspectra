@@ -1,8 +1,8 @@
-import { ValidationError } from "@answerloom/errors";
+import { ValidationError } from "@aloom/errors";
 import type {
 	AnalysisInputSingle,
 	BrandAnalysisResult,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { z } from "zod";
 import { env } from "../env.js";
 import { aihubmix, chatgpt, claude } from "../llm/index.js";

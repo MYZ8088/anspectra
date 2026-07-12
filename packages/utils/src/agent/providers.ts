@@ -1,5 +1,5 @@
-import type { AuthProvider, Provider } from "@answerloom/types";
-import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@answerloom/types";
+import type { AuthProvider, Provider } from "@aloom/types";
+import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@aloom/types";
 
 interface ProviderDisplayConfig {
 	displayName: string;

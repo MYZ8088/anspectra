@@ -13,9 +13,9 @@ const repositoryUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteUrl),
-	title: "AnswerLoom | Official Web GEO Detection",
+	title: "Aloom | Official Web GEO Detection",
 	description:
-		"AnswerLoom measures product visibility across Doubao, DeepSeek, Yuanbao, and Qwen using preset prompt suites and official Web interfaces.",
+		"Aloom measures product visibility across Doubao, DeepSeek, Yuanbao, and Qwen using preset prompt suites and official Web interfaces.",
 	keywords: [
 		"GEO",
 		"generative engine optimization",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 		"LLM visibility",
 		"AI search detection",
 		"AI mention tracking",
-		"answerloom",
+		"aloom",
 	],
 	alternates: {
 		canonical: siteUrl,
@@ -63,24 +63,24 @@ export const metadata: Metadata = {
 		],
 	},
 	openGraph: {
-		title: "AnswerLoom | Official Web GEO Detection",
+		title: "Aloom | Official Web GEO Detection",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		url: siteUrl,
-		siteName: "AnswerLoom",
+		siteName: "Aloom",
 		type: "website",
 		images: [
 			{
 				url: "/opengraph-image",
 				width: 1200,
 				height: 630,
-				alt: "AnswerLoom official Web GEO detection report",
+				alt: "Aloom official Web GEO detection report",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "AnswerLoom | Official Web GEO Detection",
+		title: "Aloom | Official Web GEO Detection",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		images: ["/twitter-image"],
@@ -90,7 +90,7 @@ export const metadata: Metadata = {
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
-	name: "AnswerLoom",
+	name: "Aloom",
 	url: siteUrl,
 	description:
 		"Open-source GEO detection for Doubao, DeepSeek, Yuanbao, and Qwen using persistent local browser profiles and official Web interfaces.",
@@ -101,11 +101,11 @@ const jsonLd = {
 		price: "0",
 		priceCurrency: "USD",
 	},
-	license: "MIT",
+	license: "Apache-2.0",
 	...(repositoryUrl ? { codeRepository: repositoryUrl } : {}),
 	author: {
 		"@type": "Organization",
-		name: "AnswerLoom",
+		name: "Aloom",
 		url: siteUrl,
 		...(repositoryUrl ? { sameAs: [repositoryUrl] } : {}),
 	},

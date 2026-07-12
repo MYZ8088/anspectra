@@ -1,6 +1,6 @@
-import { ExternalServiceError, ValidationError } from "@answerloom/errors";
-import type { Provider, Source } from "@answerloom/types";
-import { logger, validateResponse, withTimeout } from "@answerloom/utils";
+import { ExternalServiceError, ValidationError } from "@aloom/errors";
+import type { Provider, Source } from "@aloom/types";
+import { logger, validateResponse, withTimeout } from "@aloom/utils";
 import type { Page } from "playwright";
 import { detectBotPage } from "../../lib/input/response/detectBotPage.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";

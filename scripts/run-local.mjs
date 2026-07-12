@@ -41,7 +41,7 @@ async function main() {
 		"redis",
 	]);
 	await runCommand("pnpm", ["db:migrate"], { env: localEnv });
-	await terminateLocalProcesses([repoRoot, "@answerloom/agent", "dev"]);
+	await terminateLocalProcesses([repoRoot, "@aloom/agent", "dev"]);
 	await terminateLocalWorkspacePackageWatchers();
 
 	const packageWatchers = spawnLocalWorkspacePackageWatchers(localEnv);
@@ -50,7 +50,7 @@ async function main() {
 		"pnpm",
 		[
 			"--filter",
-			"@answerloom/web",
+			"@aloom/web",
 			"exec",
 			"next",
 			"dev",
@@ -65,7 +65,7 @@ async function main() {
 	);
 	const agentChild = spawnCommand(
 		"pnpm",
-		["--filter", "@answerloom/agent", "dev"],
+		["--filter", "@aloom/agent", "dev"],
 		{
 			env: localEnv,
 		},

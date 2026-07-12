@@ -3,15 +3,15 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
-import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
+import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
 import {
 	getProviderProfileDir,
 	getRuntimeProfileSeedPlan,
 	markRuntimeProfileSeeded,
 	prepareRuntimeProfileBootstrap,
-} from "@answerloom/services/agent-auth";
-import type { Provider, ProviderIdentityManifest } from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+} from "@aloom/services/agent-auth";
+import type { Provider, ProviderIdentityManifest } from "@aloom/types";
+import { logger } from "@aloom/utils";
 import { firefox } from "playwright-core";
 import type { BrowserContext as RawBrowserContext } from "playwright-core";
 import { resolveCamoufoxLaunchOptions } from "./camoufox.js";
@@ -31,6 +31,13 @@ import {
 
 const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
+export type ProviderSessionVisibility = "headless" | "headful";
+
+export type ProviderSessionRequest = {
+	taskId: string;
+	visibility: ProviderSessionVisibility;
+};
+
 type ProviderSession = {
 	provider: Provider;
 	rawContext: RawBrowserContext;
@@ -39,6 +46,10 @@ type ProviderSession = {
 	leaseCount: number;
 	humanHold: boolean;
 	heldPage: Page | null;
+	heldTaskId: string | null;
+	activeTaskId: string | null;
+	visibility: ProviderSessionVisibility;
+	launchedByTaskId: string;
 	idleTimer: ReturnType<typeof setTimeout> | null;
 	closed: boolean;
 	windowGeometry: ProviderWindowGeometry;
@@ -47,10 +58,13 @@ type ProviderSession = {
 type ProviderSessionLease = {
 	browser: Browser;
 	context: BrowserContext;
+	page: Page;
 	profileDir: string;
+	taskId: string;
+	visibility: ProviderSessionVisibility;
 	release: () => Promise<void>;
 	invalidate: () => Promise<void>;
-	holdForHuman: (page: Page) => void;
+	holdForHuman: (page: Page) => Promise<void>;
 	resumePage: Page | null;
 	minimizeWindow: () => Promise<void>;
 	focusWindow: () => Promise<void>;
@@ -74,6 +88,23 @@ function networkFingerprint(): string {
 	return createHash("sha256").update(addresses.join("\n")).digest("hex");
 }
 
+export function assertBrowserTaskId(taskId: string): string {
+	const normalized = taskId.trim();
+	if (!normalized) {
+		throw new ExternalServiceError(
+			"browser",
+			"A browser page cannot be created without a task ID",
+		);
+	}
+	if (normalized.length > 240) {
+		throw new ExternalServiceError(
+			"browser",
+			"Browser task ID exceeds the 240-character limit",
+		);
+	}
+	return normalized;
+}
+
 function normalizePersistentLaunchOptions(
 	options: Awaited<ReturnType<typeof resolveCamoufoxLaunchOptions>>,
 ): Record<string, unknown> {
@@ -82,10 +113,25 @@ function normalizePersistentLaunchOptions(
 	const normalized: Record<string, unknown> = {
 		...options,
 		env,
-		headless: false,
 	};
+	delete normalized.headless;
+	delete normalized.virtual_display;
 	delete normalized.proxy;
 	return normalized;
+}
+
+export function applyPersistentVisibility(
+	options: Record<string, unknown>,
+	visibility: ProviderSessionVisibility,
+): Record<string, unknown> {
+	const env = { ...((options.env ?? {}) as Record<string, string>) };
+	if (visibility === "headless") env.MOZ_HEADLESS = "1";
+	else delete env.MOZ_HEADLESS;
+	return {
+		...options,
+		env,
+		headless: visibility === "headless",
+	};
 }
 
 async function writeIdentityManifest(
@@ -101,6 +147,7 @@ async function writeIdentityManifest(
 export async function getPersistentLaunchOptions(args: {
 	provider: Provider;
 	profileDir: string;
+	visibility?: ProviderSessionVisibility;
 }): Promise<{
 	options: Record<string, unknown>;
 	geometry: ProviderWindowGeometry;
@@ -162,8 +209,11 @@ export async function getPersistentLaunchOptions(args: {
 				`[${args.provider}] network environment changed; preserving the existing browser identity`,
 			);
 		}
-		return {
-			options: manifest.launchOptions,
+			return {
+				options: applyPersistentVisibility(
+					manifest.launchOptions,
+					args.visibility ?? "headful",
+				),
 			geometry: normalized.geometry,
 		};
 	}
@@ -191,7 +241,13 @@ export async function getPersistentLaunchOptions(args: {
 		windowGeometry: { ...normalized.geometry, appliedAt: now },
 	};
 	await writeIdentityManifest(filePath, manifest);
-	return { options: normalized.launchOptions, geometry: normalized.geometry };
+	return {
+		options: applyPersistentVisibility(
+			normalized.launchOptions,
+			args.visibility ?? "headful",
+		),
+		geometry: normalized.geometry,
+	};
 }
 
 async function closeSession(session: ProviderSession): Promise<void> {
@@ -203,7 +259,11 @@ async function closeSession(session: ProviderSession): Promise<void> {
 	logger.log(`[${session.provider}] persistent browser session closed`);
 }
 
-async function launchSession(provider: Provider): Promise<ProviderSession> {
+async function launchSession(
+	provider: Provider,
+	request: ProviderSessionRequest,
+): Promise<ProviderSession> {
+	const taskId = assertBrowserTaskId(request.taskId);
 	const seedPlan = await getRuntimeProfileSeedPlan(provider);
 	if (seedPlan.shouldBootstrap) {
 		prepareRuntimeProfileBootstrap(provider);
@@ -212,24 +272,32 @@ async function launchSession(provider: Provider): Promise<ProviderSession> {
 	const { options, geometry } = await getPersistentLaunchOptions({
 		provider,
 		profileDir,
+		visibility: request.visibility,
 	});
-	await normalizeFirefoxWindowStore(profileDir, geometry);
+	if (request.visibility === "headful") {
+		await normalizeFirefoxWindowStore(profileDir, geometry);
+	}
 
 	try {
 		const rawContext = await firefox.launchPersistentContext(profileDir, {
 			...(options as Parameters<typeof firefox.launchPersistentContext>[1]),
-			headless: false,
-			viewport: null,
+			headless: request.visibility === "headless",
+			viewport:
+				request.visibility === "headless"
+					? { width: geometry.width, height: geometry.height }
+					: null,
 		});
-		const observedGeometry = await fitNativeWindow(profileDir, geometry);
-		if (observedGeometry) {
-			logger.log(
-				`[${provider}] browser window fitted to ${observedGeometry.width}x${observedGeometry.height} at ${observedGeometry.x},${observedGeometry.y}`,
-			);
-		} else {
-			logger.warn(
-				`[${provider}] browser window could not be verified against ${geometry.width}x${geometry.height} at ${geometry.x},${geometry.y}`,
-			);
+		if (request.visibility === "headful") {
+			const observedGeometry = await fitNativeWindow(profileDir, geometry);
+			if (observedGeometry) {
+				logger.log(
+					`[${provider}] browser window fitted to ${observedGeometry.width}x${observedGeometry.height} at ${observedGeometry.x},${observedGeometry.y}`,
+				);
+			} else {
+				logger.warn(
+					`[${provider}] browser window could not be verified against ${geometry.width}x${geometry.height} at ${geometry.x},${geometry.y}`,
+				);
+			}
 		}
 		if (seedPlan.shouldBootstrap && seedPlan.authState) {
 			const cookies = (seedPlan.authState.cookies ?? []).filter(
@@ -267,8 +335,12 @@ async function launchSession(provider: Provider): Promise<ProviderSession> {
 			context,
 			browser: context.getBrowser(),
 			leaseCount: 0,
-			humanHold: false,
-			heldPage: null,
+				humanHold: false,
+				heldPage: null,
+				heldTaskId: null,
+				activeTaskId: null,
+				visibility: request.visibility,
+				launchedByTaskId: taskId,
 			idleTimer: null,
 			closed: false,
 			windowGeometry: geometry,
@@ -281,7 +353,9 @@ async function launchSession(provider: Provider): Promise<ProviderSession> {
 		});
 
 		sessions.set(provider, session);
-		logger.log(`[${provider}] persistent browser session ready: ${profileDir}`);
+		logger.log(
+			`[${provider}] persistent ${request.visibility} browser session ready for task ${taskId}: ${profileDir}`,
+		);
 		return session;
 	} catch (error) {
 		throw new ExternalServiceError(
@@ -296,14 +370,33 @@ async function launchSession(provider: Provider): Promise<ProviderSession> {
 
 async function getOrLaunchSession(
 	provider: Provider,
+	request: ProviderSessionRequest,
 ): Promise<ProviderSession> {
 	const existing = sessions.get(provider);
-	if (existing && !existing.closed) return existing;
+	if (existing && !existing.closed) {
+		if (
+			existing.heldPage &&
+			existing.heldTaskId === request.taskId
+		) {
+			return existing;
+		}
+		if (existing.visibility === request.visibility) return existing;
+		if (existing.leaseCount > 0 || existing.humanHold) {
+			throw new ExternalServiceError(
+				provider,
+				`Cannot switch the provider browser from ${existing.visibility} to ${request.visibility} while task ${existing.activeTaskId ?? existing.heldTaskId ?? "unknown"} owns it`,
+			);
+		}
+		await closeSession(existing);
+	}
 
 	const inFlight = launches.get(provider);
-	if (inFlight) return inFlight;
+	if (inFlight) {
+		await inFlight;
+		return getOrLaunchSession(provider, request);
+	}
 
-	const launch = launchSession(provider).finally(() =>
+	const launch = launchSession(provider, request).finally(() =>
 		launches.delete(provider),
 	);
 	launches.set(provider, launch);
@@ -312,29 +405,53 @@ async function getOrLaunchSession(
 
 export async function acquireProviderSession(
 	provider: Provider,
+	request: ProviderSessionRequest,
 ): Promise<ProviderSessionLease> {
-	const session = await getOrLaunchSession(provider);
+	const taskId = assertBrowserTaskId(request.taskId);
+	const session = await getOrLaunchSession(provider, { ...request, taskId });
+	if (
+		session.activeTaskId &&
+		session.activeTaskId !== taskId &&
+		session.leaseCount > 0
+	) {
+		throw new ExternalServiceError(
+			provider,
+			`Provider browser is already owned by task ${session.activeTaskId}`,
+		);
+	}
 	if (session.idleTimer) {
 		clearTimeout(session.idleTimer);
 		session.idleTimer = null;
 	}
 	session.leaseCount += 1;
-	const resumePage = session.heldPage;
+	session.activeTaskId = taskId;
+	const resumePage =
+		session.heldTaskId === taskId ? session.heldPage : null;
 	session.heldPage = null;
+	session.heldTaskId = null;
 	if (resumePage) session.humanHold = false;
+	const page = resumePage ?? (await session.context.newPage());
 	let released = false;
 
 	return {
 		browser: session.browser,
 		context: session.context,
+		page,
 		profileDir: getProviderProfileDir(provider),
+		taskId,
+		visibility: session.visibility,
 		resumePage,
 		release: async () => {
 			if (released) return;
 			released = true;
 			session.leaseCount = Math.max(0, session.leaseCount - 1);
+			if (session.activeTaskId === taskId) session.activeTaskId = null;
 			if (session.leaseCount > 0 || session.closed) return;
 			if (session.humanHold) return;
+			if (session.visibility === "headful") {
+				await closeSession(session);
+				return;
+			}
 			session.idleTimer = setTimeout(() => {
 				void closeSession(session);
 			}, SESSION_IDLE_TIMEOUT_MS);
@@ -342,17 +459,46 @@ export async function acquireProviderSession(
 		invalidate: async () => {
 			released = true;
 			session.leaseCount = Math.max(0, session.leaseCount - 1);
+			if (session.activeTaskId === taskId) session.activeTaskId = null;
 			await closeSession(session);
 		},
-		holdForHuman: (page) => {
+		holdForHuman: async (heldPage) => {
+			if (session.visibility === "headless") {
+				const pageUrl = heldPage.url();
+				await closeSession(session);
+				const humanSession = await launchSession(provider, {
+					taskId,
+					visibility: "headful",
+				});
+				const humanPage = await humanSession.context.newPage();
+				if (pageUrl && pageUrl !== "about:blank") {
+					await humanPage
+						.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 60_000 })
+						.catch(() => null);
+				}
+				humanSession.humanHold = true;
+				humanSession.heldPage = humanPage;
+				humanSession.heldTaskId = taskId;
+				humanSession.activeTaskId = null;
+				await fitNativeWindow(
+					getProviderProfileDir(provider),
+					humanSession.windowGeometry,
+				);
+				await focusNativeWindow(getProviderProfileDir(provider));
+				return;
+			}
 			session.humanHold = true;
-			session.heldPage = page;
+			session.heldPage = heldPage;
+			session.heldTaskId = taskId;
 			if (session.idleTimer) {
 				clearTimeout(session.idleTimer);
 				session.idleTimer = null;
 			}
 		},
-		minimizeWindow: () => minimizeNativeWindow(getProviderProfileDir(provider)),
+		minimizeWindow: () =>
+			session.visibility === "headful"
+				? minimizeNativeWindow(getProviderProfileDir(provider))
+				: Promise.resolve(),
 		focusWindow: async () => {
 			const page = session.rawContext.pages().at(-1);
 			await page?.bringToFront().catch(() => null);
@@ -380,7 +526,7 @@ export async function focusProviderSession(
 	provider: Provider,
 ): Promise<boolean> {
 	const session = sessions.get(provider);
-	if (!session || session.closed) return false;
+	if (!session || session.closed || session.visibility !== "headful") return false;
 	const page = session.rawContext.pages().at(-1);
 	await page?.bringToFront().catch(() => null);
 	await fitNativeWindow(

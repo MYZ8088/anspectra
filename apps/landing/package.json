@@ -1,5 +1,5 @@
 {
-	"name": "@answerloom/landing",
+	"name": "@aloom/landing",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -11,8 +11,8 @@
 		"lint": "biome check ."
 	},
 	"dependencies": {
-		"@answerloom/ui": "workspace:*",
-		"@answerloom/utils": "workspace:*",
+		"@aloom/ui": "workspace:*",
+		"@aloom/utils": "workspace:*",
 		"@vercel/analytics": "^2.0.1",
 		"lucide-react": "^0.544.0",
 		"next": "^15.5.5",

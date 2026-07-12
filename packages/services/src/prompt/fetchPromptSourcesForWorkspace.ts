@@ -1,8 +1,8 @@
 import type {
 	FetchPromptSourcesForWorkspaceArgs,
 	FetchPromptSourcesForWorkspaceResult,
-} from "@answerloom/types";
-import { extractDomainStats, extractSourceStats } from "@answerloom/utils";
+} from "@aloom/types";
+import { extractDomainStats, extractSourceStats } from "@aloom/utils";
 import { fetchPromptResponsesForWorkspace } from "./fetchPromptResponsesForWorkspace.js";
 
 export async function fetchPromptSourcesForWorkspace(

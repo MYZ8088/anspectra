@@ -1,0 +1,10 @@
+<!doctype html><html><body>
+<button role="switch" data-state="off">Deep Thinking</button>
+<p>Smart search when you ask - no manual switching needed.</p>
+<script>
+document.querySelector('[role=switch]').addEventListener('click', (event) => {
+  const button = event.currentTarget;
+  button.dataset.state = button.dataset.state === 'on' ? 'off' : 'on';
+});
+</script>
+</body></html>

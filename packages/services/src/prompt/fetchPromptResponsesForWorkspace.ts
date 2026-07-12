@@ -1,8 +1,8 @@
-import { clickhouse } from "@answerloom/db";
+import { clickhouse } from "@aloom/db";
 import type {
 	FetchPromptResponsesForWorkspaceArgs,
 	PromptResponse,
-} from "@answerloom/types";
+} from "@aloom/types";
 
 export async function fetchPromptResponsesForWorkspace(
 	args: FetchPromptResponsesForWorkspaceArgs,

@@ -1,5 +1,5 @@
-import { ExternalServiceError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
+import { ExternalServiceError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
 import type { Locator, Page } from "playwright";
 
 type BlockerCheck = {

@@ -1,4 +1,4 @@
-import { getModelFavicon } from "@answerloom/utils";
+import { getModelFavicon } from "@aloom/utils";
 import { CheckCircle2 } from "lucide-react";
 
 const PROVIDER_ITEMS = [

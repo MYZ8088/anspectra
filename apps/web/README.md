@@ -1,4 +1,4 @@
-# @answerloom/web
+# @aloom/web
 
 Main authenticated product application built with Next.js App Router and tRPC.
 
@@ -35,19 +35,19 @@ Defined in `src/server/api/root.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/web dev` | Start Next.js dev server |
-| `pnpm --filter @answerloom/web build` | Build production bundle |
-| `pnpm --filter @answerloom/web start` | Start built app |
-| `pnpm --filter @answerloom/web preview` | Build + start |
-| `pnpm --filter @answerloom/web typecheck` | TypeScript checks |
-| `pnpm --filter @answerloom/web lint` | Biome lint/check |
-| `pnpm --filter @answerloom/web check` | Biome check |
-| `pnpm --filter @answerloom/web check:write` | Biome write fixes |
-| `pnpm --filter @answerloom/web check:unsafe` | Biome unsafe fixes |
-| `pnpm --filter @answerloom/web db:generate` | Drizzle generate |
-| `pnpm --filter @answerloom/web db:migrate` | Drizzle migrate |
-| `pnpm --filter @answerloom/web db:push` | Drizzle push |
-| `pnpm --filter @answerloom/web db:studio` | Drizzle studio |
+| `pnpm --filter @aloom/web dev` | Start Next.js dev server |
+| `pnpm --filter @aloom/web build` | Build production bundle |
+| `pnpm --filter @aloom/web start` | Start built app |
+| `pnpm --filter @aloom/web preview` | Build + start |
+| `pnpm --filter @aloom/web typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/web lint` | Biome lint/check |
+| `pnpm --filter @aloom/web check` | Biome check |
+| `pnpm --filter @aloom/web check:write` | Biome write fixes |
+| `pnpm --filter @aloom/web check:unsafe` | Biome unsafe fixes |
+| `pnpm --filter @aloom/web db:generate` | Drizzle generate |
+| `pnpm --filter @aloom/web db:migrate` | Drizzle migrate |
+| `pnpm --filter @aloom/web db:push` | Drizzle push |
+| `pnpm --filter @aloom/web db:studio` | Drizzle studio |
 
 ## Environment Variables
 
@@ -78,21 +78,21 @@ pnpm db:migrate
 3. Start the app:
 
 ```bash
-pnpm --filter @answerloom/web dev
+pnpm --filter @aloom/web dev
 ```
 
 ## Dependencies
 
 This app relies on workspace packages:
-- `@answerloom/services`: domain/business operations
-- `@answerloom/db`: schema and DB clients
-- `@answerloom/types`: shared contracts
-- `@answerloom/ui`: shared UI components
-- `@answerloom/utils`: shared helpers
-- `@answerloom/errors`: typed errors
+- `@aloom/services`: domain/business operations
+- `@aloom/db`: schema and DB clients
+- `@aloom/types`: shared contracts
+- `@aloom/ui`: shared UI components
+- `@aloom/utils`: shared helpers
+- `@aloom/errors`: typed errors
 
 ## Development Boundaries
 
-- Keep route handlers/procedures thin; move business logic to `@answerloom/services`.
+- Keep route handlers/procedures thin; move business logic to `@aloom/services`.
 - Use `authorizedWorkspaceProcedure` for workspace-scoped actions.
 - Use `createRateLimiter` middleware for write-heavy mutations.

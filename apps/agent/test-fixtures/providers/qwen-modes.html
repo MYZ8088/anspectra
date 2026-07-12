@@ -1,0 +1,22 @@
+<!doctype html><html><body>
+<div class="qwen-thinking-selector">
+  <div class="ant-select-selector">
+    <span class="qwen-select-thinking-label-text">Auto</span>
+    <input role="combobox" readonly>
+  </div>
+</div>
+<div data-menu="true" style="display:none">
+  <div role="option">Auto</div>
+  <div role="option">Thinking</div>
+  <div role="option">Fast</div>
+</div>
+<script>
+document.querySelector('.ant-select-selector').addEventListener('click', () => {
+  document.querySelector('[data-menu]').style.display = 'block';
+});
+for (const option of document.querySelectorAll('[role="option"]')) option.addEventListener('click', () => {
+  document.querySelector('.qwen-select-thinking-label-text').textContent = option.textContent;
+  document.querySelector('[data-menu]').style.display = 'none';
+});
+</script>
+</body></html>

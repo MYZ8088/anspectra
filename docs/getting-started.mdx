@@ -1,37 +1,31 @@
 ---
 title: Getting Started
-description: Choose the right AnswerLoom setup path, then follow a dedicated guide for local or self-hosted deployment.
+description: Run Aloom locally or pair a local collector with a self-hosted control plane.
 ---
 
-| | Local | Self-Host |
-|---|---|---|
-| Fast setup | ✓ | |
-| Interactive provider auth | ✓ | |
-| Manual prompt runs | ✓ | ✓ |
-| Recurring scheduling | | ✓ |
-| Full data ownership | ✓ | ✓ |
+## Choose a control plane
 
----
+| Capability | Local stack | Self-hosted control plane |
+|---|---:|---:|
+| Product profile and prompt preview | Yes | Yes |
+| Official Web collection | Local collector | Paired local collector |
+| Recurring schedules | Yes | Yes |
+| Provider cookies uploaded | Never | Never |
+| Full data ownership | Yes | Yes |
 
-## Choose your setup
+- [Local Setup](/local-setup) runs the control plane, databases, and collector
+  on one macOS or Windows machine.
+- [Self-Hosted Setup](/self-hosted-setup) runs the control plane and databases
+  on your server while a paired collector remains on the user's computer.
 
-- [Local Setup](/local-setup)
-Run the full stack on your machine with interactive provider auth and on-demand runs.
+## First detection
 
-- [Self-Hosted Setup](/self-hosted-setup)
-Deploy AnswerLoom on your own VPS for recurring schedules and always-on tracking.
+1. Configure an analysis provider, normally AIHubMix.
+2. Run `pnpm camoufox:setup` and `pnpm camoufox:doctor` on the collector machine.
+3. Connect Doubao, DeepSeek, Yuanbao, and Qwen under Providers.
+4. Scan the official product website and confirm the product profile.
+5. Choose a fixed detection suite, provider modes, languages, and sampling depth.
+6. Review every rendered prompt and frozen hash before starting.
 
-## Which path should you pick?
-
-- Choose Local if you want the fastest first run, interactive provider auth on your own machine, and manual prompt runs.
-- Choose Self-Hosted if you want recurring schedules, always-on tracking, and infrastructure you manage yourself.
-
-## Shared requirements
-
-Every setup path needs:
-
-- An analysis LLM key
-- Provider sessions captured through the real provider UI
-- Docker for the database/runtime services used by the app
-
-For environment variable details, see [Environment Variables](/environment-variables). For command behavior, see [Reference](/api-reference).
+Provider login and human verification must be completed by the account owner.
+Aloom does not solve or bypass CAPTCHA challenges.

@@ -1,4 +1,4 @@
-import { Skeleton } from "@answerloom/ui";
+import { Skeleton } from "@aloom/ui";
 
 const CARD_SKELETON_KEYS = [
 	"card-skeleton-1",

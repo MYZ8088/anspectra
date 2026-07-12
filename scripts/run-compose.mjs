@@ -8,9 +8,9 @@ import {
 const COMMANDS_REQUIRING_EDGE_NETWORK = new Set(["create", "start", "up"]);
 const COMPOSE_FILE = "docker-compose.yml";
 const DEFAULT_IMAGES = {
-	ANSWERLOOM_AGENT_IMAGE: "answerloom/collector:local",
-	ANSWERLOOM_POSTGRES_IMAGE: "answerloom/postgres:local",
-	ANSWERLOOM_WEB_IMAGE: "answerloom/web:local",
+	ALOOM_AGENT_IMAGE: "aloom/collector:local",
+	ALOOM_POSTGRES_IMAGE: "aloom/postgres:local",
+	ALOOM_WEB_IMAGE: "aloom/web:local",
 };
 const ARCH_MISMATCH_PATTERNS = [
 	"no matching manifest",
@@ -21,23 +21,23 @@ const PULLABLE_SERVICES = [
 	{ service: "clickhouse" },
 	{
 		service: "agent-worker",
-		envKey: "ANSWERLOOM_AGENT_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_AGENT_IMAGE,
+		envKey: "ALOOM_AGENT_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ALOOM_AGENT_IMAGE,
 	},
 	{
 		service: "db",
-		envKey: "ANSWERLOOM_POSTGRES_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_POSTGRES_IMAGE,
+		envKey: "ALOOM_POSTGRES_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ALOOM_POSTGRES_IMAGE,
 	},
 	{
 		service: "web",
-		envKey: "ANSWERLOOM_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_WEB_IMAGE,
+		envKey: "ALOOM_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ALOOM_WEB_IMAGE,
 	},
 	{
 		service: "migrate",
-		envKey: "ANSWERLOOM_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ANSWERLOOM_WEB_IMAGE,
+		envKey: "ALOOM_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ALOOM_WEB_IMAGE,
 	},
 ];
 
@@ -109,7 +109,7 @@ async function runBootstrap() {
 	);
 	if (!hasPublishedAppImages) {
 		await runCompose(["up", "-d", "--build", "--force-recreate"]);
-		console.log("Self-host stack started from AnswerLoom local images.");
+		console.log("Self-host stack started from Aloom local images.");
 		return;
 	}
 

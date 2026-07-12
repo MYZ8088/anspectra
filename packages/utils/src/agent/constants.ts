@@ -1,6 +1,6 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 
-export const PROVIDER_NO_OUTPUT_TIMEOUT_MS: Record<Provider, number> = {
+export const PROVIDER_NO_OUTPUT_TIMEOUT_MS = {
 	chatgpt: 90_000,
 	perplexity: 45_000,
 	gemini: 45_000,
@@ -10,9 +10,9 @@ export const PROVIDER_NO_OUTPUT_TIMEOUT_MS: Record<Provider, number> = {
 	hunyuan: 60_000,
 	qwen: 60_000,
 	"ai-overview": 45_000,
-};
+} satisfies Record<Provider, number>;
 
-export const PROVIDER_FORCE_EXIT_STABLE_MS: Record<Provider, number> = {
+export const PROVIDER_FORCE_EXIT_STABLE_MS = {
 	chatgpt: 45_000,
 	perplexity: 30_000,
 	gemini: 45_000,
@@ -25,9 +25,9 @@ export const PROVIDER_FORCE_EXIT_STABLE_MS: Record<Provider, number> = {
 	hunyuan: 45_000,
 	qwen: 45_000,
 	"ai-overview": 30_000,
-};
+} satisfies Record<Provider, number>;
 
-export const PROVIDER_EDITOR_SELECTORS: Record<Provider, string[]> = {
+export const PROVIDER_EDITOR_SELECTORS = {
 	chatgpt: [
 		"#prompt-textarea",
 		'div#prompt-textarea[contenteditable="true"][role="textbox"]',
@@ -85,9 +85,9 @@ export const PROVIDER_EDITOR_SELECTORS: Record<Provider, string[]> = {
 		'textarea[name="q"][role="combobox"]',
 		'textarea[role="combobox"][aria-label="Search"]',
 	],
-};
+} satisfies Record<Provider, string[]>;
 
-export const PROVIDER_SUBMIT_BTN_SELECTORS: Record<Provider, string[]> = {
+export const PROVIDER_SUBMIT_BTN_SELECTORS = {
 	chatgpt: ['button[data-testid="send-button"]'],
 	perplexity: ['button[aria-label*="Submit"]'],
 	gemini: ['button[aria-label*="Send"]'],
@@ -117,9 +117,9 @@ export const PROVIDER_SUBMIT_BTN_SELECTORS: Record<Provider, string[]> = {
 		'button:has-text("发送")',
 	],
 	"ai-overview": [],
-};
+} satisfies Record<Provider, string[]>;
 
-export const PROVIDER_MODEL_RESPONSE_SELECTORS: Record<Provider, string[]> = {
+export const PROVIDER_MODEL_RESPONSE_SELECTORS = {
 	chatgpt: [
 		'[data-message-author-role="assistant"]',
 		'[data-testid^="conversation-turn"][data-turn="assistant"]',
@@ -159,12 +159,9 @@ export const PROVIDER_MODEL_RESPONSE_SELECTORS: Record<Provider, string[]> = {
 		'[data-message-author-role="assistant"]',
 	],
 	"ai-overview": ['[data-container-id="main-col"]'],
-};
+} satisfies Record<Provider, string[]>;
 
-export const PROVIDER_RESPONSE_GENERATION_SELECTORS: Record<
-	Provider,
-	string[]
-> = {
+export const PROVIDER_RESPONSE_GENERATION_SELECTORS = {
 	chatgpt: [
 		'button[data-testid="stop-button"]',
 		'button[aria-label*="stop" i]',
@@ -181,7 +178,7 @@ export const PROVIDER_RESPONSE_GENERATION_SELECTORS: Record<
 	hunyuan: ['button[aria-label*="stop" i]', 'button[aria-label*="停止" i]'],
 	qwen: ['button[aria-label*="stop" i]', 'button[aria-label*="停止" i]'],
 	"ai-overview": [],
-};
+} satisfies Record<Provider, string[]>;
 
 export const RETRYABLE_ERRORS = [
 	"ERR_SSL_PROTOCOL_ERROR",

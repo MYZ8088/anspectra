@@ -1,4 +1,4 @@
-import { ValidationError, toErrorMessage } from "@answerloom/errors";
+import { ValidationError, toErrorMessage } from "@aloom/errors";
 import { jsonrepair } from "jsonrepair";
 import type OpenAI from "openai";
 import type { ZodTypeAny, output } from "zod";

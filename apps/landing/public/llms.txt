@@ -1,39 +1,15 @@
-# AnswerLoom
+# Aloom
 
-> Open-source GEO and AI visibility tracking platform. Free to run. Fully self-hosted.
+Aloom is an Apache-2.0 licensed GEO detection and recurring monitoring tool for
+Doubao, DeepSeek, Yuanbao, and Qwen.
 
-AnswerLoom monitors how your brand appears inside real AI products: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. It captures what users actually see — inline citations, ranked recommendations, brand framing, and competitor co-mentions — using real browser automation, not model APIs.
+- It collects answers from official Web interfaces and never substitutes model API output.
+- It uses fixed, versioned prompt suites from 9 intents and 6 buyer stages.
+- Each prompt runs in a fresh conversation with a frozen provider mode.
+- Cookies and browser profiles remain on the user's local collector machine.
+- AIHubMix analyzes each captured answer independently after collection.
+- Reports retain failures in the denominator and separate collection from analysis.
 
-## What makes it different
-
-- **UI-first, not API-based.** Most GEO tools query the model API. AnswerLoom opens the actual ChatGPT, Gemini, Perplexity, Claude, and AI Overview interfaces the same way a user would and captures the rendered response. The UI layer adds citations, reorders recommendations, and changes framing in ways that never appear in raw API output.
-- **Self-hosted, free forever.** The full stack runs on your own machine or VPS via Docker Compose. No subscription. No usage limits.
-- **Your data never leaves your infrastructure.** Responses, analytics, and auth sessions are stored in a PostgreSQL and ClickHouse instance you control. Nothing passes through any third-party server.
-- **Your own provider accounts.** AnswerLoom authenticates to AI providers using your own existing logins. No shared credentials.
-- **Open source (MIT).** Every step from prompt execution to GEO scoring is auditable.
-
-## GEO scoring
-
-Each captured response is analyzed with your own OpenAI or Anthropic key. The LLM produces four metrics:
-- **Visibility** — how prominently the brand surfaces in the response
-- **Rank** — absolute position in reading order across the full response
-- **Sentiment** — how positively the brand is described (0–100, 50 = neutral)
-- **Recommendation type** — top_pick, strong_alternative, conditional, mentioned_only, discouraged, or not_mentioned
-
-These combine into a single GEO score (0–100).
-
-## Supported AI providers
-
-ChatGPT, Google Gemini, Perplexity, Claude (Anthropic), Google AI Overview
-
-## Tech stack
-
-Next.js 15, React 19, tRPC, Drizzle ORM, Camoufox (anti-fingerprint Firefox), Playwright, BullMQ, ClickHouse, PostgreSQL 16, Redis, Better Auth
-
-## Links
-
-- Homepage: http://localhost:3001
-- Documentation: http://localhost:3001/docs
-- Repository: configure `NEXT_PUBLIC_GITHUB_REPO_URL`
-- License: MIT
-- Self-hosted setup: http://localhost:3001/docs/self-hosted-setup
+Product flow: scan the official site, confirm the product profile, preview all
+prompts and hashes, start a formal series, inspect hierarchical results, and
+schedule the same frozen set weekly or monthly.

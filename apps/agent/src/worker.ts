@@ -5,9 +5,9 @@ import {
 	getQueueName,
 	redis,
 	waitForRedis,
-} from "@answerloom/services";
-import type { Provider } from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+} from "@aloom/services";
+import type { Provider } from "@aloom/types";
+import { logger } from "@aloom/utils";
 import { Worker } from "bullmq";
 import { env } from "./env.js";
 import { focusProviderSession } from "./lib/browser/providerSessionManager.js";
@@ -17,14 +17,14 @@ import { handleJob, stopActiveProviderRun } from "./worker/jobHandler.js";
 // Exported so index.ts can call worker.close() during graceful shutdown.
 export let workers: Worker[] = [];
 const WORKER_LOCK_DURATION_MS = 4 * 60 * 60 * 1000;
-const PROVIDER_STOP_CHANNEL = "answerloom:agent:provider-stop";
-const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
+const PROVIDER_STOP_CHANNEL = "aloom:agent:provider-stop";
+const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
 
 async function startWorkers() {
 	await waitForRedis();
 	const writeHeartbeat = async () => {
 		await redis.set(
-			"answerloom:agent:heartbeat",
+			"aloom:agent:heartbeat",
 			new Date().toISOString(),
 			"EX",
 			90,

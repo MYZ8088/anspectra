@@ -30,12 +30,13 @@ import {
 	saveDetectionSchedule,
 	startGeoCollectionRun,
 	suggestProfileFromSite,
-} from "@answerloom/services";
+} from "@aloom/services";
 import {
 	GEO_DECISION_STAGE_LIST,
 	GEO_INTENT_LIST,
+	PROVIDER_MODE_LIST,
 	SAMPLING_DEPTH_LIST,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { authorizedWorkspaceProcedure } from "../../procedures";
@@ -219,9 +220,17 @@ export const geoRouter = createTRPCRouter({
 	startDetection: authorizedWorkspaceProcedure
 		.use(createRateLimiter("geo.startDetection", { limit: 4, windowSecs: 60 }))
 		.input(
-			z.object({
-				promptSetId: z.string().uuid(),
-				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
+				z.object({
+					promptSetId: z.string().uuid(),
+					providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
+					providerModes: z
+						.object({
+							doubao: z.enum(PROVIDER_MODE_LIST).optional(),
+							deepseek: z.enum(PROVIDER_MODE_LIST).optional(),
+							hunyuan: z.enum(PROVIDER_MODE_LIST).optional(),
+							qwen: z.enum(PROVIDER_MODE_LIST).optional(),
+						})
+						.optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
@@ -229,7 +238,8 @@ export const geoRouter = createTRPCRouter({
 				workspaceId: ctx.workspaceId,
 				userId: ctx.user.id,
 				promptSetId: input.promptSetId,
-				providers: input.providers,
+					providers: input.providers,
+					providerModes: input.providerModes,
 				requiredPurpose: "baseline",
 			}),
 		),
@@ -308,6 +318,14 @@ export const geoRouter = createTRPCRouter({
 			z.object({
 				promptSetId: z.string().uuid(),
 				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).min(1),
+				providerModes: z
+					.object({
+						doubao: z.enum(PROVIDER_MODE_LIST).optional(),
+						deepseek: z.enum(PROVIDER_MODE_LIST).optional(),
+						hunyuan: z.enum(PROVIDER_MODE_LIST).optional(),
+						qwen: z.enum(PROVIDER_MODE_LIST).optional(),
+					})
+					.optional(),
 				cadence: z.enum(["weekly", "monthly"]),
 				timezone: z.string().trim().min(1),
 				localTime: z.string().regex(/^\d{2}:\d{2}$/),

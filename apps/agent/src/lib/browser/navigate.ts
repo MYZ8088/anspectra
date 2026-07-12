@@ -1,5 +1,5 @@
-import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
-import { RETRYABLE_ERRORS, logger } from "@answerloom/utils";
+import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
+import { RETRYABLE_ERRORS, logger } from "@aloom/utils";
 import type { Page } from "playwright";
 
 function jitter(baseMs: number, factor = 0.3): number {

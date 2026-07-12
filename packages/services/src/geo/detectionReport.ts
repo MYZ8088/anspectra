@@ -1,5 +1,5 @@
-import { clickhouse, db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { clickhouse, db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	BrandAnalysisResult,
 	DetectionReport,
@@ -7,7 +7,7 @@ import type {
 	DetectionSliceMetrics,
 	DetectionSuiteKey,
 	SamplingDepth,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
 	calculateBaselineScorecard,
@@ -28,8 +28,12 @@ type ReportSample = ScorecardSample & {
 	sources: RawSource[];
 	conversationId: string | null;
 	conversationUrl: string | null;
+	requestedMode: string;
+	actualMode: string | null;
 	errorCode: string | null;
 	errorMessage: string | null;
+	analysisErrorCode: string | null;
+	analysisErrorMessage: string | null;
 };
 
 type RawAnswerRow = {
@@ -185,6 +189,8 @@ export function buildDetectionSlices(args: {
 		competitor: (row) => dimensionValue(row, "targetCompetitor"),
 		audience: (row) => dimensionValue(row, "targetAudience"),
 		region: (row) => dimensionValue(row, "targetRegion"),
+		provider_mode: (row) =>
+			`${row.provider}:${row.actualMode ?? row.requestedMode}`,
 		prompt: (row) => row.prompt?.promptHash ?? row.prompt?.id ?? null,
 		intent_stage: (row) =>
 			row.prompt?.intent && row.prompt.decisionStage
@@ -202,6 +208,7 @@ export function buildDetectionSlices(args: {
 		competitor: [],
 		audience: [],
 		region: [],
+		provider_mode: [],
 		prompt: [],
 		intent_stage: [],
 	};
@@ -235,6 +242,63 @@ export function buildDetectionSlices(args: {
 			.sort((left, right) => left.label.localeCompare(right.label));
 	}
 	return result;
+}
+
+export function buildDetectionFailureBreakdown(
+	rows: ReportSample[],
+): DetectionReport["failures"] {
+	const grouped = new Map<string, DetectionReport["failures"][number]>();
+	for (const row of rows) {
+		if (row.status !== "completed") {
+			const code = row.errorCode ?? row.status;
+			const key = `collection:${code}`;
+			const current = grouped.get(key) ?? {
+				kind: "collection" as const,
+				code,
+				count: 0,
+			};
+			current.count += 1;
+			grouped.set(key, current);
+		}
+		if (row.analysisStatus === "failed") {
+			const code = row.analysisErrorCode ?? "analysis_failed";
+			const key = `analysis:${code}`;
+			const current = grouped.get(key) ?? {
+				kind: "analysis" as const,
+				code,
+				count: 0,
+			};
+			current.count += 1;
+			grouped.set(key, current);
+		}
+	}
+	return [...grouped.values()].sort(
+		(left, right) => right.count - left.count || left.code.localeCompare(right.code),
+	);
+}
+
+export function buildDetectionExecutiveSummary(args: {
+	rows: ReportSample[];
+	plannedSamples: number;
+	slices: Record<DetectionSliceKey, DetectionSliceMetrics[]>;
+	competitors: Array<{ name: string; mentions: number; recommendations: number }>;
+}): string[] {
+	const overall = args.slices.overall[0];
+	if (!overall) return ["No planned samples are available for this series."];
+	const bestProvider = [...args.slices.provider].sort(
+		(left, right) => right.mentionRate.value - left.mentionRate.value,
+	)[0];
+	const topCompetitor = args.competitors[0];
+	return [
+		`${overall.completed} of ${args.plannedSamples} planned samples were collected (${overall.completionRate}%).`,
+		`Across all planned samples, the target appeared in ${overall.mentionRate.value}% and was recommended in ${overall.recommendationRate.value}%.`,
+		bestProvider
+			? `${bestProvider.label} had the highest measured mention rate at ${bestProvider.mentionRate.value}%.`
+			: "No provider has enough analysed answers for a provider comparison.",
+		topCompetitor
+			? `${topCompetitor.name} was the most frequently observed competitor (${topCompetitor.mentions} answer mentions).`
+			: "No competitor mentions were extracted from the analysed answers.",
+	];
 }
 
 export async function getDetectionReport(args: {
@@ -306,6 +370,8 @@ export async function getDetectionReport(args: {
 			provider: checkpoint.provider,
 			status: checkpoint.status,
 			analysisStatus: checkpoint.analysisStatus,
+			analysisErrorCode: checkpoint.analysisErrorCode,
+			analysisErrorMessage: checkpoint.analysisErrorMessage,
 			sourceExposure: checkpoint.sourceExposure,
 			analyticsSampleId: checkpoint.analyticsSampleId,
 			prompt: prompt
@@ -327,6 +393,8 @@ export async function getDetectionReport(args: {
 			sources: sourcesFromUnknown(raw?.sources),
 			conversationId: checkpoint.conversationId,
 			conversationUrl: checkpoint.conversationUrl,
+			requestedMode: checkpoint.requestedMode,
+			actualMode: checkpoint.actualMode,
 			errorCode: checkpoint.errorCode,
 			errorMessage: checkpoint.errorMessage,
 		};
@@ -361,6 +429,14 @@ export async function getDetectionReport(args: {
 			competitorMap.set(key, current);
 		}
 	}
+	const slices = buildDetectionSlices({
+		rows,
+		tier: series.tier,
+		requiredProviders: series.requiredProviders ?? [],
+	});
+	const competitors = [...competitorMap.values()].sort(
+		(left, right) => right.mentions - left.mentions,
+	);
 	return {
 		seriesId: series.id,
 		promptSetId: promptSet.id,
@@ -374,26 +450,50 @@ export async function getDetectionReport(args: {
 		suiteKey,
 		samplingDepth,
 		createdAt: series.createdAt,
-		slices: buildDetectionSlices({
+		methodology: {
+			analysisUnit: "single_answer",
+			answersPerAnalysisCall: 1,
+			aggregation: "deterministic_structured_rollup",
+			plannedSamples: series.plannedSamples,
+			checkpointSamples: rows.length,
+			uniquePromptHashes: new Set(
+				rows.flatMap((row) => row.prompt?.promptHash ?? []),
+			).size,
+			totalResponseCharacters: rows.reduce(
+				(total, row) => total + (row.response?.length ?? 0),
+				0,
+			),
+			largestResponseCharacters: Math.max(
+				0,
+				...rows.map((row) => row.response?.length ?? 0),
+			),
+		},
+		executiveSummary: buildDetectionExecutiveSummary({
 			rows,
-			tier: series.tier,
-			requiredProviders: series.requiredProviders ?? [],
+			plannedSamples: series.plannedSamples,
+			slices,
+			competitors,
 		}),
-		competitors: [...competitorMap.values()].sort(
-			(left, right) => right.mentions - left.mentions,
-		),
+		failures: buildDetectionFailureBreakdown(rows),
+		slices,
+		competitors,
 		samples: rows.map((row) => ({
 			checkpointId: row.id,
 			provider: row.provider,
 			status: row.status,
 			analysisStatus: row.analysisStatus,
+			analysisErrorCode: row.analysisErrorCode,
+			analysisErrorMessage: row.analysisErrorMessage,
 			prompt: row.prompt?.prompt ?? "",
 			promptHash: row.prompt?.promptHash ?? null,
 			intent: row.prompt?.intent ?? "unknown",
 			decisionStage: row.prompt?.decisionStage ?? null,
 			locale: row.prompt?.locale ?? "unknown",
 			brandExposure: row.prompt?.brandExposure ?? null,
+			requestedMode: row.requestedMode as DetectionReport["samples"][number]["requestedMode"],
+			actualMode: row.actualMode as DetectionReport["samples"][number]["actualMode"],
 			response: row.response,
+			responseLength: row.response?.length ?? 0,
 			sources: row.sources,
 			sourceExposure: row.sourceExposure,
 			conversationId: row.conversationId,

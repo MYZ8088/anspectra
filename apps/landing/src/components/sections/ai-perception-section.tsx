@@ -1,5 +1,5 @@
 import { PREVIEW_PERCEPTION } from "@/lib/preview-data";
-import { BrandPerceptionCard } from "@answerloom/ui";
+import { BrandPerceptionCard } from "@aloom/ui";
 import { CheckCircle2 } from "lucide-react";
 
 export function AiPerceptionSection(): React.JSX.Element {

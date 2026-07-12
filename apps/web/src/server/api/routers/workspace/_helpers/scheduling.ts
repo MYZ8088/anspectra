@@ -1,4 +1,4 @@
-import { ValidationError } from "@answerloom/errors";
+import { ValidationError } from "@aloom/errors";
 import { CronExpressionParser } from "cron-parser";
 
 export function parseCronExpressionOrThrow(cronExpression: string) {

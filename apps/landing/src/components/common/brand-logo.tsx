@@ -1,4 +1,4 @@
-import { cn } from "@answerloom/utils";
+import { cn } from "@aloom/utils";
 
 type BrandLogoProps = {
 	alt?: string;
@@ -8,7 +8,7 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({
-	alt = "AnswerLoom",
+	alt = "Aloom",
 	className,
 	darkClassName,
 	lightClassName,

@@ -23,7 +23,7 @@ function anonymousId(userId: string): string {
 }
 
 function shouldCaptureTelemetry(): boolean {
-	if (process.env.ANSWERLOOM_DISABLE_TELEMETRY === "true") {
+	if (process.env.ALOOM_DISABLE_TELEMETRY === "true") {
 		return false;
 	}
 
@@ -31,7 +31,7 @@ function shouldCaptureTelemetry(): boolean {
 		return false;
 	}
 
-	return process.env.ANSWERLOOM_APP_MODE !== "local";
+	return process.env.ALOOM_APP_MODE !== "local";
 }
 
 async function capture(event: string, userId: string): Promise<void> {

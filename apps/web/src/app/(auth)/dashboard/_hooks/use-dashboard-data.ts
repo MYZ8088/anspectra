@@ -1,11 +1,11 @@
-import type { AnalysisRecord, BrandAnalysisResult } from "@answerloom/types";
+import type { AnalysisRecord, BrandAnalysisResult } from "@aloom/types";
 import {
 	buildSourceOccurrenceKey,
 	compareDashboardCompetitors,
 	filterAnalysisRecords,
 	getDomain,
 	removeUrlParams,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import { useMemo } from "react";
 import type { CompetitorData, DashboardMetrics } from "../_utils/types";
 

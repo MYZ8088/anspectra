@@ -1,11 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
-import { db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	AskPromptResult,
 	Provider,
+	ProviderMode,
 	PromptAttemptUpdate,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { storePromptResponses } from "../prompt/storePromptResponses.js";
 import {
@@ -16,7 +17,7 @@ import {
 	recordGeoSampleAttempt,
 } from "./runs.js";
 
-const COLLECTOR_TOKEN_PREFIX = "answerloom_collector_";
+const COLLECTOR_TOKEN_PREFIX = "aloom_collector_";
 const LEGACY_COLLECTOR_TOKEN_PREFIX = "ogl_collector_";
 
 function hashDeviceToken(token: string): string {
@@ -46,7 +47,7 @@ export async function pairCollectorNode(args: {
 		GEO_WEB_PROVIDERS.map((provider) => ({
 			workspaceId: args.workspaceId,
 			collectorNodeId: collector.id,
-			provider,
+				provider,
 			profileKey: `${collector.id}:${provider}`,
 			status: "disconnected",
 		})),
@@ -177,8 +178,10 @@ export async function claimCollectorTask(deviceToken: string) {
 			userId: String(
 				((run.metadata ?? {}) as Record<string, unknown>).userId || "collector",
 			),
-			provider,
-			prompts: prompts.map((prompt) => ({
+				provider,
+				providerMode: (providerCheckpoints[0]?.requestedMode ??
+					"default") as ProviderMode,
+				prompts: prompts.map((prompt) => ({
 				id: prompt.id,
 				prompt: prompt.prompt,
 			})),
@@ -234,8 +237,8 @@ export async function recordCollectorSampleAttempt(args: {
 	deviceToken: string;
 	runId: string;
 	provider: Provider;
-	requestedMode?: "default" | "web_search";
-	actualMode?: "default" | "web_search";
+	requestedMode?: ProviderMode;
+	actualMode?: ProviderMode;
 	update: PromptAttemptUpdate;
 }) {
 	const collector = await authenticateCollector(args.deviceToken);

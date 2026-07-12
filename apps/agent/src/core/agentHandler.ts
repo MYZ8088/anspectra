@@ -3,7 +3,7 @@ import type {
 	PromptAttemptUpdate,
 	PromptPayload,
 	Provider,
-} from "@answerloom/types";
+} from "@aloom/types";
 import {
 	type AgentFactory,
 	type AttemptExecutor,

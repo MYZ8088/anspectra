@@ -1,6 +1,6 @@
 "use client";
 
-import { cleanCitedText, getDomain, getFaviconUrls } from "@answerloom/utils";
+import { cleanCitedText, getDomain, getFaviconUrls } from "@aloom/utils";
 import { useMemo, useState } from "react";
 
 export type HoverSourceLink = {

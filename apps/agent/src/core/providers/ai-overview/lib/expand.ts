@@ -1,4 +1,4 @@
-import { logger } from "@answerloom/utils";
+import { logger } from "@aloom/utils";
 import type { Page } from "playwright";
 
 const AI_OVERVIEW_SOURCE_ROOT_SELECTOR = '[data-container-id="rhs-col"]';

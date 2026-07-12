@@ -26,3 +26,8 @@
 !packages/ui/**
 !packages/utils
 !packages/utils/**
+
+**/.next
+**/dist
+**/node_modules
+**/*.tsbuildinfo

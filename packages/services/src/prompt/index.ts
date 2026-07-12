@@ -7,4 +7,3 @@ export {
 	unscheduleCronForPrompts,
 } from "./scheduler.js";
 export { storePromptResponses } from "./storePromptResponses.js";
-export { storePromptsForWorkspace } from "./storePromptsForWorkspace.js";

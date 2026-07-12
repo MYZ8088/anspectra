@@ -79,7 +79,7 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 	},
 ];
 
-export const STORAGE_KEY = "answerloom-landing-theme" as const;
+export const STORAGE_KEY = "aloom-landing-theme" as const;
 
 export const METHOD_POINTS = [
 	"Doubao, DeepSeek, Yuanbao, and Qwen are monitored through their official Web interfaces, never through model APIs.",

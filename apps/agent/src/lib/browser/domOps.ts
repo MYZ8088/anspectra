@@ -1,4 +1,4 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import type { Page as PlaywrightPage } from "playwright-core";
 import { PROVIDER_RAW_SOURCES_DOM_EXTRACTORS } from "../../core/providers/_shared/rawSourcesDom.js";
 
@@ -159,7 +159,7 @@ export async function runPageDomOp<T>(
 			}> | null {
 				const cache = (
 					window as typeof window & {
-						__answerloomRawSourcesCache?: Record<
+						__aloomRawSourcesCache?: Record<
 							string,
 							Array<{
 								rawHref: string;
@@ -168,7 +168,7 @@ export async function runPageDomOp<T>(
 							}>
 						>;
 					}
-				).__answerloomRawSourcesCache;
+				).__aloomRawSourcesCache;
 
 				return cache?.[key] ?? null;
 			}
@@ -182,7 +182,7 @@ export async function runPageDomOp<T>(
 				}>,
 			): void {
 				const state = window as typeof window & {
-					__answerloomRawSourcesCache?: Record<
+					__aloomRawSourcesCache?: Record<
 						string,
 						Array<{
 							rawHref: string;
@@ -191,8 +191,8 @@ export async function runPageDomOp<T>(
 						}>
 					>;
 				};
-				state.__answerloomRawSourcesCache ||= {};
-				state.__answerloomRawSourcesCache[key] = rawSources;
+				state.__aloomRawSourcesCache ||= {};
+				state.__aloomRawSourcesCache[key] = rawSources;
 			}
 
 			function extractClaudeRawSourcesFromResponseElement(

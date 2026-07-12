@@ -1,101 +1,63 @@
 ---
 title: Local Setup
-description: Run the full AnswerLoom stack on your own machine for the fastest setup, interactive provider auth, and manual prompt runs.
+description: Run the Aloom control plane, data services, and local Camoufox collector.
 ---
-
-## When to choose local
-
-Local mode is the fastest way to get started.
-
-It is also the most reliable place to capture provider auth because it uses your real machine, your real browser environment, and your normal IP reputation.
 
 ## Requirements
 
+- macOS or Windows
 - Node.js 20+
 - pnpm 10+
-- Docker
+- Docker Desktop
+- Python 3.12
 
-If you do not have pnpm:
-
-```bash
-npm install -g pnpm@latest
-```
-
-## 1. Clone and configure
+## 1. Configure
 
 ```bash
-# From your AnswerLoom checkout:
-cd answerloom
+git clone https://github.com/MYZ8088/aloom.git
+cd aloom
 cp .env.example .env
+pnpm install
 ```
 
-Set your analysis LLM key in `.env`:
+Set an analysis provider in `.env`. AIHubMix is the default:
 
 ```bash
-# Pick one:
-OPENAI_API_KEY=sk-...
-
-# or:
-ANTHROPIC_API_KEY=sk-ant-...
-ANALYSIS_LLM_PROVIDER=claude
+AIHUBMIX_API_KEY=replace-with-your-key
+ANALYSIS_LLM_PROVIDER=aihubmix
 ```
 
-## 2. Start the local stack
+OpenAI and Anthropic remain optional analysis backends. They do not provide
+formal monitoring samples.
+
+## 2. Provision Camoufox
+
+```bash
+pnpm camoufox:setup
+pnpm camoufox:doctor
+```
+
+The runtime and persistent provider profiles live under `.aloom-storage/`,
+which is excluded from Git and Docker build contexts.
+
+## 3. Start Aloom
 
 ```bash
 pnpm local
 ```
 
-The app runs at [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). `pnpm local` starts
+PostgreSQL, ClickHouse, Redis, the Next.js app, and the collector.
 
-On first run, AnswerLoom:
+## 4. Connect providers
 
-- Starts Postgres, ClickHouse, and Redis
-- Runs migrations
-- Bootstraps the browser runtime
+Open Providers and connect each official Web account. The same persistent
+profile is used for sign-in and later collection. Normal detection uses a
+headed window that is automatically minimized; sign-in, inspection, or human
+verification restores that same real provider window.
 
-`pnpm local` uses your latest local source code for the web app and agent. It does not depend on pulling published web or agent images, and it now asks Docker for fresher local service and base images before starting the local infra stack.
+## 5. Create a detection
 
-## 3. Connect providers
-
-Then:
-
-1. Sign up with email
-2. Connect your AI provider accounts
-3. Add prompts and run
-
-If Google OAuth is configured for the web app, users can also sign in with Google. That is separate from monitoring Google AI Overview, which still uses provider sessions captured through the browser auth flow.
-
-## Why AnswerLoom uses UI collection
-
-AnswerLoom does not rely on official model APIs for provider collection.
-
-Instead, it opens the real chat interfaces and captures what the provider UI actually renders. That matters because the UI can include:
-
-- Citations and source cards
-- Recommendation ordering
-- Brand framing and comparisons
-- Provider-specific formatting that never appears in raw API output
-
-This is the core product differentiator. GEO is about what users actually see inside the product surface, not just what a developer API returns.
-
-For more context on why UI answers and API answers differ, see [LLM scraped AI answers vs API results](https://surferseo.com/blog/llm-scraped-ai-answers-vs-api-results/).
-
-## Why AnswerLoom uses Camoufox
-
-Provider websites are authenticated consumer apps with anti-bot protections.
-
-AnswerLoom uses [Camoufox](https://github.com/daijro/camoufox), an anti-fingerprint Firefox-based browser, because plain Chrome or Chromium automation is much more likely to run into:
-
-- Login loops
-- Forced verification challenges
-- Unstable sessions
-- Blocked or degraded collection flows
-
-Camoufox gives the runtime a more suitable browser fingerprint profile for authenticated UI collection, which makes provider sessions materially more reliable in practice.
-
-## Related pages
-
-- [Getting Started](/getting-started)
-- [Self-Hosted Setup](/self-hosted-setup)
-- [Environment Variables](/environment-variables)
+Use New Detection to scan a product website, confirm its profile, select a
+fixed suite, preview all prompts, and create a frozen series. Arbitrary custom
+prompts are not accepted in formal Aloom reports.

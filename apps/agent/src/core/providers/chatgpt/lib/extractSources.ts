@@ -1,4 +1,4 @@
-import type { Source } from "@answerloom/types";
+import type { Source } from "@aloom/types";
 import type { Locator, Page } from "playwright";
 import {
 	type RawSource,

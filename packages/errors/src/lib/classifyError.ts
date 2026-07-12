@@ -1,4 +1,4 @@
-import type { FailureType } from "@answerloom/types";
+import type { FailureType } from "@aloom/types";
 import { HumanChallengeError } from "../error/HumanChallengeError.js";
 import { toErrorMessage } from "./toErrorMessage.js";
 

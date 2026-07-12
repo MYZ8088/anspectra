@@ -1,375 +1,50 @@
-import { spawnSync } from "node:child_process";
-import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
-import {
-	ensureAuthDirectories,
-	getRuntimeProfileSeedPlan,
-} from "@answerloom/services/agent-auth";
-import {
-	type Provider,
-	resolveAppMode,
-	shouldUseProxyInMode,
-} from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+import { ExternalServiceError } from "@aloom/errors";
+import { type Provider, resolveAppMode } from "@aloom/types";
 import type { Browser, BrowserContext } from "playwright";
-import { firefox } from "playwright-core";
 import { env } from "../../env.js";
-import {
-	type CamoufoxProxyConfig,
-	resolveCamoufoxLaunchOptions,
-} from "./camoufox.js";
-import { ensureDisplay } from "./display.js";
-import type { DisplayHandle } from "./display.js";
-import { PlaywrightBrowserContextCompat } from "./playwrightCompat.js";
 import { acquireProviderSession } from "./providerSessionManager.js";
-import {
-	type ProxyScheme,
-	type UpstreamProxyConfig,
-	checkProxyReachable,
-} from "./proxy/forwarder.js";
+import type { ProviderSessionVisibility } from "./providerSessionManager.js";
 
-const DEFAULT_PROXY_PORT: Record<ProxyScheme, number> = {
-	http: 80,
-	https: 443,
-};
-const THORDATA_PROXY_API_TIMEOUT_MS = 10_000;
-const leasedThorDataProxyUrls = new Set<string>();
-
-// Serialize all proxy acquisitions to prevent race conditions where two
-// providers fetch the same list and pick the same entry before either has
-// added it to the leased set.
-let proxyAcquisitionLock = Promise.resolve();
-
-// Proxy quarantine — hosts that trigger bot detection or hard failures are
-// quarantined for a cooldown period so they are not immediately reused.
-const QUARANTINE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const quarantinedProxies = new Map<string, number>(); // host:port → expiry
-
-type FirefoxLaunchOptions = NonNullable<Parameters<typeof firefox.launch>[0]>;
-function resolveRuntimeHeadlessMode(): "virtual" | "headful" | "headless" {
-	const configuredMode = process.env.CAMOUFOX_HEADLESS_MODE as
-		| "virtual"
-		| "headful"
-		| "headless"
-		| undefined;
-	if (configuredMode === "headless" || configuredMode === "headful") {
-		return configuredMode;
-	}
-
-	const appMode = resolveAppMode(env.ANSWERLOOM_APP_MODE);
-	if (appMode === "local") {
-		return "headful";
-	}
-
-	if (process.platform === "linux") {
-		return "virtual";
-	}
-
-	return "headless";
-}
-
-function quarantineProxy(hostPort: string): void {
-	quarantinedProxies.set(hostPort, Date.now() + QUARANTINE_TTL_MS);
-	logger.warn(
-		`[proxy-quarantine] ${hostPort} quarantined for ${QUARANTINE_TTL_MS / 60000}min`,
-	);
-}
-
-function isProxyQuarantined(hostPort: string): boolean {
-	const expiry = quarantinedProxies.get(hostPort);
-	if (!expiry) return false;
-	if (Date.now() >= expiry) {
-		quarantinedProxies.delete(hostPort);
-		return false;
-	}
-	return true;
-}
-
-type ProxyAllocation = {
-	proxy: UpstreamProxyConfig | null;
-	release: () => void;
-};
-
-function normalizeProxyScheme(protocol: string): ProxyScheme {
-	const normalized = protocol.trim().toLowerCase().replace(/:$/, "");
-
-	switch (normalized) {
-		case "http":
-		case "https":
-			return normalized;
-		default:
-			throw new Error(`unsupported proxy protocol: ${protocol}`);
-	}
-}
-
-function normalizeProxyHost(hostname: string): string {
-	return hostname.replace(/^\[(.*)\]$/, "$1");
-}
-
-function formatProxyServerUrl(
-	scheme: ProxyScheme,
-	host: string,
-	port: number,
-): string {
-	const hostPart =
-		host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
-	return `${scheme}://${hostPart}:${port}`;
-}
-
-function parseProxyConfig(
-	serverUrl: string,
-	username?: string,
-	password?: string,
-): UpstreamProxyConfig {
-	const parsed = new URL(serverUrl);
-	const scheme = normalizeProxyScheme(parsed.protocol);
-	const port = Number(parsed.port || DEFAULT_PROXY_PORT[scheme]);
-	if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-		throw new Error(`invalid proxy port: ${parsed.port}`);
-	}
-
-	return {
-		scheme,
-		host: normalizeProxyHost(parsed.hostname),
-		port,
-		username,
-		password,
-		serverUrl: `${scheme}://${parsed.host}`,
-		logProxy: `${scheme}://${parsed.host}`,
-	};
-}
-
-function parseThorDataProxyLine(
-	value: string,
-): { host: string; port: number } | null {
-	const trimmed = value.trim();
-	if (!trimmed) return null;
-
-	const separator = trimmed.lastIndexOf(":");
-	if (separator <= 0 || separator === trimmed.length - 1) {
-		return null;
-	}
-
-	const host = normalizeProxyHost(trimmed.slice(0, separator));
-	const port = Number(trimmed.slice(separator + 1));
-	if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) {
-		return null;
-	}
-
-	return { host, port };
-}
-
-async function acquireThorDataProxyInner(): Promise<ProxyAllocation> {
-	const apiUrl = env.THORDATA_PROXY_API_URL?.trim();
-	if (!apiUrl) {
-		throw new Error(
-			"THORDATA_PROXY_API_URL is required when using ThorData API proxy discovery.",
-		);
-	}
-
-	const response = await fetch(apiUrl, {
-		headers: { Accept: "text/plain" },
-		signal: AbortSignal.timeout(THORDATA_PROXY_API_TIMEOUT_MS),
-	});
-	if (!response.ok) {
-		throw new Error(
-			`ThorData proxy API failed (${response.status}): ${(await response.text()).slice(0, 200)}`,
-		);
-	}
-
-	const proxyLines = (await response.text())
-		.split(/\r?\n/)
-		.map((line) => parseThorDataProxyLine(line))
-		.filter((proxy): proxy is { host: string; port: number } => proxy !== null);
-
-	if (proxyLines.length === 0) {
-		throw new Error("ThorData proxy API returned no usable proxies.");
-	}
-
-	const scheme = normalizeProxyScheme(env.PROXY_SCHEME?.trim() || "http");
-	const candidates = proxyLines
-		.map((proxy) => {
-			const serverUrl = formatProxyServerUrl(scheme, proxy.host, proxy.port);
-			return {
-				proxy: parseProxyConfig(serverUrl),
-				serverUrl,
-				hostPort: `${proxy.host}:${proxy.port}`,
-			};
-		})
-		.filter(
-			({ serverUrl, hostPort }) =>
-				!leasedThorDataProxyUrls.has(serverUrl) &&
-				!isProxyQuarantined(hostPort),
-		);
-
-	if (candidates.length === 0) {
-		throw new Error(
-			"ThorData proxy API returned only proxies that are already leased or quarantined.",
-		);
-	}
-
-	const selected = candidates[Math.floor(Math.random() * candidates.length)];
-	if (!selected) {
-		throw new Error("Could not select a ThorData proxy from the API response.");
-	}
-
-	leasedThorDataProxyUrls.add(selected.serverUrl);
-	return {
-		proxy: selected.proxy,
-		release: () => {
-			leasedThorDataProxyUrls.delete(selected.serverUrl);
-		},
-	};
-}
-
-async function buildProxyAllocationInner(): Promise<ProxyAllocation> {
-	if (!shouldUseProxyInMode(resolveAppMode(env.ANSWERLOOM_APP_MODE))) {
-		return { proxy: null, release: () => {} };
-	}
-	return acquireThorDataProxyInner();
-}
-
-async function buildProxyAllocation(): Promise<ProxyAllocation> {
-	const result = proxyAcquisitionLock.then(() => buildProxyAllocationInner());
-	proxyAcquisitionLock = result.then(
-		() => {},
-		() => {},
-	);
-	return result;
-}
-
-function toCamoufoxProxyConfig(
-	proxy: UpstreamProxyConfig | null,
-): CamoufoxProxyConfig | undefined {
-	if (!proxy) return undefined;
-	return {
-		server: proxy.serverUrl,
-		username: proxy.username,
-		password: proxy.password,
-	};
-}
-
-export async function launchContext(provider: Provider): Promise<{
+export async function launchContext(
+	provider: Provider,
+	request: { taskId: string; visibility?: ProviderSessionVisibility },
+): Promise<{
 	browser: Browser;
 	context: BrowserContext;
+	page?: import("./runtimeTypes.js").Page;
 	proxy: string | null;
 	cleanup: () => Promise<void>;
 	invalidateProxyHint: () => Promise<void>;
-	holdForHuman?: (page: import("./runtimeTypes.js").Page) => void;
+	holdForHuman?: (page: import("./runtimeTypes.js").Page) => Promise<void>;
 	resumePage?: import("./runtimeTypes.js").Page | null;
 	minimizeWindow?: () => Promise<void>;
 	focusWindow?: () => Promise<void>;
+	visibility?: ProviderSessionVisibility;
 }> {
-	const appMode = resolveAppMode(env.ANSWERLOOM_APP_MODE);
-	if (appMode === "local") {
-		const lease = await acquireProviderSession(provider);
-		return {
-			browser: lease.browser as Browser,
-			context: lease.context as BrowserContext,
-			proxy: null,
-			cleanup: lease.release,
-			invalidateProxyHint: lease.invalidate,
-			holdForHuman: lease.holdForHuman,
-			resumePage: lease.resumePage,
-			minimizeWindow: lease.minimizeWindow,
-			focusWindow: lease.focusWindow,
-		};
-	}
-
-	let upstreamProxy: UpstreamProxyConfig | null = null;
-	let releaseProxyLease = () => {};
-	let invalidateProxyHint: () => Promise<void> = async () => {};
-	let displayHandle: DisplayHandle | null = null;
-	let rawBrowser: import("playwright-core").Browser | null = null;
-	let rawContext: import("playwright-core").BrowserContext | null = null;
-	let context: PlaywrightBrowserContextCompat | null = null;
-
-	const cleanup = async () => {
-		await context?.close().catch(() => null);
-		await rawBrowser?.close().catch(() => null);
-		releaseProxyLease();
-		await displayHandle?.cleanup().catch(() => null);
-	};
-
-	try {
-		const runtimeHeadlessMode = resolveRuntimeHeadlessMode();
-		if (shouldUseProxyInMode(appMode)) {
-			logger.log("resolving proxy before browser launch");
-			const proxyAllocation = await buildProxyAllocation();
-			upstreamProxy = proxyAllocation.proxy;
-			releaseProxyLease = proxyAllocation.release;
-			if (upstreamProxy) {
-				logger.log(
-					`selected proxy for browser launch: ${upstreamProxy.logProxy}`,
-				);
-				const reachable = await checkProxyReachable(
-					upstreamProxy.host,
-					upstreamProxy.port,
-				);
-				if (!reachable) {
-					throw new Error(
-						`proxy connect failed: ${upstreamProxy.logProxy} unreachable (TCP pre-check)`,
-					);
-				}
-				const hostPort = `${upstreamProxy.host}:${upstreamProxy.port}`;
-				invalidateProxyHint = async () => {
-					quarantineProxy(hostPort);
-				};
-			} else {
-				throw new Error(
-					"no proxy resolved for browser launch — aborting (direct connection is not allowed)",
-				);
-			}
-		}
-
-		displayHandle =
-			runtimeHeadlessMode === "headless"
-				? null
-				: await ensureDisplay({ allowExistingDisplay: false });
-		const display =
-			runtimeHeadlessMode === "headless" ? undefined : displayHandle?.display;
-
-		ensureAuthDirectories();
-		const runtimeSeedPlan = await getRuntimeProfileSeedPlan(provider);
-
-		const camoufoxOptions = await resolveCamoufoxLaunchOptions({
-			display,
-			provider,
-			proxy: toCamoufoxProxyConfig(upstreamProxy),
-			headlessMode: runtimeHeadlessMode,
-		});
-		const launchOptions: FirefoxLaunchOptions = {
-			...(camoufoxOptions as FirefoxLaunchOptions),
-		};
-		rawBrowser = await firefox.launch(launchOptions);
-		rawContext = await rawBrowser.newContext({
-			...(runtimeHeadlessMode === "headless" ? {} : { viewport: null }),
-			...(runtimeSeedPlan.authStatePath
-				? { storageState: runtimeSeedPlan.authStatePath }
-				: {}),
-		});
-
-		context = new PlaywrightBrowserContextCompat(rawContext);
-		const browser =
-			(rawBrowser as unknown as Browser | null) ?? context.getBrowser();
-
-		return {
-			browser,
-			context,
-			proxy: upstreamProxy?.logProxy ?? null,
-			cleanup,
-			invalidateProxyHint,
-			holdForHuman: undefined,
-			minimizeWindow: undefined,
-			focusWindow: undefined,
-		};
-	} catch (error) {
-		await cleanup();
+	if (resolveAppMode(env.ALOOM_APP_MODE) !== "local") {
 		throw new ExternalServiceError(
 			"browser",
-			toErrorMessage(error),
-			502,
+			"Official Web collection requires a paired local collector. Server-side browser collection is disabled.",
+			409,
 			{ provider },
-			error,
 		);
 	}
+
+	const lease = await acquireProviderSession(provider, {
+		taskId: request.taskId,
+		visibility: request.visibility ?? "headful",
+	});
+	return {
+		browser: lease.browser as Browser,
+		context: lease.context as BrowserContext,
+		page: lease.page,
+		proxy: null,
+		cleanup: lease.release,
+		invalidateProxyHint: lease.invalidate,
+		holdForHuman: lease.holdForHuman,
+		resumePage: lease.resumePage,
+		minimizeWindow: lease.minimizeWindow,
+		focusWindow: lease.focusWindow,
+		visibility: lease.visibility,
+	};
 }

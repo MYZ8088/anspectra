@@ -1,8 +1,8 @@
-import { db, schema } from "@answerloom/db";
-import type { Workspace } from "@answerloom/db";
-import { ValidationError } from "@answerloom/errors";
-import type { CreateWorkspaceForTenantArgs } from "@answerloom/types";
-import { newId } from "@answerloom/utils";
+import { db, schema } from "@aloom/db";
+import type { Workspace } from "@aloom/db";
+import { ValidationError } from "@aloom/errors";
+import type { CreateWorkspaceForTenantArgs } from "@aloom/types";
+import { newId } from "@aloom/utils";
 import { and, eq, isNull } from "drizzle-orm";
 
 export async function createWorkspaceForTenant(

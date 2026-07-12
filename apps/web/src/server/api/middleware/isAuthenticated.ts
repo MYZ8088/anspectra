@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AuthError } from "@answerloom/errors";
+import { AuthError } from "@aloom/errors";
 import { t } from "../trpc";
 
 export const isAuthenticated = t.middleware(async ({ next, ctx }) => {

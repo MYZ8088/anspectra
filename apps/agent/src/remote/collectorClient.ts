@@ -1,11 +1,12 @@
-import { HumanChallengeError, toErrorMessage } from "@answerloom/errors";
-import { readAuthenticatedRuntimeProviders } from "@answerloom/services/agent-auth";
+import { HumanChallengeError, toErrorMessage } from "@aloom/errors";
+import { readAuthenticatedRuntimeProviders } from "@aloom/services/agent-auth";
 import type {
 	AskPromptResult,
 	PromptPayload,
 	Provider,
-} from "@answerloom/types";
-import { createProviderLogger, logger } from "@answerloom/utils";
+	ProviderMode,
+} from "@aloom/types";
+import { createProviderLogger, logger } from "@aloom/utils";
 import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";
 import { PROVIDER_CONFIGS } from "../core/providers/index.js";
@@ -24,6 +25,7 @@ type CollectorTask = {
 	prompts: Array<{ id: string; prompt: string }>;
 	minPromptDelayMs: number;
 	maxPromptDelayMs: number;
+	providerMode: ProviderMode;
 };
 
 const WEB_PROVIDERS: Provider[] = ["doubao", "deepseek", "hunyuan", "qwen"];
@@ -69,6 +71,7 @@ async function executeTask(task: CollectorTask): Promise<void> {
 		workspace_id: task.workspaceId,
 		prompts: task.prompts,
 		created_at: promptRunAt,
+		providerMode: task.providerMode,
 		sampling: {
 			minPromptDelayMs: task.minPromptDelayMs,
 			maxPromptDelayMs: task.maxPromptDelayMs,
@@ -76,9 +79,13 @@ async function executeTask(task: CollectorTask): Promise<void> {
 	};
 	let completed = 0;
 	try {
-		const results = await agentHandler(
-			PROVIDER_CONFIGS[task.provider].label,
-			() => createAgent(task.provider),
+			const results = await agentHandler(
+				PROVIDER_CONFIGS[task.provider].label,
+				() =>
+					createAgent(task.provider, {
+						taskId: `remote-collection:${task.taskId}:${task.provider}`,
+						visibility: "headful",
+					}),
 			payload,
 			task.provider,
 			{
@@ -86,7 +93,8 @@ async function executeTask(task: CollectorTask): Promise<void> {
 					await request("attempt", {
 						runId: task.runId,
 						provider: task.provider,
-						requestedMode: "default",
+							requestedMode: update.requestedMode ?? task.providerMode,
+							actualMode: update.actualMode,
 						...update,
 					});
 				},

@@ -49,10 +49,10 @@ describe("Yao Full GEO Pack", () => {
 		(locale) => {
 			const plan = planMonitorPrompts(
 				{
-					brandName: "AnswerLoom",
+					brandName: "Aloom",
 					category: "GEO monitoring software",
 					industry: "B2B software",
-					products: ["AnswerLoom Monitor"],
+					products: ["Aloom Monitor"],
 					competitors: ["Competitor Atlas"],
 					audiences: ["growth teams"],
 					regions: ["APAC"],

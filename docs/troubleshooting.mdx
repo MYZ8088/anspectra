@@ -1,146 +1,71 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues when setting up and running AnswerLoom.
----
-
+description: Diagnose Aloom local collectors, provider sessions, and data services.
 ---
 
 ## Camoufox fails to start
 
-**Symptom:** Agent crashes immediately with a Python or pip error.
-
-**Cause:** Python 3 is not on the PATH or the wrong binary is being used.
-
-**Fix:** Find your Python 3 binary and set it explicitly:
+Run:
 
 ```bash
-which python3
-# e.g. /opt/homebrew/bin/python3
+pnpm camoufox:doctor
+pnpm camoufox:setup
 ```
 
-Add to `.env`:
+The setup command rebuilds a broken virtual environment without deleting
+persistent provider profiles.
+
+## Provider window is cropped
+
+Aloom uses a stable 1360 by 760 content area for collection and a larger login
+window. If macOS cannot verify the requested frame while the screen is locked,
+unlock the machine and reopen the provider from Providers.
+
+## Provider shows waiting for verification
+
+Open Runs, select the affected series, and choose **Open window**. Complete the
+official provider login, QR, CAPTCHA, or security confirmation yourself, then
+choose **I completed it**. Aloom rechecks the original page and resumes the
+unfinished checkpoint without rerunning completed samples.
+
+## Provider mode is unavailable
+
+The provider changed its official Web controls or the selected account does
+not expose that mode. Aloom fails the checkpoint with `mode_unavailable`
+instead of silently using another mode. Use the explicit mode inspector during
+adapter development or select a currently exposed mode.
+
+## A provider answer was not captured
+
+Aloom rejects prompt echoes, empty answers, login pages, challenge pages, and
+provider error surfaces. Open the run detail to see whether the failure happened
+during navigation, input, submission, generation, extraction, or validation.
+
+If the prompt was already sent, Aloom keeps the same conversation and retries
+only answer waiting and extraction. It does not submit the prompt a second time.
+Provider DOM changes should be reproduced with redacted fixtures and local
+adapter diagnostics before changing selectors.
+
+## Runs remain waiting_runner
+
+Confirm that `pnpm collector` is running on the paired computer and that
+`COLLECTOR_API_URL` uses the public HTTPS control-plane origin. The device token
+is workspace-scoped. Create a new pairing if it was revoked.
+
+## Redis or ClickHouse is unavailable
 
 ```bash
-CAMOUFOX_PYTHON_BIN=/opt/homebrew/bin/python3
+docker compose ps
+docker compose logs redis
+docker compose logs clickhouse
 ```
 
-Then restart with `pnpm local`.
+ClickHouse may need up to a minute on first startup. Restart with `pnpm local`
+after Docker Desktop is healthy.
 
----
+## Analysis failed after collection succeeded
 
-## Redis connection refused
-
-**Symptom:** App or agent logs show `ECONNREFUSED 127.0.0.1:6379`.
-
-**Cause:** The Redis Docker container is not running.
-
-**Fix:** Check that Docker is running and the containers are up:
-
-```bash
-docker ps
-```
-
-If the containers aren't listed, restart with `pnpm local`. If Docker itself isn't running, start it first.
-
----
-
-## ClickHouse unavailable on first run
-
-**Symptom:** Dashboard shows no data, or logs show a ClickHouse connection error shortly after startup.
-
-**Cause:** ClickHouse takes 10 to 20 seconds to fully initialize on first boot.
-
-**Fix:** Wait a moment and reload the page. If it persists, check the container:
-
-```bash
-docker logs clickhouse_db
-```
-
----
-
-## Provider auth not saving
-
-**Symptom:** A provider still shows as disconnected after you finish the local auth flow.
-
-**Cause:** The Camoufox window was closed before the session was fully written.
-
-**Fix:** Open the provider connection again, complete the full sign-in flow (including any 2FA or confirmation steps), and wait for the checkmark to appear in the AnswerLoom UI before closing the browser window.
-
----
-
-## Google sign-in is unavailable
-
-**Symptom:** No Google sign-in button appears on the login page.
-
-**Cause:** `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are not set in `.env`.
-
-**Fix:** Add them to `.env`:
-
-```bash
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-```
-
-Note: these control sign-in to the AnswerLoom web app itself. They are separate from the Google / Gemini / AI Overview provider connections used for monitoring.
-
----
-
-## Agent not processing prompts
-
-**Symptom:** Prompts are queued but no responses appear.
-
-**Causes and fixes:**
-
-1. **Worker not started:** `pnpm local` starts both web and agent. If you started the web app separately, also run `pnpm dev:agent`.
-2. **Provider auth missing:** run `pnpm auth` locally and confirm at least one provider completes sign-in. If a provider is still disconnected, rerun the auth flow for that provider.
-3. **Redis not reachable:** see the Redis section above.
-
----
-
-## Self-host: image pull fails
-
-**Symptom:** `node scripts/run-compose.mjs bootstrap` fails with a Docker pull error, `unauthorized`, or an architecture mismatch such as `no matching manifest`.
-
-**Cause:** Either the GHCR images are unavailable, you're not authenticated with GHCR, or the published image has not been published for your current CPU architecture yet.
-
-**Fix:** Check outbound access to GHCR and Docker Hub, then retry:
-
-```bash
-node scripts/run-compose.mjs bootstrap
-```
-
-If the only problem is an architecture mismatch, bootstrap now automatically falls back to a local Docker build on that machine. If you're maintaining a fork or explicitly want a source build, you can still run `pnpm self-host:build` directly.
-
----
-
-## Migrations fail on startup
-
-**Symptom:** The `migrate` container exits with an error; the web app won't start.
-
-**Cause:** Postgres wasn't ready when migrations ran, or there's a schema conflict.
-
-**Fix:**
-
-```bash
-# Check migration logs
-docker logs answerloom-migrate
-
-# Re-run migrations manually
-pnpm db:migrate
-```
-
-If there's a schema conflict from a previous installation, check the Drizzle migration files in `packages/db/drizzle/`.
-
----
-
-## VPS: sessions not transferring
-
-**Symptom:** `pnpm upload:vps` runs but providers still show as disconnected on the VPS.
-
-**Fixes:**
-
-1. Confirm the VPS agent is running: `curl http://YOUR_VPS_IP:3333/health`
-2. Confirm port `3333/tcp` is allowed by your VPS firewall or cloud security group
-3. Check `ANSWERLOOM_VPS_IP` and `AGENT_AUTH_UPLOAD_TOKEN` match your VPS `.env`
-4. If `pnpm upload:vps` returns `401 Unauthorized`, the upload token on your local machine does not match the VPS `AGENT_AUTH_UPLOAD_TOKEN`
-5. Check agent logs on the VPS: `docker logs answerloom-agent-worker`
+Runs and reports separate collection from analysis. Inspect the stored analysis
+error code. Aloom tries strict JSON Schema output, local extraction and repair,
+a configured fallback model, and one targeted repair pass. The raw provider
+answer remains available even when analysis is still failed.

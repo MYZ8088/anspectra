@@ -373,6 +373,9 @@ export const detectionSchedules = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		providers: jsonb("providers").$type<string[]>().default([]),
+		providerModes: jsonb("provider_modes")
+			.$type<Record<string, string>>()
+			.default({}),
 		cadence: varchar("cadence", { length: 16 }).notNull(),
 		timezone: varchar("timezone", { length: 80 }).notNull().default("UTC"),
 		localTime: varchar("local_time", { length: 5 }).notNull().default("09:00"),

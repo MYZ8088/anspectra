@@ -1,7 +1,7 @@
 // Procedures
 import "server-only";
 
-import { schema } from "@answerloom/db";
+import { schema } from "@aloom/db";
 import { errorMappingMiddleware } from "./middleware/errorMapping";
 import { isAuthenticated } from "./middleware/isAuthenticated";
 import { isInternal } from "./middleware/isInternal";

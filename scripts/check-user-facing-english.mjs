@@ -2,9 +2,50 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const roots = ["apps/web/src", "apps/landing/src", "README.md"];
-const extensions = new Set([".ts", ".tsx", ".js", ".jsx", ".json", ".md"]);
+const roots = [
+	"apps/web/src",
+	"apps/landing/src",
+	"apps/agent/src",
+	"packages/services/src",
+	"packages/errors/src",
+	"packages/utils/src",
+	"scripts",
+	"docs",
+	"README.md",
+];
+const extensions = new Set([
+	".ts",
+	".tsx",
+	".js",
+	".jsx",
+	".json",
+	".md",
+	".mdx",
+	".mjs",
+	".py",
+]);
 const han = /[\u3400-\u9fff]/u;
+const allowlistedTechnicalFiles = [
+	/^apps\/agent\/src\/auth\/cli\.ts$/u,
+	/^apps\/agent\/src\/core\/providers\//u,
+	/^apps\/agent\/src\/core\/prompt-runner\/responseCompleteness\.ts$/u,
+	/^apps\/agent\/src\/lib\/browser\/domOps\.ts$/u,
+	/^apps\/agent\/src\/run-test\.ts$/u,
+	/^packages\/services\/src\/geo\/presets\//u,
+	/^packages\/services\/src\/geo\/(?:promptEngine|promptLibrary|diagnostics|siteAudit)\.ts$/u,
+	/^packages\/services\/src\/geo\/(?:content|opportunities|publisher|experimentCohorts)\.ts$/u,
+	/^packages\/utils\/src\/agent\/(?:constants|validateResponse)\.ts$/u,
+	/^scripts\/download_yaojingang_geo_resources\.py$/u,
+];
+
+function isAllowedTechnicalFile(file) {
+	const name = relative(root, file);
+	return (
+		name.includes("/test-fixtures/") ||
+		name.endsWith(".test.ts") ||
+		allowlistedTechnicalFiles.some((pattern) => pattern.test(name))
+	);
+}
 
 async function filesAt(path) {
 	const absolute = resolve(root, path);
@@ -21,7 +62,10 @@ async function filesAt(path) {
 
 const files = (await Promise.all(roots.map(filesAt)))
 	.flat()
-	.filter((file) => extensions.has(extname(file)));
+	.filter(
+		(file) =>
+			extensions.has(extname(file)) && !isAllowedTechnicalFile(file),
+	);
 const failures = [];
 for (const file of files) {
 	const lines = (await readFile(file, "utf8")).split(/\r?\n/u);
@@ -38,4 +82,4 @@ if (failures.length) {
 	process.exit(1);
 }
 
-console.log(`English UI check passed (${files.length} files).`);
+console.log(`English product-language check passed (${files.length} files).`);

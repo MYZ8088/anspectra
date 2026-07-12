@@ -8,7 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { t } from "../trpc";
 
 function shouldSkipRateLimit(): boolean {
-	return process.env.ANSWERLOOM_APP_MODE === "local";
+	return process.env.ALOOM_APP_MODE === "local";
 }
 
 /**

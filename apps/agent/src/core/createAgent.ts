@@ -2,9 +2,9 @@ import {
 	BaseError,
 	ExternalServiceError,
 	toErrorMessage,
-} from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
-import { logger, withTimeout } from "@answerloom/utils";
+} from "@aloom/errors";
+import type { Provider } from "@aloom/types";
+import { logger, withTimeout } from "@aloom/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { launchContext } from "../lib/browser/launch.js";
 import { navigateWithRetry } from "../lib/browser/navigate.js";
@@ -14,14 +14,21 @@ const DEFAULT_PAGE_TIMEOUT_MS = 30_000;
 const DEFAULT_NAV_TIMEOUT_MS = 60_000;
 const HOOK_TIMEOUT_MS = 20_000;
 
-export async function createAgent(provider: Provider): Promise<{
+export async function createAgent(
+	provider: Provider,
+	request: {
+		taskId: string;
+		visibility?: "headless" | "headful";
+	},
+): Promise<{
 	browser: Browser;
 	context: BrowserContext;
 	page: Page;
 	proxy: string | null;
 	cleanup: () => Promise<void>;
 	invalidateProxyHint: () => Promise<void>;
-	preserveForHuman?: () => void;
+	preserveForHuman?: () => Promise<void>;
+	resumedFromHumanChallenge: boolean;
 }> {
 	const config = PROVIDER_CONFIGS[provider];
 
@@ -35,14 +42,21 @@ export async function createAgent(provider: Provider): Promise<{
 		resumePage,
 		minimizeWindow,
 		focusWindow,
-	} = await launchContext(provider);
+		visibility: actualVisibility,
+		page: leasedPage,
+	} = await launchContext(provider, request);
 	let phase = "new_page";
+	let activePage: Page | null = null;
 
 	try {
 		const canResumeHeldPage = Boolean(
 			resumePage && (await resumePage.ping().catch(() => false)),
 		);
-		const page = canResumeHeldPage && resumePage ? resumePage : await context.newPage();
+		const page =
+			canResumeHeldPage && resumePage
+				? resumePage
+				: leasedPage ?? (await context.newPage());
+		activePage = page;
 
 		if (!canResumeHeldPage && !config.skipInitialNavigation) {
 			if (config.preNavigationHook) {
@@ -86,7 +100,9 @@ export async function createAgent(provider: Provider): Promise<{
 		const cleanupAgent = async () => {
 			if (cleanedUp) return;
 			cleanedUp = true;
-			if (!preservePageForHuman) await page.close().catch(() => null);
+			if (!preservePageForHuman && actualVisibility !== "headful") {
+				await page.close().catch(() => null);
+			}
 			await cleanup();
 		};
 
@@ -97,13 +113,15 @@ export async function createAgent(provider: Provider): Promise<{
 			proxy,
 			cleanup: cleanupAgent,
 			invalidateProxyHint,
-			preserveForHuman: () => {
+			resumedFromHumanChallenge: canResumeHeldPage,
+			preserveForHuman: async () => {
 				preservePageForHuman = true;
-				holdForHuman?.(page);
+				await holdForHuman?.(page);
 				void focusWindow?.();
 			},
 		};
 	} catch (err) {
+		await activePage?.close().catch(() => null);
 		await cleanup();
 		if (err instanceof BaseError) {
 			throw err;

@@ -1,4 +1,4 @@
-# @answerloom/types
+# @aloom/types
 
 Shared TypeScript contracts used across apps and packages.
 
@@ -24,13 +24,13 @@ Shared TypeScript contracts used across apps and packages.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/types build` | Compile TypeScript |
-| `pnpm --filter @answerloom/types typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/types build` | Compile TypeScript |
+| `pnpm --filter @aloom/types typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import type { Provider, AnalysisRecord } from "@answerloom/types";
+import type { Provider, AnalysisRecord } from "@aloom/types";
 ```
 
 ## Contribution Guidance

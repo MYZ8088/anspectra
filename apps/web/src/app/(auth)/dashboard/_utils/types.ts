@@ -1,8 +1,8 @@
-import type { AnalysisRecord } from "@answerloom/types";
+import type { AnalysisRecord } from "@aloom/types";
 import type {
 	DashboardCompetitorData as CompetitorData,
 	DashboardSourceData as SourceData,
-} from "@answerloom/ui";
+} from "@aloom/ui";
 
 export type { CompetitorData, SourceData };
 

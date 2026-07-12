@@ -1,5 +1,5 @@
 import { SourceIntelligencePreview } from "@/components/previews/source-intelligence-preview";
-import { SectionHeading } from "@answerloom/ui";
+import { SectionHeading } from "@aloom/ui";
 
 export function SourceIntelligenceSection(): React.JSX.Element {
 	return (
@@ -11,7 +11,7 @@ export function SourceIntelligenceSection(): React.JSX.Element {
 			<SectionHeading
 				eyebrow="Sources & Citations"
 				title="Know which sources shape AI decisions."
-				description="Find the publishers driving your brand visibility across all LLM providers."
+				description="Find the publishers visible in answers from Doubao, DeepSeek, Yuanbao, and Qwen."
 			/>
 			<SourceIntelligencePreview />
 		</section>

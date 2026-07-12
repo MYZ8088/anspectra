@@ -1,5 +1,5 @@
 import { OPEN_SOURCE_POINTS, SITE_URLS } from "@/lib/landing-content";
-import { Button, Card } from "@answerloom/ui";
+import { Button, Card } from "@aloom/ui";
 import { Github, Server } from "lucide-react";
 
 export function OpenSourceSection(): React.JSX.Element {

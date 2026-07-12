@@ -1,5 +1,5 @@
-import type { Provider } from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+import type { Provider } from "@aloom/types";
+import { logger } from "@aloom/utils";
 import type { Page } from "playwright";
 import {
 	preInteractionIdle,

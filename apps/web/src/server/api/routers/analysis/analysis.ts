@@ -4,7 +4,7 @@ import { createTRPCRouter } from "@/server/api/trpc";
 import {
 	analysePromptsForWorkspace,
 	fetchAnalysedPrompts,
-} from "@answerloom/services";
+} from "@aloom/services";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { authorizedWorkspaceProcedure } from "../../procedures";

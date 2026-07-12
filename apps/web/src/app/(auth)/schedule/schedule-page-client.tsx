@@ -5,7 +5,12 @@ import {
 	formSecondaryButtonClassName,
 } from "@/components/forms/auth-form-chrome";
 import { api } from "@/trpc/react";
-import { Button, Checkbox, Input, toast } from "@answerloom/ui";
+import {
+	GEO_PROVIDER_MODE_CAPABILITIES,
+	PROVIDER_MODE_LABELS,
+	type ProviderMode,
+} from "@aloom/types";
+import { Button, Checkbox, Input, toast } from "@aloom/ui";
 import {
 	CalendarClock,
 	Loader2,
@@ -43,6 +48,14 @@ export default function SchedulePageClient({
 	const [providers, setProviders] = useState<string[]>(
 		PROVIDERS.map(([key]) => key),
 	);
+	const [providerModes, setProviderModes] = useState<
+		Record<(typeof PROVIDERS)[number][0], ProviderMode>
+	>({
+		doubao: "default",
+		deepseek: "default",
+		hunyuan: "default",
+		qwen: "default",
+	});
 	const [cadence, setCadence] = useState<"weekly" | "monthly">("weekly");
 	const [timezone, setTimezone] = useState(
 		() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -135,6 +148,31 @@ export default function SchedulePageClient({
 								))}
 							</div>
 						</fieldset>
+						<div className="grid gap-3 sm:grid-cols-2">
+							{PROVIDERS.filter(([key]) => providers.includes(key)).map(
+								([key, label]) => (
+									<label key={key} className="grid gap-1.5 text-sm">
+										<span className="font-medium">{label} mode</span>
+										<select
+											value={providerModes[key]}
+											onChange={(event) =>
+												setProviderModes((current) => ({
+													...current,
+													[key]: event.target.value as ProviderMode,
+												}))
+											}
+											className="h-10 rounded-md border border-stone-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-950"
+										>
+											{GEO_PROVIDER_MODE_CAPABILITIES[key].map((mode) => (
+												<option key={mode} value={mode}>
+													{PROVIDER_MODE_LABELS[mode]}
+												</option>
+											))}
+										</select>
+									</label>
+								),
+							)}
+						</div>
 						<div className="grid gap-4 sm:grid-cols-2">
 							<label className="grid gap-1.5 text-sm">
 								<span className="font-medium">Cadence</span>
@@ -244,6 +282,14 @@ export default function SchedulePageClient({
 									providers: providers as Array<
 										"doubao" | "deepseek" | "hunyuan" | "qwen"
 									>,
+									providerModes: Object.fromEntries(
+										providers.map((provider) => [
+											provider,
+											providerModes[
+												provider as keyof typeof providerModes
+											],
+										]),
+									),
 									cadence,
 									timezone,
 									localTime,
@@ -293,6 +339,16 @@ export default function SchedulePageClient({
 													provider,
 											)
 											.join(", ")}
+									</p>
+									<p className="mt-1 text-xs text-stone-500">
+										Modes: {" "}
+										{(schedule.providers ?? [])
+											.map((provider) => {
+												const mode = (schedule.providerModes?.[provider] ??
+													"default") as ProviderMode;
+												return `${provider}: ${PROVIDER_MODE_LABELS[mode] ?? mode}`;
+											})
+											.join(" · ")}
 									</p>
 									<p className="mt-1 text-xs text-stone-500">
 										Next:{" "}

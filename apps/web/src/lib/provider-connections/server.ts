@@ -5,8 +5,8 @@ import {
 	getAuthSessionFile,
 	getAuthStorageDiagnostics,
 	readProviderAuthStatuses,
-} from "@answerloom/services";
-import type { AuthProvider, ProviderAuthStatus } from "@answerloom/types";
+} from "@aloom/services";
+import type { AuthProvider, ProviderAuthStatus } from "@aloom/types";
 import type { ProviderConnectionsState } from "./types";
 
 function getDefaultProviderAuthStatus(

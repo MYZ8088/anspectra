@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/common/brand-logo";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { SITE_URLS } from "@/lib/landing-content";
-import { Button } from "@answerloom/ui";
+import { Button } from "@aloom/ui";
 import { Github, Server } from "lucide-react";
 
 export function SiteHeader(): React.JSX.Element {
@@ -15,7 +15,7 @@ export function SiteHeader(): React.JSX.Element {
 					rel="noreferrer noopener"
 				>
 					<BrandLogo className="h-6 w-6" />
-					AnswerLoom
+					Aloom
 				</a>
 
 				<div className="flex shrink-0 items-center gap-2">

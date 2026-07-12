@@ -1,4 +1,4 @@
-import { EnvError } from "@answerloom/errors";
+import { EnvError } from "@aloom/errors";
 import Anthropic from "@anthropic-ai/sdk";
 import ChatGptClient from "openai";
 import { env } from "../env.js";

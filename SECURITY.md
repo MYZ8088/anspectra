@@ -2,9 +2,9 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in AnswerLoom, please **do not open a public GitHub issue**.
+If you discover a security vulnerability in Aloom, please **do not open a public GitHub issue**.
 
-Instead, email the maintainer directly at **aryamant20@gmail.com** with:
+Instead, use the repository's private GitHub Security Advisory form with:
 
 - A description of the vulnerability
 - Steps to reproduce it
@@ -19,4 +19,4 @@ You will receive a response within 72 hours. Once the issue is confirmed and a f
 
 ## Notes on Auth
 
-AnswerLoom stores provider auth sessions locally on your machine (or your own VPS). Auth bundles are never transmitted to any external server. Response analysis API calls go directly from your infrastructure to OpenAI or Anthropic. AnswerLoom servers do not proxy them.
+Aloom stores provider auth sessions only on the local collector machine. Browser profiles, cookies, and local storage are never uploaded to the control plane. Captured answer text and configured evidence are sent directly from your infrastructure to the selected analysis provider, which defaults to AIHubMix.

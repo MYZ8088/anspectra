@@ -63,6 +63,7 @@ export const DETECTION_SLICE_LIST = [
 	"competitor",
 	"audience",
 	"region",
+	"provider_mode",
 	"prompt",
 	"intent_stage",
 ] as const;
@@ -103,6 +104,22 @@ export type DetectionReport = {
 	suiteKey: DetectionSuiteKey;
 	samplingDepth: SamplingDepth;
 	createdAt: Date;
+	methodology: {
+		analysisUnit: "single_answer";
+		answersPerAnalysisCall: 1;
+		aggregation: "deterministic_structured_rollup";
+		plannedSamples: number;
+		checkpointSamples: number;
+		uniquePromptHashes: number;
+		totalResponseCharacters: number;
+		largestResponseCharacters: number;
+	};
+	executiveSummary: string[];
+	failures: Array<{
+		kind: "collection" | "analysis";
+		code: string;
+		count: number;
+	}>;
 	slices: Record<DetectionSliceKey, DetectionSliceMetrics[]>;
 	competitors: Array<{ name: string; mentions: number; recommendations: number }>;
 	samples: Array<{
@@ -110,13 +127,18 @@ export type DetectionReport = {
 		provider: string;
 		status: string;
 		analysisStatus: string;
+		analysisErrorCode: string | null;
+		analysisErrorMessage: string | null;
 		prompt: string;
 		promptHash: string | null;
 		intent: string;
 		decisionStage: string | null;
 		locale: string;
 		brandExposure: string | null;
+		requestedMode: ProviderMode;
+		actualMode: ProviderMode | null;
 		response: string | null;
+		responseLength: number;
 		sources: Array<{
 			title: string;
 			url: string;
@@ -137,6 +159,7 @@ export type DetectionSchedule = {
 	workspaceId: string;
 	promptSetId: string;
 	providers: string[];
+	providerModes: Partial<Record<Provider, ProviderMode>>;
 	cadence: "weekly" | "monthly";
 	timezone: string;
 	localTime: string;
@@ -157,8 +180,47 @@ export const PROMPT_ORIGIN_LIST = [
 ] as const;
 export type PromptOrigin = (typeof PROMPT_ORIGIN_LIST)[number];
 
-export const PROVIDER_MODE_LIST = ["default", "web_search"] as const;
+export const PROVIDER_MODE_LIST = [
+	"default",
+	"auto",
+	"fast",
+	"expert",
+	"reasoning",
+	"web_search",
+	"expert_web_search",
+	"reasoning_web_search",
+	"auto_search",
+] as const;
 export type ProviderMode = (typeof PROVIDER_MODE_LIST)[number];
+
+export const GEO_PROVIDER_MODE_CAPABILITIES = {
+	doubao: ["default", "fast", "expert"],
+	deepseek: [
+		"default",
+		"fast",
+		"expert",
+		"reasoning",
+		"web_search",
+		"reasoning_web_search",
+	],
+	hunyuan: ["default", "reasoning", "auto_search"],
+	qwen: ["default", "auto", "fast", "reasoning"],
+} as const satisfies Record<
+	"doubao" | "deepseek" | "hunyuan" | "qwen",
+	readonly ProviderMode[]
+>;
+
+export const PROVIDER_MODE_LABELS: Record<ProviderMode, string> = {
+	default: "Provider default",
+	auto: "Auto",
+	fast: "Fast",
+	expert: "Expert",
+	reasoning: "Reasoning",
+	web_search: "Web search",
+	expert_web_search: "Expert + web search",
+	reasoning_web_search: "Reasoning + web search",
+	auto_search: "Automatic search",
+};
 
 export const COLLECTION_PHASE_LIST = [
 	"queued",
@@ -364,5 +426,7 @@ export type PromptAttemptUpdate = {
 	retryable?: boolean;
 	pageUrl?: string;
 	conversationId?: string;
+	requestedMode?: ProviderMode;
+	actualMode?: ProviderMode;
 	diagnostics?: Record<string, unknown>;
 };

@@ -1,4 +1,4 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import type { Page } from "playwright";
 import { turndown } from "../../../lib/input/markdown/converter.js";
 import {
@@ -79,6 +79,7 @@ export async function extractLatestChineseChatResponse(
 							current.getAttribute("role"),
 							current.getAttribute("data-testid"),
 							current.getAttribute("data-message-author-role"),
+							current.getAttribute("data-conv-speaker"),
 						]
 							.filter(Boolean)
 							.join(" "),
@@ -90,7 +91,7 @@ export async function extractLatestChineseChatResponse(
 
 			function isUserMessage(element: HTMLElement): boolean {
 				const signature = ancestrySignature(element);
-				return /qwen-chat-message-user|chat-user-message|user-message|send-msg|send_msg|g-send-msg|message-send|human-message/.test(
+				return /qwen-chat-message-user|chat-user-message|user-message|send-msg|send_msg|g-send-msg|message-send|human-message|list__item--human|\bhuman\b/.test(
 					signature,
 				);
 			}
@@ -98,7 +99,7 @@ export async function extractLatestChineseChatResponse(
 			function isNonResponseSurface(element: HTMLElement): boolean {
 				const signature = ancestrySignature(element);
 				if (element.closest("form, header, nav, footer, aside")) return true;
-				return /message-input|input-container|search|sidebar|history|tool|toolbar|action|login|no-auth|sign-in|wechat|captcha|verify|modal|popover/.test(
+				return /message-input|input-container|sidebar|history|toolbar|actions|login|no-auth|sign-in|wechat|captcha|verify|modal|popover/.test(
 					signature,
 				);
 			}
@@ -239,7 +240,9 @@ export async function extractSourcesFromChineseChat(
 				const parts: string[] = [];
 				let current: HTMLElement | null = element;
 				for (let depth = 0; current && depth < 5; depth++) {
-					parts.push(`${current.id || ""} ${current.className || ""}`);
+					parts.push(
+						`${current.id || ""} ${current.className || ""} ${current.getAttribute("data-conv-speaker") || ""}`,
+					);
 					current = current.parentElement;
 				}
 				return parts.join(" ").toLowerCase();
@@ -277,7 +280,7 @@ export async function extractSourcesFromChineseChat(
 			function isBadCandidate(element: HTMLElement): boolean {
 				const signature = ancestrySignature(element);
 				if (element.closest("form, header, nav, footer, aside")) return true;
-				return /qwen-chat-message-user|chat-user-message|user-message|send-msg|message-input|search|sidebar|history|tool|toolbar|action|login|no-auth|sign-in|wechat|captcha|verify|modal|popover/.test(
+				return /qwen-chat-message-user|chat-user-message|user-message|send-msg|message-input|list__item--human|\bhuman\b|sidebar|history|toolbar|actions|login|no-auth|sign-in|wechat|captcha|verify|modal|popover/.test(
 					signature,
 				);
 			}

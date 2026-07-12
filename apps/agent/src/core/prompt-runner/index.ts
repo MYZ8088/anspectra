@@ -2,8 +2,8 @@ import {
 	IPRefreshNeededError,
 	classifyError,
 	toErrorMessage,
-} from "@answerloom/errors";
-import { saveRuntimeProviderAuthSession } from "@answerloom/services";
+} from "@aloom/errors";
+import { saveRuntimeProviderAuthSession } from "@aloom/services";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,13 +11,14 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+} from "@aloom/types";
+import { logger } from "@aloom/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { captureProviderDiagnostics } from "../../lib/browser/providerDiagnostics.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
 import { hasMatchingSubmittedPrompt } from "../providers/_shared/freshConversation.js";
+import { expectedOfficialWebMode } from "../providers/_shared/providerModes.js";
 import { recoverSubmittedPrompt } from "./executePrompt.js";
 import { executePromptWithRetry } from "./retryPolicy.js";
 import { describePromptFailure } from "./failureDetails.js";
@@ -33,6 +34,7 @@ export async function runPrompts(
 	onPromptProgress?: (current: number, total: number) => Promise<void>,
 	onSampleComplete?: (sample: AskPromptResult) => Promise<void>,
 	onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>,
+	resumedFromHumanChallenge = false,
 ): Promise<AskPromptResult[]> {
 	const {
 		user_id: userId,
@@ -45,10 +47,19 @@ export async function runPrompts(
 		.catch(() => {});
 
 	const config = PROVIDER_CONFIGS[provider];
+	const requestedMode = payload.providerMode ?? "default";
+	if (
+		config.supportedModes?.length &&
+		!config.supportedModes.includes(requestedMode)
+	) {
+		throw new Error(
+			`${provider} does not support official Web mode "${requestedMode}"`,
+		);
+	}
 	const results: AskPromptResult[] = [];
 	let lastTerminalError: unknown = null;
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(env.ANSWERLOOM_APP_MODE),
+		resolveAppMode(env.ALOOM_APP_MODE),
 	);
 	let proxyProven = !useProxy;
 	let persistentAuthCaptured = false;
@@ -75,11 +86,13 @@ export async function runPrompts(
 			await page.waitForTimeout(delay);
 		}
 
-		const submittedBeforePause = await hasMatchingSubmittedPrompt({
-			page,
-			provider,
-			prompt: promptEntry.prompt,
-		});
+		const submittedBeforePause = resumedFromHumanChallenge
+			? await hasMatchingSubmittedPrompt({
+					page,
+					provider,
+					prompt: promptEntry.prompt,
+				})
+			: false;
 		if (submittedBeforePause) {
 			await onAttemptUpdate?.({
 				promptId: promptEntry.id,
@@ -87,6 +100,8 @@ export async function runPrompts(
 				status: "progress",
 				phase: "extraction",
 				pageUrl: page.url(),
+				requestedMode,
+				actualMode: expectedOfficialWebMode(provider, requestedMode),
 				diagnostics: { resumedAfterHumanChallenge: true },
 			}).catch(() => {});
 			const recovered = await recoverSubmittedPrompt(
@@ -101,6 +116,8 @@ export async function runPrompts(
 				prompt: promptEntry.prompt,
 				response: recovered.response,
 				sources: recovered.sources,
+				requestedMode,
+				actualMode: expectedOfficialWebMode(provider, requestedMode),
 			};
 			const recoveredIdentity = await config.getConversationIdentity?.(page);
 			if (recoveredIdentity) {
@@ -119,11 +136,14 @@ export async function runPrompts(
 				phase: "completed",
 				pageUrl: page.url(),
 				conversationId: recoveredResult.conversationId ?? undefined,
-				diagnostics: { resumedAfterHumanChallenge: true },
-			}).catch(() => {});
+					diagnostics: { resumedAfterHumanChallenge: true },
+					requestedMode,
+					actualMode: expectedOfficialWebMode(provider, requestedMode),
+				}).catch(() => {});
 			continue;
 		}
 
+		let actualMode = requestedMode;
 		if (config.startFreshConversation) {
 			try {
 				await config.startFreshConversation(page);
@@ -140,8 +160,15 @@ export async function runPrompts(
 							`[${provider}] authenticated page is usable, but its local session snapshot could not be refreshed: ${toErrorMessage(authCaptureError)}`,
 						);
 					}
-				}
-			} catch (err) {
+					}
+					if (config.applyMode) {
+						actualMode = await config.applyMode(page, requestedMode);
+					} else if (requestedMode !== "default") {
+						throw new Error(
+							`${provider} cannot apply official Web mode "${requestedMode}"`,
+						);
+					}
+				} catch (err) {
 				const details = describePromptFailure(err);
 				await captureProviderDiagnostics({
 					page,
@@ -162,8 +189,9 @@ export async function runPrompts(
 							: details.code,
 					failureMessage: toErrorMessage(err),
 					retryable: false,
-					pageUrl: page.url(),
-				}).catch(() => {});
+						pageUrl: page.url(),
+						requestedMode,
+					}).catch(() => {});
 				if (classifyError(err) === "human_challenge") throw err;
 				lastTerminalError = err;
 				logger.error(
@@ -188,7 +216,14 @@ export async function runPrompts(
 				results,
 				promptsArray.slice(i),
 				proxyProven,
-				onAttemptUpdate,
+				onAttemptUpdate
+					? (update) =>
+							onAttemptUpdate({
+								...update,
+								requestedMode,
+								actualMode,
+							})
+					: undefined,
 			);
 		} catch (err) {
 			if (err instanceof IPRefreshNeededError) throw err;
@@ -214,8 +249,10 @@ export async function runPrompts(
 			result.conversationUrl = identity.conversationUrl;
 			result.conversationIsolation = "fresh";
 		}
-		result.sourceExposure =
-			result.sources.length > 0 ? "exposed" : "not_exposed";
+			result.sourceExposure =
+				result.sources.length > 0 ? "exposed" : "not_exposed";
+			result.requestedMode = requestedMode;
+			result.actualMode = actualMode;
 
 		results.push(result);
 		await onSampleComplete?.(result);

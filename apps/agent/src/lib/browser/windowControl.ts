@@ -126,13 +126,13 @@ async function runWindowsWindowCommand(
 	const showCommand = action === "minimize" ? 6 : 9;
 	const focusLine =
 		action === "focus"
-			? "[AnswerLoomWindow]::SetForegroundWindow($handle) | Out-Null"
+			? "[AloomWindow]::SetForegroundWindow($handle) | Out-Null"
 			: "";
 	const script = [
 		"Add-Type @'",
 		"using System;",
 		"using System.Runtime.InteropServices;",
-		"public static class AnswerLoomWindow {",
+		"public static class AloomWindow {",
 		'  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);',
 		'  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
 		"}",
@@ -141,7 +141,7 @@ async function runWindowsWindowCommand(
 		"if ($process) {",
 		"  $handle = $process.MainWindowHandle",
 		"  if ($handle -ne [IntPtr]::Zero) {",
-		`    [AnswerLoomWindow]::ShowWindowAsync($handle, ${showCommand}) | Out-Null`,
+		`    [AloomWindow]::ShowWindowAsync($handle, ${showCommand}) | Out-Null`,
 		`    ${focusLine}`,
 		"  }",
 		"}",
@@ -237,7 +237,7 @@ async function fitWindowsWindow(
 		"Add-Type @'",
 		"using System;",
 		"using System.Runtime.InteropServices;",
-		"public static class AnswerLoomWindowFit {",
+		"public static class AloomWindowFit {",
 		'  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, bool repaint);',
 		'  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);',
 		"  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }",
@@ -247,9 +247,9 @@ async function fitWindowsWindow(
 		"if ($process) {",
 		"  $handle = $process.MainWindowHandle",
 		"  if ($handle -ne [IntPtr]::Zero) {",
-		`    [AnswerLoomWindowFit]::MoveWindow($handle, ${geometry.x}, ${geometry.y}, ${geometry.width}, ${geometry.height}, $true) | Out-Null`,
-		"    $rect = New-Object AnswerLoomWindowFit+RECT",
-		"    [AnswerLoomWindowFit]::GetWindowRect($handle, [ref]$rect) | Out-Null",
+		`    [AloomWindowFit]::MoveWindow($handle, ${geometry.x}, ${geometry.y}, ${geometry.width}, ${geometry.height}, $true) | Out-Null`,
+		"    $rect = New-Object AloomWindowFit+RECT",
+		"    [AloomWindowFit]::GetWindowRect($handle, [ref]$rect) | Out-Null",
 		'    Write-Output "$($rect.Left)|$($rect.Top)|$($rect.Right - $rect.Left)|$($rect.Bottom - $rect.Top)"',
 		"  }",
 		"}",

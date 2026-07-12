@@ -2,8 +2,8 @@
 
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { PROVIDER_LIST, type Provider } from "@answerloom/types";
-import { ProviderRunStatusCard, toast } from "@answerloom/ui";
+import { PROVIDER_LIST, type Provider } from "@aloom/types";
+import { ProviderRunStatusCard, toast } from "@aloom/ui";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,8 +30,8 @@ type DisplayPhase = "pending" | "running" | "completed" | "failed" | "stopped";
 const PROVIDER_RUN_TOAST_ID = "provider-run-progress";
 const COMPLETION_TOAST_DURATION_MS = 1400;
 const STOPPED_HANDOFF_DELAY_MS = 350;
-const ACTIVE_PROVIDER_RUN_STORAGE_KEY = "answerloom.active-provider-run";
-const ACTIVE_PROVIDER_RUN_EVENT = "answerloom:active-provider-run";
+const ACTIVE_PROVIDER_RUN_STORAGE_KEY = "aloom.active-provider-run";
+const ACTIVE_PROVIDER_RUN_EVENT = "aloom:active-provider-run";
 
 type ActiveProviderRun = {
 	workspaceId: string;

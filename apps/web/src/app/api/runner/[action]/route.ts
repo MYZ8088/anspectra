@@ -6,14 +6,14 @@ import {
 	recordCollectorSampleAttempt,
 	reportCollectorChallenge,
 	uploadCollectorSample,
-} from "@answerloom/services";
-import { GEO_WEB_PROVIDERS } from "@answerloom/services";
+} from "@aloom/services";
+import { GEO_WEB_PROVIDERS } from "@aloom/services";
 import {
 	COLLECTION_PHASE_LIST,
 	FAILURE_CATEGORY_LIST,
 	FAILURE_CODE_LIST,
 	PROVIDER_MODE_LIST,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -85,7 +85,9 @@ export async function POST(
 						conversationIsolation: z
 							.enum(["fresh", "multi_turn_experiment"])
 							.optional(),
-						sourceExposure: z.enum(["exposed", "not_exposed"]).optional(),
+							sourceExposure: z.enum(["exposed", "not_exposed"]).optional(),
+							requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
+							actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
 					}),
 				})
 				.parse(body);

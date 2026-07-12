@@ -9,7 +9,7 @@
 		"composite": true,
 		"baseUrl": "../../",
 		"paths": {
-			"@answerloom/utils": [
+			"@aloom/utils": [
 				"packages/utils/src/index.ts",
 				"packages/utils/dist/index.d.ts"
 			]

@@ -1,12 +1,12 @@
 name: Feature Request
-description: Suggest a new feature or improvement for AnswerLoom
+description: Suggest a new feature or improvement for Aloom
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
         Have an idea? We'd love to hear it.
-        Before submitting, check existing issues in this AnswerLoom repository to see if it has already been requested.
+        Before submitting, check existing issues in this Aloom repository to see if it has already been requested.
 
   - type: textarea
     id: problem

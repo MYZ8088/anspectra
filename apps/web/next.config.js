@@ -27,12 +27,12 @@ const config = {
 		SKIP_ENV_VALIDATION: process.env.SKIP_ENV_VALIDATION,
 	},
 	transpilePackages: [
-		"@answerloom/ui",
-		"@answerloom/utils",
-		"@answerloom/db",
-		"@answerloom/errors",
-		"@answerloom/services",
-		"@answerloom/types",
+		"@aloom/ui",
+		"@aloom/utils",
+		"@aloom/db",
+		"@aloom/errors",
+		"@aloom/services",
+		"@aloom/types",
 	],
 	logging: {
 		incomingRequests: {

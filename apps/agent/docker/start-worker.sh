@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-mkdir -p /storage/profiles /tmp/answerloom-profiles
+mkdir -p /storage/profiles /tmp/aloom-profiles
 
 headless_mode="${CAMOUFOX_HEADLESS_MODE:-virtual}"
 

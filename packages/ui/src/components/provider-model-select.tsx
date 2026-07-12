@@ -1,6 +1,6 @@
 "use client";
 
-import { getModelFavicon, modelSelectors } from "@answerloom/utils";
+import { getModelFavicon, modelSelectors } from "@aloom/utils";
 import { Bot } from "lucide-react";
 import {
 	Select,

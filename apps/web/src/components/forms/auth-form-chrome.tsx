@@ -7,8 +7,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@answerloom/ui";
-import { cn } from "@answerloom/utils";
+} from "@aloom/ui";
+import { cn } from "@aloom/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FcGoogle } from "react-icons/fc";

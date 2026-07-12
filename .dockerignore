@@ -10,3 +10,7 @@ node_modules
 *.log
 .DS_Store
 .env
+.oneglanse-storage
+.answerloom-storage
+.prismetra-storage
+.aloom-storage

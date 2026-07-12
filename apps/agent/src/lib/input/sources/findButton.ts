@@ -1,4 +1,4 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import type { Locator, Page } from "playwright";
 
 export async function findSourcesButton(

@@ -1,4 +1,4 @@
-# @answerloom/errors
+# @aloom/errors
 
 Centralized error primitives and error-handling helpers.
 
@@ -31,13 +31,13 @@ In `src/error/*`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/errors build` | Compile TypeScript |
-| `pnpm --filter @answerloom/errors typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/errors build` | Compile TypeScript |
+| `pnpm --filter @aloom/errors typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import { ValidationError, toErrorMessage } from "@answerloom/errors";
+import { ValidationError, toErrorMessage } from "@aloom/errors";
 ```
 
 Use typed errors for predictable API/worker behavior and cleaner telemetry.

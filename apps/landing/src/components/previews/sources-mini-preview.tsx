@@ -9,8 +9,8 @@ import type {
 	SourcePanelCitationDomain,
 	SourcePanelDomainRow,
 	SourcePanelMetrics,
-} from "@answerloom/ui";
-import { SourcesIntelligencePanel } from "@answerloom/ui";
+} from "@aloom/ui";
+import { SourcesIntelligencePanel } from "@aloom/ui";
 import { useMemo } from "react";
 
 export function SourcesMiniPreview(): React.JSX.Element {

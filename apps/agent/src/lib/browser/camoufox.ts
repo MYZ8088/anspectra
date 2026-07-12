@@ -2,8 +2,8 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import { ExternalServiceError, toErrorMessage } from "@answerloom/errors";
-import { type Provider, resolveAppMode } from "@answerloom/types";
+import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
+import { type Provider, resolveAppMode } from "@aloom/types";
 
 const execFileAsync = promisify(execFile);
 const PYTHON_CANDIDATES = ["python3.12", "python3.11", "python3.10", "python3"];
@@ -117,7 +117,7 @@ const CAMOUFOX_HUMANIZE_MAX_TIME_S = 1.5;
 
 function isLocalAppMode(): boolean {
 	return (
-		resolveAppMode(process.env.ANSWERLOOM_APP_MODE) === "local"
+		resolveAppMode(process.env.ALOOM_APP_MODE) === "local"
 	);
 }
 
@@ -126,7 +126,7 @@ function findManagedCamoufoxPython(): string | null {
 	while (true) {
 		const candidate = path.join(
 			current,
-			".answerloom-storage",
+			".aloom-storage",
 			"camoufox-venv",
 			"bin",
 			process.platform === "win32" ? "python.exe" : "python",

@@ -1,26 +1,26 @@
 import { downloadCsv, downloadJson } from "@/lib/export/download";
-import { buildDetailedAnalysisCsvRow } from "@answerloom/utils";
+import { buildDetailedAnalysisCsvRow } from "@aloom/utils";
 import type { DashboardMetrics } from "./types";
 
-function getActionPriorities(metrics: DashboardMetrics): string[] {
-	const priorities = [
+function getThresholdObservations(metrics: DashboardMetrics): string[] {
+	const observations = [
 		metrics.aggregateStats.presenceRate < 70
-			? "Increase brand mention frequency across high-intent prompts."
+			? "Brand presence is below 70% across analyzed prompts."
 			: null,
 		(metrics.avgRank.position ?? 99) > 3
-			? "Improve ranking consistency by strengthening comparison-oriented messaging."
+			? "Average observed rank is outside the top three."
 			: null,
 		metrics.impactMetrics.topPickRate < 35
-			? "Raise top-pick conversion with stronger differentiators and proof points."
+			? "Top-pick rate is below 35% across analyzed prompts."
 			: null,
 		metrics.impactMetrics.criticalRiskCount > 0
-			? "Resolve critical risk signals found in model answers."
+			? "One or more critical risk signals were observed in provider answers."
 			: null,
-	].filter((priority): priority is string => priority !== null);
+	].filter((observation): observation is string => observation !== null);
 
-	return priorities.length > 0
-		? priorities
-		: ["Maintain current trajectory and scale winning prompt themes."];
+	return observations.length > 0
+		? observations
+		: ["No configured detection threshold was triggered."];
 }
 
 function serializeSourceMetrics(
@@ -50,7 +50,7 @@ export function exportAnalysisJson(args: {
 		.filter((competitor) => !competitor.isBrand)
 		.slice(0, 5);
 
-	const actionPriorities = getActionPriorities(metrics);
+	const thresholdObservations = getThresholdObservations(metrics);
 	const promptRows = metrics.analyzedRecords.map((record) =>
 		buildDetailedAnalysisCsvRow(record),
 	);
@@ -84,7 +84,7 @@ export function exportAnalysisJson(args: {
 			topCompetitorDomain: metrics.aggregateStats.topCompetitorDomain,
 			totalCitations: metrics.totalCitations,
 		},
-		actionPriorities,
+		thresholdObservations,
 		brandPerception: metrics.brandPerception,
 		leaderboards: {
 			competitors: topCompetitors,
@@ -103,7 +103,7 @@ export function exportAnalysisCsv(args: {
 	metrics: DashboardMetrics;
 }): void {
 	const { workspaceId, metrics } = args;
-	const actionPriorities = getActionPriorities(metrics);
+	const thresholdObservations = getThresholdObservations(metrics);
 
 	const overviewRows = [
 		{ section: "overview", metric: "Brand", value: metrics.brandName },
@@ -163,10 +163,10 @@ export function exportAnalysisCsv(args: {
 			metric: "Total Citations",
 			value: metrics.totalCitations,
 		},
-		...actionPriorities.map((priority, index) => ({
-			section: "action_priorities",
-			priority: index + 1,
-			action: priority,
+		...thresholdObservations.map((observation, index) => ({
+			section: "threshold_observations",
+			observation: index + 1,
+			value: observation,
 		})),
 		{
 			section: "brand_perception",

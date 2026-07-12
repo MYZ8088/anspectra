@@ -28,8 +28,8 @@ import {
 	TableHeader,
 	TableRow,
 	toast,
-} from "@answerloom/ui";
-import { cn } from "@answerloom/utils";
+} from "@aloom/ui";
+import { cn } from "@aloom/utils";
 import {
 	Building2,
 	Loader2,

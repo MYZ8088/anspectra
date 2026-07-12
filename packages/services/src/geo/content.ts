@@ -1,5 +1,5 @@
-import { db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../env.js";

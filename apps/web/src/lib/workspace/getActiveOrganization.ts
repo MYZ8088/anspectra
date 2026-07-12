@@ -1,5 +1,5 @@
-import { db, schema } from "@answerloom/db";
-import type { Organization } from "@answerloom/db";
+import { db, schema } from "@aloom/db";
+import type { Organization } from "@aloom/db";
 import { eq } from "drizzle-orm";
 
 export async function getActiveOrganization(

@@ -1,4 +1,4 @@
-import type { Source } from "@answerloom/types";
+import type { ProviderMode, Source } from "@aloom/types";
 import type { Page } from "playwright";
 
 export interface SubmitSuccessContext {
@@ -19,6 +19,10 @@ export interface ProviderConfig {
 	label: string;
 	/** Human-readable product name shown in the UI (e.g. "ChatGPT"). */
 	displayName: string;
+	/** Provider modes that the adapter can set and verify in the official Web UI. */
+	supportedModes?: readonly ProviderMode[];
+	/** Applies a requested mode before prompt submission and returns the verified UI state. */
+	applyMode?: (page: Page, mode: ProviderMode) => Promise<ProviderMode>;
 	/** Set true to skip this provider in all job runs. */
 	skip?: boolean;
 	/**

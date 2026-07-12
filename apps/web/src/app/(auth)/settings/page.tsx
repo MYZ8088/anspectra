@@ -6,7 +6,7 @@ import {
 } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { Button, Input, toast } from "@answerloom/ui";
+import { Button, Input, toast } from "@aloom/ui";
 import { Database, ExternalLink, Loader2, Save, Settings } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";

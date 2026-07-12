@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 process.env.DATABASE_URL ??=
-	"postgresql://postgres:postgres@127.0.0.1:5432/answerloom";
+	"postgresql://postgres:postgres@127.0.0.1:5432/aloom";
 
-const { nextDetectionScheduleAt } = await import("./detectionSchedules.js");
+const { nextDetectionScheduleAt, resolveDetectionScheduleModes } = await import(
+	"./detectionSchedules.js"
+);
 
 describe("nextDetectionScheduleAt", () => {
 	it("calculates weekly occurrences in the selected timezone", () => {
@@ -36,5 +38,20 @@ describe("nextDetectionScheduleAt", () => {
 				localTime: "09:00",
 			}),
 		).toThrow("valid IANA timezone");
+	});
+
+	it("freezes one supported official Web mode per provider", () => {
+		expect(
+			resolveDetectionScheduleModes(["doubao", "qwen"], {
+				doubao: "expert",
+				qwen: "reasoning",
+			}),
+		).toEqual({ doubao: "expert", qwen: "reasoning" });
+	});
+
+	it("rejects a mode that the scheduled provider cannot expose", () => {
+		expect(() =>
+			resolveDetectionScheduleModes(["doubao"], { doubao: "web_search" }),
+		).toThrow("does not support official Web mode");
 	});
 });

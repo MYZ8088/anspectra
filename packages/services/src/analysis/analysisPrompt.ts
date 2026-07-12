@@ -1,4 +1,4 @@
-import type { AnalysisInputSingle } from "@answerloom/types";
+import type { AnalysisInputSingle } from "@aloom/types";
 
 export function analysisPrompt(input: AnalysisInputSingle): string {
 	const { prompt, response, brandDomain, brandName } = input;

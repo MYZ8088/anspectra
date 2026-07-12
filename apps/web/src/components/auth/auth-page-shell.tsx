@@ -16,16 +16,16 @@ export function AuthPageShell({
 					<div className="flex items-center gap-2.5">
 						<img
 							src="/logo.png"
-							alt="AnswerLoom"
+							alt="Aloom"
 							className="h-8 w-8 object-contain dark:hidden sm:h-9 sm:w-9"
 						/>
 						<img
 							src="/logo-dark.png"
-							alt="AnswerLoom"
+							alt="Aloom"
 							className="hidden h-8 w-8 object-contain dark:block sm:h-9 sm:w-9"
 						/>
 						<div className="text-[1.4rem] font-semibold tracking-[-0.05em] text-gray-950 sm:text-[1.75rem] lg:text-[1.9rem] xl:text-[2rem] dark:text-gray-50">
-							AnswerLoom
+							Aloom
 						</div>
 					</div>
 					{subtitle ? (

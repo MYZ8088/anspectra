@@ -1,4 +1,4 @@
-import { BaseError, captureException } from "@answerloom/errors";
+import { BaseError, captureException } from "@aloom/errors";
 import { TRPCError } from "@trpc/server";
 import { t } from "../trpc";
 

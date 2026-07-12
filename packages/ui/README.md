@@ -1,6 +1,6 @@
-# @answerloom/ui
+# @aloom/ui
 
-Shared React component library for AnswerLoom apps.
+Shared React component library for Aloom apps.
 
 ## Responsibilities
 
@@ -20,14 +20,14 @@ Shared React component library for AnswerLoom apps.
 Main barrel: `src/index.ts`.
 
 Notable export path:
-- `@answerloom/ui/styles/shared.css`
+- `@aloom/ui/styles/shared.css`
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/ui build` | Compile TypeScript |
-| `pnpm --filter @answerloom/ui typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/ui build` | Compile TypeScript |
+| `pnpm --filter @aloom/ui typecheck` | TypeScript checks |
 
 ## Dependencies and Peers
 
@@ -39,12 +39,12 @@ Notable export path:
 ## Usage
 
 ```tsx
-import { Button, Table, BrandComparisonChart } from "@answerloom/ui";
-import "@answerloom/ui/styles/shared.css";
+import { Button, Table, BrandComparisonChart } from "@aloom/ui";
+import "@aloom/ui/styles/shared.css";
 ```
 
 ## Contribution Guidance
 
-- Keep components presentation-focused; business logic belongs in `apps/web` or `@answerloom/services`.
+- Keep components presentation-focused; business logic belongs in `apps/web` or `@aloom/services`.
 - Prefer expanding existing primitives over adding one-off variants.
 - Export new components through `src/index.ts` to keep imports consistent.

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { toErrorMessage } from "@answerloom/errors";
-import type { Provider, UserPrompt } from "@answerloom/types";
-import { PROVIDER_LIST } from "@answerloom/types";
+import { toErrorMessage } from "@aloom/errors";
+import type { Provider, ProviderMode, UserPrompt } from "@aloom/types";
+import { PROVIDER_LIST } from "@aloom/types";
 import { fetchUserPromptsForWorkspace } from "../prompt/index.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import {
@@ -14,7 +14,7 @@ import { getProviderQueue } from "./queue.js";
 import { redis, waitForRedis } from "./redis.js";
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
-const PROVIDER_STOP_CHANNEL = "answerloom:agent:provider-stop";
+const PROVIDER_STOP_CHANNEL = "aloom:agent:provider-stop";
 
 type ProviderJobPayload = {
 	jobGroupId: string;
@@ -29,6 +29,7 @@ type ProviderJobPayload = {
 	totalPromptCount?: number;
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
+	providerMode?: ProviderMode;
 };
 
 export type SubmitAgentJobResult =
@@ -89,6 +90,7 @@ export async function enqueueProviderJobs(args: {
 	totalPromptCount?: number;
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
+	providerModes?: Partial<Record<Provider, ProviderMode>>;
 }): Promise<Provider[]> {
 	const {
 		jobGroupId,
@@ -101,6 +103,7 @@ export async function enqueueProviderJobs(args: {
 		totalPromptCount,
 		minPromptDelayMs,
 		maxPromptDelayMs,
+		providerModes,
 	} = args;
 	const allowedProviders = [...new Set(providers)];
 	const providerJobs = buildProviderJobs().filter(({ provider }) =>
@@ -119,7 +122,8 @@ export async function enqueueProviderJobs(args: {
 				initialCompletedCount,
 				totalPromptCount,
 				minPromptDelayMs,
-				maxPromptDelayMs,
+					maxPromptDelayMs,
+					providerMode: providerModes?.[provider] ?? "default",
 			});
 			return provider;
 		}),

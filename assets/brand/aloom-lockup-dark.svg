@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" fill="none">
+  <title>Aloom</title>
+  <g transform="translate(0 0) scale(.75)">
+    <path fill="#F7F8FA" d="M18 112 58 16h20v74h36v22H66V30L35 112H18Z"/>
+    <path fill="#20BCE3" d="m47 85 9-18 9 18H47Z"/>
+  </g>
+  <text x="102" y="62" fill="#F7F8FA" font-family="Geist, Inter, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="0">Aloom</text>
+</svg>

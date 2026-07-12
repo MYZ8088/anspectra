@@ -1,4 +1,4 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import { aiOverviewConfig } from "./ai-overview/index.js";
 import { chatgptConfig } from "./chatgpt/index.js";
 import { claudeConfig } from "./claude/index.js";

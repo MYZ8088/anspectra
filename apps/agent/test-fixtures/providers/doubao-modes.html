@@ -1,0 +1,13 @@
+<!doctype html><html><body>
+<div role="button" data-current-shell="true"><button data-current="true">快速</button></div>
+<div role="menuitem" data-option="expert" style="display:none"><span>专家</span> <small>研究级智能模型</small></div>
+<script>
+document.querySelector('[data-current]').addEventListener('click', () => {
+  document.querySelector('[data-option]').style.display = 'block';
+});
+document.querySelector('[data-option]').addEventListener('click', () => {
+  document.querySelector('[data-current]').textContent = '专家';
+  document.querySelector('[data-option]').style.display = 'none';
+});
+</script>
+</body></html>

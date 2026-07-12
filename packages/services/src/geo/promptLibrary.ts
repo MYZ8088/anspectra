@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { clickhouse, db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { clickhouse, db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	DetectionDimensionFilter,
 	DetectionSuiteKey,
@@ -10,7 +10,7 @@ import type {
 	PromptOrigin,
 	PromptRelevance,
 	SamplingDepth,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../env.js";
@@ -781,7 +781,7 @@ export async function migrateLegacyPrompts(workspaceId: string) {
 			active: false,
 			locked: true,
 			archivedAt,
-			archivedReason: "Archived AnswerLoom onboarding/test prompt",
+			archivedReason: "Archived Aloom onboarding/test prompt",
 			updatedAt: archivedAt,
 		})
 		.where(

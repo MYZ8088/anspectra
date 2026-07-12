@@ -1,4 +1,5 @@
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@answerloom/utils";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	extractLatestChineseChatResponse,
@@ -8,6 +9,7 @@ import {
 	readConversationIdentity,
 	startFreshProviderConversation,
 } from "../_shared/freshConversation.js";
+import { applyOfficialWebMode } from "../_shared/providerModes.js";
 import type { ProviderConfig } from "../types.js";
 import { QWEN_URL, resetQwenPage } from "./lib/pageLifecycle.js";
 
@@ -15,6 +17,9 @@ export const qwenConfig: ProviderConfig = {
 	url: QWEN_URL,
 	label: "Qwen",
 	displayName: "Qwen",
+	supportedModes: GEO_PROVIDER_MODE_CAPABILITIES.qwen,
+	applyMode: (page, mode) =>
+		applyOfficialWebMode({ page, provider: "qwen", mode }),
 	beforeRetryHook: resetQwenPage,
 	betweenPromptsHook: resetQwenPage,
 	startFreshConversation: async (page) => {

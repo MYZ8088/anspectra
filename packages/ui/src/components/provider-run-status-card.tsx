@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, getModelFavicon, getProviderDisplayName } from "@answerloom/utils";
+import { cn, getModelFavicon, getProviderDisplayName } from "@aloom/utils";
 import { CheckCircle2, StopCircle, XCircle } from "lucide-react";
 
 export type ProviderRunDisplayPhase =

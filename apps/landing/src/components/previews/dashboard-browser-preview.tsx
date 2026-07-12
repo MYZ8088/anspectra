@@ -1,5 +1,5 @@
 import { PREVIEW_AGGREGATE_STATS } from "@/lib/preview-data";
-import { AggregateStatsRow } from "@answerloom/ui";
+import { AggregateStatsRow } from "@aloom/ui";
 
 export function DashboardBrowserPreview(): React.JSX.Element {
 	return (

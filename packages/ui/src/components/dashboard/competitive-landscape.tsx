@@ -1,6 +1,6 @@
 "use client";
 
-import { compareDashboardCompetitors, getFaviconUrls } from "@answerloom/utils";
+import { compareDashboardCompetitors, getFaviconUrls } from "@aloom/utils";
 import { type JSX, useMemo } from "react";
 import {
 	type SortDirection,

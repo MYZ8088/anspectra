@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import type { Page } from "playwright";
 
 function workspaceRoot(startDir = process.cwd()): string {
@@ -25,7 +25,7 @@ export async function captureProviderDiagnostics(args: {
 	const key = capturedAt.toISOString().replace(/[:.]/g, "-");
 	const directory = path.join(
 		workspaceRoot(),
-		".answerloom-storage",
+		".aloom-storage",
 		"debug",
 		"provider-adapter",
 		args.provider,

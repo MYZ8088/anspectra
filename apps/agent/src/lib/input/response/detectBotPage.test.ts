@@ -1,4 +1,4 @@
-import { HumanChallengeError } from "@answerloom/errors";
+import { HumanChallengeError } from "@aloom/errors";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
 import { detectBotPage } from "./detectBotPage.js";

@@ -1,5 +1,5 @@
 {
-	"name": "@answerloom/services",
+	"name": "@aloom/services",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -20,10 +20,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@answerloom/db": "workspace:*",
-		"@answerloom/errors": "workspace:*",
-		"@answerloom/types": "workspace:*",
-		"@answerloom/utils": "workspace:*",
+		"@aloom/db": "workspace:*",
+		"@aloom/errors": "workspace:*",
+		"@aloom/types": "workspace:*",
+		"@aloom/utils": "workspace:*",
 		"@anthropic-ai/sdk": "^0.89.0",
 		"bullmq": "^5.67.0",
 		"cheerio": "^1.2.0",

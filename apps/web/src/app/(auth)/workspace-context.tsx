@@ -1,6 +1,6 @@
 "use client";
 
-import type { Workspace } from "@answerloom/db";
+import type { Workspace } from "@aloom/db";
 import { createContext, useContext } from "react";
 
 type WorkspaceContextValue = {

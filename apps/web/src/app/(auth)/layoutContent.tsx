@@ -16,12 +16,12 @@ import {
 } from "@/lib/provider-connections/provider-gate";
 import type { ProviderConnectionsState } from "@/lib/provider-connections/types";
 import { api } from "@/trpc/react";
-import type { Workspace } from "@answerloom/db";
+import type { Workspace } from "@aloom/db";
 import {
 	type AppMode,
 	canAccessPeopleInMode,
 	isInteractiveAuthAllowedInMode,
-} from "@answerloom/types";
+} from "@aloom/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -30,8 +30,8 @@ import {
 	DropdownMenuTrigger,
 	SidebarTrigger,
 	toast,
-} from "@answerloom/ui";
-import { cn } from "@answerloom/utils";
+} from "@aloom/ui";
+import { cn } from "@aloom/utils";
 import { ChevronUp, Loader2, User2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

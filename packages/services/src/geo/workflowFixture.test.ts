@@ -1,11 +1,11 @@
-import type { BrandAnalysisResult } from "@answerloom/types";
+import type { BrandAnalysisResult } from "@aloom/types";
 import { describe, expect, it, vi } from "vitest";
 import { buildContentQualityReport } from "./content.js";
 import { buildMatchedPromptCohorts } from "./experimentCohorts.js";
 import { planMonitorPrompts } from "./promptEngine.js";
 import { calculateBaselineScorecard } from "./scorecard.js";
 
-vi.mock("@answerloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
+vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
 vi.mock("../env.js", () => ({
 	env: {

@@ -1,9 +1,9 @@
-import { pool } from "@answerloom/db";
-import { DatabaseError, toErrorMessage } from "@answerloom/errors";
+import { pool } from "@aloom/db";
+import { DatabaseError, toErrorMessage } from "@aloom/errors";
 import type {
 	ScheduleCronForPromptsArgs,
 	UnscheduleCronForPromptsArgs,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { env } from "../env.js";
 
 /**

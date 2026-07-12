@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for reporting a bug. The more detail you provide, the faster it gets fixed.
-        Before submitting, check existing issues in this AnswerLoom repository to avoid duplicates.
+        Before submitting, check existing issues in this Aloom repository to avoid duplicates.
 
   - type: dropdown
     id: area
@@ -68,7 +68,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: AnswerLoom version or commit
+      label: Aloom version or commit
       placeholder: e.g. main @ a1b2c3d
 
   - type: input

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildContentQualityReport } from "./content.js";
 
-vi.mock("@answerloom/db", () => ({ db: {}, schema: {} }));
+vi.mock("@aloom/db", () => ({ db: {}, schema: {} }));
 vi.mock("../env.js", () => ({
 	env: { AIHUBMIX_ANALYSIS_MODEL: "test", AIHUBMIX_ANALYSIS_FALLBACK_MODEL: "" },
 }));

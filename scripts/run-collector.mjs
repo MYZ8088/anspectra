@@ -14,8 +14,8 @@ await buildLocalWorkspacePackages();
 
 const child = spawnCommand(
 	"pnpm",
-	["--filter", "@answerloom/agent", "dev"],
+	["--filter", "@aloom/agent", "dev"],
 	{ env: buildLocalRuntimeEnv(process.env.APP_URL || "http://localhost:3000") },
 );
 attachTerminationHandler(child);
-await waitForChildExit(child, "AnswerLoom collector");
+await waitForChildExit(child, "Aloom collector");

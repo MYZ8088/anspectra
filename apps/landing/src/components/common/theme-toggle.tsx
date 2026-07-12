@@ -1,7 +1,7 @@
 "use client";
 
 import { STORAGE_KEY } from "@/lib/landing-content";
-import { Button } from "@answerloom/ui";
+import { Button } from "@aloom/ui";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 

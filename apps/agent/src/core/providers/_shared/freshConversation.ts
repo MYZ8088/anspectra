@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
-import { ValidationError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
+import { ValidationError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
 import {
 	PROVIDER_EDITOR_SELECTORS,
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	logger,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import type { Page } from "playwright";
 import { navigateWithRetry } from "../../../lib/browser/navigate.js";
 import { waitForEditorReady } from "../../../lib/input/editor/waitForReady.js";
@@ -120,9 +120,9 @@ export async function startFreshProviderConversation(args: {
 	await args.page.evaluate((nonce) => {
 		(
 			window as Window & {
-				__answerloomConversationNonce?: string;
+				__aloomConversationNonce?: string;
 			}
-		).__answerloomConversationNonce = nonce;
+		).__aloomConversationNonce = nonce;
 	}, randomUUID());
 	logger.log(
 		`[${args.provider}] verified fresh conversation (${clicked ? "new-chat control" : "dedicated entry"})`,
@@ -232,9 +232,9 @@ export async function readConversationIdentity(
 		.evaluate((candidateSelectors) => {
 			const values: string[] = [];
 			const nonce = (
-				window as Window & { __answerloomConversationNonce?: string }
-			).__answerloomConversationNonce;
-			if (nonce) values.push(`answerloom-session:${nonce}`);
+				window as Window & { __aloomConversationNonce?: string }
+			).__aloomConversationNonce;
+			if (nonce) values.push(`aloom-session:${nonce}`);
 			for (const selector of candidateSelectors) {
 				for (const element of document.querySelectorAll(selector)) {
 					for (const name of [

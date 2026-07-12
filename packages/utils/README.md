@@ -1,4 +1,4 @@
-# @answerloom/utils
+# @aloom/utils
 
 Shared helper utilities used across the monorepo.
 
@@ -24,17 +24,17 @@ Shared helper utilities used across the monorepo.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/utils build` | Compile TypeScript |
-| `pnpm --filter @answerloom/utils typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/utils build` | Compile TypeScript |
+| `pnpm --filter @aloom/utils typecheck` | TypeScript checks |
 
 ## Usage
 
 ```ts
-import { formatDate, getDomain, filterAnalysisRecords } from "@answerloom/utils";
+import { formatDate, getDomain, filterAnalysisRecords } from "@aloom/utils";
 ```
 
 ## Contribution Guidance
 
 - Keep helpers deterministic and side-effect minimal.
-- Put domain orchestration in `@answerloom/services`, not in utility functions.
+- Put domain orchestration in `@aloom/services`, not in utility functions.
 - Prefer small focused modules with explicit named exports.

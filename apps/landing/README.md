@@ -1,6 +1,6 @@
-# @answerloom/landing
+# @aloom/landing
 
-Public marketing site for AnswerLoom, deployed separately on Vercel.
+Public marketing site for Aloom, deployed separately on Vercel.
 
 ## Responsibilities
 
@@ -20,11 +20,11 @@ Public marketing site for AnswerLoom, deployed separately on Vercel.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @answerloom/landing dev` | Start Next.js dev server |
-| `pnpm --filter @answerloom/landing build` | Build production bundle |
-| `pnpm --filter @answerloom/landing start` | Start built app |
-| `pnpm --filter @answerloom/landing typecheck` | TypeScript checks |
-| `pnpm --filter @answerloom/landing lint` | Biome lint/check |
+| `pnpm --filter @aloom/landing dev` | Start Next.js dev server |
+| `pnpm --filter @aloom/landing build` | Build production bundle |
+| `pnpm --filter @aloom/landing start` | Start built app |
+| `pnpm --filter @aloom/landing typecheck` | TypeScript checks |
+| `pnpm --filter @aloom/landing lint` | Biome lint/check |
 
 ## Environment Variables
 
@@ -34,15 +34,15 @@ Public marketing site for AnswerLoom, deployed separately on Vercel.
 ## Local Development
 
 ```bash
-pnpm --filter @answerloom/landing dev
+pnpm --filter @aloom/landing dev
 ```
 
 If port `3000` is already used by another app, run with a custom `PORT`.
 
 ## Dependencies
 
-- `@answerloom/ui`
-- `@answerloom/types`
-- `@answerloom/utils`
+- `@aloom/ui`
+- `@aloom/types`
+- `@aloom/utils`
 
 These ensure landing previews stay aligned with product domain and shared components.

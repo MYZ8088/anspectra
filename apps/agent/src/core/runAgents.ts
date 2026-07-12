@@ -3,7 +3,7 @@ import type {
 	PromptAttemptUpdate,
 	PromptPayload,
 	Provider,
-} from "@answerloom/types";
+} from "@aloom/types";
 import type { Page } from "playwright";
 import { runPrompts } from "./prompt-runner/index.js";
 
@@ -14,6 +14,7 @@ export async function runAgents(
 	onPromptProgress?: (current: number, total: number) => Promise<void>,
 	onSampleComplete?: (sample: AskPromptResult) => Promise<void>,
 	onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>,
+	resumedFromHumanChallenge = false,
 ): Promise<AskPromptResult[]> {
 	return runPrompts(
 		prompts,
@@ -22,5 +23,6 @@ export async function runAgents(
 		onPromptProgress,
 		onSampleComplete,
 		onAttemptUpdate,
+		resumedFromHumanChallenge,
 	);
 }

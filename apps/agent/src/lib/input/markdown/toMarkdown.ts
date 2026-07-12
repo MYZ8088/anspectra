@@ -1,5 +1,5 @@
-import type { Provider } from "@answerloom/types";
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@answerloom/utils";
+import type { Provider } from "@aloom/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
 import type { Page } from "playwright";
 import { turndown } from "./converter.js";
 

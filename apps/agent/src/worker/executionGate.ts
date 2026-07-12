@@ -1,5 +1,5 @@
-import type { Provider } from "@answerloom/types";
-import { logger } from "@answerloom/utils";
+import type { Provider } from "@aloom/types";
+import { logger } from "@aloom/utils";
 
 // Bounded random jitter applied before each provider starts so that concurrent
 // jobs do not all spin up browsers simultaneously and spike CPU/memory.

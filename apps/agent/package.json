@@ -1,5 +1,5 @@
 {
-	"name": "@answerloom/agent",
+	"name": "@aloom/agent",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
@@ -7,14 +7,15 @@
 	"scripts": {
 		"dev": "node --loader ts-node/esm src/index.ts",
 		"start:worker": "node dist/index.js",
+		"inspect:modes": "node --loader ts-node/esm src/inspect-provider-modes.ts",
 		"build": "tsc",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@answerloom/errors": "workspace:*",
-		"@answerloom/services": "workspace:*",
-		"@answerloom/types": "workspace:*",
-		"@answerloom/utils": "workspace:*",
+		"@aloom/errors": "workspace:*",
+		"@aloom/services": "workspace:*",
+		"@aloom/types": "workspace:*",
+		"@aloom/utils": "workspace:*",
 		"bullmq": "^5.66.4",
 		"dotenv": "^17.2.3",
 		"playwright-core": "^1.51.1",

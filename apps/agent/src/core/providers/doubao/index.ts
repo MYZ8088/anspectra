@@ -1,9 +1,11 @@
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@answerloom/utils";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	extractLatestChineseChatResponse,
 	extractSourcesFromChineseChat,
 } from "../_shared/chineseChat.js";
+import { applyOfficialWebMode } from "../_shared/providerModes.js";
 import {
 	readConversationIdentity,
 	startFreshProviderConversation,
@@ -15,6 +17,9 @@ export const doubaoConfig: ProviderConfig = {
 	url: DOUBAO_URL,
 	label: "Doubao",
 	displayName: "Doubao",
+	supportedModes: GEO_PROVIDER_MODE_CAPABILITIES.doubao,
+	applyMode: (page, mode) =>
+		applyOfficialWebMode({ page, provider: "doubao", mode }),
 	beforeRetryHook: resetDoubaoPage,
 	betweenPromptsHook: resetDoubaoPage,
 	startFreshConversation: async (page) => {

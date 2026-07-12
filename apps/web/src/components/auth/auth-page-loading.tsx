@@ -1,4 +1,4 @@
-import { Skeleton } from "@answerloom/ui";
+import { Skeleton } from "@aloom/ui";
 import { AuthPageShell } from "./auth-page-shell";
 
 export function AuthPageLoading(): React.JSX.Element {

@@ -16,7 +16,7 @@ import {
 import { writeSkipProviderGate } from "@/lib/provider-connections/provider-gate";
 import type { ProviderConnectionCard } from "@/lib/provider-connections/types";
 import { api } from "@/trpc/react";
-import type { AuthProvider } from "@answerloom/types";
+import type { AuthProvider } from "@aloom/types";
 import {
 	Button,
 	Dialog,
@@ -26,8 +26,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	toast,
-} from "@answerloom/ui";
-import { cn, getModelFavicon } from "@answerloom/utils";
+} from "@aloom/ui";
+import { cn, getModelFavicon } from "@aloom/utils";
 import {
 	AlertTriangle,
 	ArrowRight,

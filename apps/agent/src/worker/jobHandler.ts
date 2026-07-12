@@ -3,7 +3,7 @@ import {
 	ValidationError,
 	classifyError,
 	toErrorMessage,
-} from "@answerloom/errors";
+} from "@aloom/errors";
 import {
 	buildProviderCancelKey,
 	buildProviderJobId,
@@ -16,16 +16,17 @@ import {
 	redis,
 	updateProviderProgress,
 	writeProviderAuthStatus,
-} from "@answerloom/services";
+} from "@aloom/services";
 import type {
 	AgentResult,
 	AuthProvider,
 	ModelResult,
 	PromptPayload,
 	Provider,
-} from "@answerloom/types";
-import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@answerloom/types";
-import { createProviderLogger, logger } from "@answerloom/utils";
+	ProviderMode,
+} from "@aloom/types";
+import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@aloom/types";
+import { createProviderLogger, logger } from "@aloom/utils";
 import type { Job } from "bullmq";
 import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";
@@ -57,6 +58,7 @@ type ProviderJobData = {
 	totalPromptCount?: number;
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
+	providerMode?: ProviderMode;
 };
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
@@ -155,6 +157,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		totalPromptCount = prompts.length,
 		minPromptDelayMs,
 		maxPromptDelayMs,
+		providerMode = "default",
 	} = job.data;
 	const plog = createProviderLogger(provider);
 	releaseProviderHumanHold(provider);
@@ -235,6 +238,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 			prompt,
 		})),
 		created_at: executionTime,
+		providerMode,
 		...(minPromptDelayMs !== undefined && maxPromptDelayMs !== undefined
 			? { sampling: { minPromptDelayMs, maxPromptDelayMs } }
 			: {}),
@@ -273,9 +277,13 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				throw new StopProviderRunError(provider);
 			}
 
-			const result = await agentHandler(
-				label,
-				() => createAgent(provider),
+				const result = await agentHandler(
+					label,
+					() =>
+						createAgent(provider, {
+							taskId: `collection:${collectionRunId ?? jobGroupId}:${provider}`,
+							visibility: "headful",
+						}),
 				payload,
 				provider,
 				{
@@ -306,7 +314,8 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 						await recordGeoSampleAttempt({
 							runId: collectionRunId,
 							provider,
-							requestedMode: "default",
+							requestedMode: update.requestedMode ?? providerMode,
+							actualMode: update.actualMode,
 							...update,
 						});
 					},
@@ -418,6 +427,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 						userId: user_id,
 						provider,
 						jobGroupId,
+						collectionRunId,
 					});
 				}
 				return true;
@@ -454,6 +464,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					userId: user_id,
 					provider,
 					jobGroupId,
+					collectionRunId,
 				});
 		}
 

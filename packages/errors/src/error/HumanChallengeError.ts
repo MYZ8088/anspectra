@@ -1,4 +1,4 @@
-import type { ChallengeKind } from "@answerloom/types";
+import type { ChallengeKind } from "@aloom/types";
 import { BaseError } from "./BaseError.js";
 
 export class HumanChallengeError extends BaseError {

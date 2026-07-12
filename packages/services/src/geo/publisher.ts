@@ -4,8 +4,8 @@ import {
 	createHash,
 	randomBytes,
 } from "node:crypto";
-import { db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { env } from "../env.js";
 import { buildMatchedPromptCohorts } from "./experimentCohorts.js";
@@ -181,7 +181,7 @@ async function publishGeoFlow(
 		headers: { ...headers, "X-Idempotency-Key": `${key}-review` },
 		body: JSON.stringify({
 			review_status: "approved",
-			review_note: "Approved in AnswerLoom",
+			review_note: "Approved in Aloom",
 		}),
 	});
 	const published = await requestJson(`${base}/articles/${articleId}/publish`, {
@@ -229,7 +229,7 @@ async function publishGitHub(
 	const object = ref.object as Record<string, unknown> | undefined;
 	const sha = String(object?.sha || "");
 	if (!sha) throw new Error("GitHub base branch SHA was not returned");
-	const branch = `answerloom/geo-${assetId.slice(0, 8)}`;
+	const branch = `aloom/geo-${assetId.slice(0, 8)}`;
 	await githubRequest(
 		config,
 		`/repos/${config.owner}/${config.repo}/git/refs`,
@@ -447,7 +447,7 @@ export async function publishApprovedRevision(args: {
 						config,
 						asset.title,
 						revision.markdown,
-						`answerloom-${revision.id}`,
+						`aloom-${revision.id}`,
 					)
 				: await publishGitHub(config, asset.title, revision.markdown, asset.id);
 	const now = new Date();

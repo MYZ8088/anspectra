@@ -1,6 +1,6 @@
-import { NotFoundError } from "@answerloom/errors";
-import { type Provider, resolveAppMode } from "@answerloom/types";
-import { PROVIDER_EDITOR_SELECTORS, logger } from "@answerloom/utils";
+import { NotFoundError } from "@aloom/errors";
+import { type Provider, resolveAppMode } from "@aloom/types";
+import { PROVIDER_EDITOR_SELECTORS, logger } from "@aloom/utils";
 import type { Locator, Page } from "playwright";
 import { env } from "../../../env.js";
 import { detectBotPage } from "../response/detectBotPage.js";
@@ -24,7 +24,7 @@ const PRIMARY_SELECTOR_GRACE_MS: Partial<Record<Provider, number>> = {
 	gemini: 8_000,
 };
 
-const isLocalMode = resolveAppMode(env.ANSWERLOOM_APP_MODE) === "local";
+const isLocalMode = resolveAppMode(env.ALOOM_APP_MODE) === "local";
 const STABLE_POLLS_REQUIRED = 2;
 const POLL_INTERVAL_MS = 200;
 const EDITOR_PROBE_TIMEOUT_MS = 1_500;

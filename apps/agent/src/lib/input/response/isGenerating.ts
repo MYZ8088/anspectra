@@ -1,8 +1,8 @@
-import type { Provider } from "@answerloom/types";
+import type { Provider } from "@aloom/types";
 import {
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	PROVIDER_RESPONSE_GENERATION_SELECTORS,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import type { Page } from "playwright";
 
 const STRICT_RESPONSE_STATE_SELECTORS: Partial<Record<Provider, string[]>> = {

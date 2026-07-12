@@ -10,7 +10,7 @@ import { request as httpsRequest } from "node:https";
 import { type Socket, connect as netConnect } from "node:net";
 import type { Duplex } from "node:stream";
 import { connect as tlsConnect } from "node:tls";
-import { logger } from "@answerloom/utils";
+import { logger } from "@aloom/utils";
 
 export type ProxyScheme = "http" | "https";
 

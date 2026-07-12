@@ -10,8 +10,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@answerloom/ui";
-import { getFaviconUrls, getModelFavicon } from "@answerloom/utils";
+} from "@aloom/ui";
+import { getFaviconUrls, getModelFavicon } from "@aloom/utils";
 
 export function VisibilityScoreboardSection(): React.JSX.Element {
 	return (
@@ -29,7 +29,7 @@ export function VisibilityScoreboardSection(): React.JSX.Element {
 				</h2>
 				<p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground sm:text-base">
 					See how your brand stacks up on visibility, mentions, and sentiment
-					across all LLM providers.
+					across Doubao, DeepSeek, Yuanbao, and Qwen.
 				</p>
 			</div>
 			<div className="landing-surface overflow-x-auto">

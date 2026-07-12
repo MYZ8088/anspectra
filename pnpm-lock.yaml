@@ -33,16 +33,16 @@ importers:
 
   apps/agent:
     dependencies:
-      '@answerloom/errors':
+      '@aloom/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@answerloom/services':
+      '@aloom/services':
         specifier: workspace:*
         version: link:../../packages/services
-      '@answerloom/types':
+      '@aloom/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@answerloom/utils':
+      '@aloom/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       bullmq:
@@ -76,10 +76,10 @@ importers:
 
   apps/landing:
     dependencies:
-      '@answerloom/ui':
+      '@aloom/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@answerloom/utils':
+      '@aloom/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@vercel/analytics':
@@ -131,22 +131,22 @@ importers:
 
   apps/web:
     dependencies:
-      '@answerloom/db':
+      '@aloom/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@answerloom/errors':
+      '@aloom/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@answerloom/services':
+      '@aloom/services':
         specifier: workspace:*
         version: link:../../packages/services
-      '@answerloom/types':
+      '@aloom/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@answerloom/ui':
+      '@aloom/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@answerloom/utils':
+      '@aloom/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@hookform/resolvers':
@@ -277,7 +277,7 @@ importers:
 
   packages/errors:
     dependencies:
-      '@answerloom/types':
+      '@aloom/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -290,16 +290,16 @@ importers:
 
   packages/services:
     dependencies:
-      '@answerloom/db':
+      '@aloom/db':
         specifier: workspace:*
         version: link:../db
-      '@answerloom/errors':
+      '@aloom/errors':
         specifier: workspace:*
         version: link:../errors
-      '@answerloom/types':
+      '@aloom/types':
         specifier: workspace:*
         version: link:../types
-      '@answerloom/utils':
+      '@aloom/utils':
         specifier: workspace:*
         version: link:../utils
       '@anthropic-ai/sdk':
@@ -354,7 +354,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@answerloom/utils':
+      '@aloom/utils':
         specifier: workspace:*
         version: link:../utils
       '@radix-ui/react-checkbox':
@@ -424,7 +424,7 @@ importers:
 
   packages/utils:
     dependencies:
-      '@answerloom/types':
+      '@aloom/types':
         specifier: workspace:*
         version: link:../types
       clsx:

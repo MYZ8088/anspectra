@@ -1,14 +1,16 @@
-import { clickhouse, db, schema } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { clickhouse, db, schema } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	AskPromptResult,
 	BrandAnalysisResult,
 	Provider,
+	ProviderMode,
 	SampleAttemptEvent,
 	SamplingDepth,
 	UserPrompt,
-} from "@answerloom/types";
-import { formatDateToClickHouse } from "@answerloom/utils";
+} from "@aloom/types";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
+import { formatDateToClickHouse } from "@aloom/utils";
 import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { readAuthenticatedRuntimeProviders } from "../agent/auth.js";
 import {
@@ -33,7 +35,7 @@ export const GEO_WEB_PROVIDERS = [
 ] as const satisfies readonly Provider[];
 
 const DAILY_PROVIDER_SAMPLE_LIMIT = 30;
-const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
+const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
 
 function promptSetSamplingDepth(promptSet: {
 	tier: string;
@@ -348,6 +350,10 @@ export async function markGeoAnalysisRunning(runId: string) {
 			and(
 				eq(schema.sampleCheckpoints.runId, runId),
 				eq(schema.sampleCheckpoints.status, "completed"),
+				inArray(schema.sampleCheckpoints.analysisStatus, [
+					"pending",
+					"failed",
+				]),
 			),
 		);
 }
@@ -355,6 +361,7 @@ export async function markGeoAnalysisRunning(runId: string) {
 export async function completeGeoAnalysis(args: {
 	runId: string;
 	errors?: Array<{ responseId: string; error: string }>;
+	processedResponseIds?: string[];
 	fatalError?: string;
 }) {
 	const checkpoints = await db.query.sampleCheckpoints.findMany({
@@ -366,7 +373,18 @@ export async function completeGeoAnalysis(args: {
 	const errors = new Map(
 		(args.errors ?? []).map((error) => [error.responseId, error.error]),
 	);
+	const processed = args.processedResponseIds
+		? new Set(args.processedResponseIds)
+		: null;
 	for (const checkpoint of checkpoints) {
+		if (
+			!args.fatalError &&
+			processed &&
+			(!checkpoint.analyticsSampleId ||
+				!processed.has(checkpoint.analyticsSampleId))
+		) {
+			continue;
+		}
 		const error =
 			args.fatalError ??
 			(checkpoint.analyticsSampleId
@@ -393,6 +411,7 @@ export async function startGeoCollectionRun(args: {
 	userId: string;
 	promptSetId: string;
 	providers?: Provider[];
+	providerModes?: Partial<Record<Provider, ProviderMode>>;
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
 	requiredPurpose?: "baseline" | "diagnostic" | "retest";
@@ -455,7 +474,7 @@ export async function startGeoCollectionRun(args: {
 		args.providers?.length ? args.providers : [...GEO_WEB_PROVIDERS]
 	).filter((provider) => GEO_WEB_PROVIDERS.includes(provider as never));
 	const [localHeartbeat, collectors, connectedProfiles] = await Promise.all([
-		redis.get("answerloom:agent:heartbeat").catch(() => null),
+		redis.get("aloom:agent:heartbeat").catch(() => null),
 		db.query.collectorNodes.findMany({
 			where: eq(schema.collectorNodes.workspaceId, args.workspaceId),
 			orderBy: [desc(schema.collectorNodes.lastHeartbeatAt)],
@@ -487,6 +506,21 @@ export async function startGeoCollectionRun(args: {
 			"Connect at least one real Web provider before starting",
 		);
 	}
+	const providerModes = Object.fromEntries(
+		providers.map((provider) => {
+			const requested = args.providerModes?.[provider] ?? "default";
+			const supported =
+				GEO_PROVIDER_MODE_CAPABILITIES[
+					provider as keyof typeof GEO_PROVIDER_MODE_CAPABILITIES
+				];
+			if (!supported?.includes(requested as never)) {
+				throw new ValidationError(
+					`${provider} does not support official Web mode "${requested}"`,
+				);
+			}
+			return [provider, requested];
+		}),
+	) as Partial<Record<Provider, ProviderMode>>;
 
 	const setManifest = (promptSet.manifest ?? {}) as {
 		expectedPromptHashes?: string[];
@@ -547,9 +581,12 @@ export async function startGeoCollectionRun(args: {
 				status: firstDayDelayHours > 0 ? "scheduled" : "queued",
 				tier: promptSet.tier,
 				requiredProviders: providers,
-				providerModes: Object.fromEntries(
-					providers.map((provider) => [provider, ["default"]]),
-				),
+					providerModes: Object.fromEntries(
+						providers.map((provider) => [
+							provider,
+							[providerModes[provider] ?? "default"],
+						]),
+					),
 				roundCount,
 				plannedSamples,
 				manifest: {
@@ -590,7 +627,8 @@ export async function startGeoCollectionRun(args: {
 						scheduledAt,
 						metadata: {
 							seriesId: series.id,
-							providers,
+								providers,
+								providerModes,
 							userId: args.userId,
 							promptIds: batchRows.map((prompt) => prompt.id),
 							roundIndex,
@@ -613,7 +651,7 @@ export async function startGeoCollectionRun(args: {
 							repeatIndex: roundIndex - 1,
 							status: "queued",
 							phase: "queued",
-							requestedMode: "default",
+								requestedMode: providerModes[provider] ?? "default",
 							analysisStatus: "pending",
 						})),
 					),
@@ -649,6 +687,7 @@ export async function startGeoCollectionRun(args: {
 			userId: args.userId,
 			workspaceId: args.workspaceId,
 			providers,
+			providerModes,
 			totalPromptCount: first.promptRows.length,
 			minPromptDelayMs: args.minPromptDelayMs ?? 3 * 60_000,
 			maxPromptDelayMs: args.maxPromptDelayMs ?? 8 * 60_000,
@@ -845,6 +884,7 @@ export async function dispatchScheduledGeoRuns(): Promise<number> {
 	for (const run of dueRuns) {
 		const metadata = (run.metadata ?? {}) as {
 			providers?: Provider[];
+			providerModes?: Partial<Record<Provider, ProviderMode>>;
 			userId?: string;
 			roundIndex?: number;
 			promptIds?: string[];
@@ -936,6 +976,7 @@ export async function dispatchScheduledGeoRuns(): Promise<number> {
 			userId: metadata.userId,
 			workspaceId: run.workspaceId,
 			providers: metadata.providers,
+			providerModes: metadata.providerModes,
 			totalPromptCount: promptRows.length,
 			minPromptDelayMs: 3 * 60_000,
 			maxPromptDelayMs: 8 * 60_000,
@@ -971,6 +1012,9 @@ export async function persistGeoSampleCheckpoint(args: {
 			status: "completed",
 			phase: "completed",
 			analysisStatus: "pending",
+			requestedMode: args.sample.requestedMode ?? "default",
+			actualMode:
+				args.sample.actualMode ?? args.sample.requestedMode ?? "default",
 			conversationId: args.sample.conversationId ?? null,
 			conversationUrl: args.sample.conversationUrl ?? null,
 			sourceExposure: args.sample.sourceExposure ?? "not_exposed",
@@ -1327,7 +1371,10 @@ export async function resumeHumanChallenge(args: {
 		),
 	});
 	if (!run?.promptSetId) throw new NotFoundError("Collection run not found");
-	const runMetadata = (run.metadata ?? {}) as { promptIds?: string[] };
+	const runMetadata = (run.metadata ?? {}) as {
+		promptIds?: string[];
+		providerModes?: Partial<Record<Provider, ProviderMode>>;
+	};
 	const [prompts, completed] = await Promise.all([
 		loadRunPromptRows(run.promptSetId, runMetadata.promptIds),
 		db.query.sampleCheckpoints.findMany({
@@ -1406,6 +1453,9 @@ export async function resumeHumanChallenge(args: {
 		userId: args.userId,
 		workspaceId: args.workspaceId,
 		providers: [provider],
+		providerModes: {
+			[provider]: runMetadata.providerModes?.[provider] ?? "default",
+		},
 		initialCompletedCount: completed.length,
 		totalPromptCount: prompts.length,
 		minPromptDelayMs: 3 * 60_000,
@@ -1611,7 +1661,7 @@ export async function retryGeoSamples(args: {
 				eq(schema.sampleCheckpoints.status, "completed"),
 			),
 		});
-		await enqueueProviderJobs({
+			await enqueueProviderJobs({
 			jobGroupId: run.id,
 			collectionRunId: run.id,
 			prompts: asUserPrompts({
@@ -1621,7 +1671,10 @@ export async function retryGeoSamples(args: {
 			}),
 			userId: args.userId,
 			workspaceId: args.workspaceId,
-			providers: [provider],
+				providers: [provider],
+				providerModes: {
+					[provider]: (group[0]?.requestedMode ?? "default") as ProviderMode,
+				},
 			initialCompletedCount: completedCount.length,
 			totalPromptCount: completedCount.length + prompts.length,
 			minPromptDelayMs: 3 * 60_000,
@@ -1700,7 +1753,7 @@ export async function getGeoOverview(workspaceId: string) {
 					eq(schema.detectionSchedules.enabled, true),
 				),
 			}),
-			redis.get("answerloom:agent:heartbeat").catch(() => null),
+			redis.get("aloom:agent:heartbeat").catch(() => null),
 		]);
 	return {
 		runnerOnline:

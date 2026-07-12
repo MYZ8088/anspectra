@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="assets/brand/answerloom-lockup.svg" alt="AnswerLoom" width="320" />
+  <img src="assets/brand/aloom-lockup.svg" alt="Aloom" width="320" />
 </p>
 
-<h1 align="center">AnswerLoom GEO Detection</h1>
+<h1 align="center">Aloom GEO Detection</h1>
 
 <p align="center">
   Measure how an existing product appears across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.
 </p>
 
-AnswerLoom is a self-hosted GEO detection and recurring monitoring tool. It combines fixed, versioned prompt suites with persistent local browser profiles, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official Web monitoring samples.
+Aloom is a self-hosted GEO detection and recurring monitoring tool. It combines fixed, versioned prompt suites with persistent local browser profiles, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official Web monitoring samples.
 
 ## What It Measures
 
@@ -24,7 +24,7 @@ Every failed, blocked, or unattempted checkpoint remains in the report denominat
 
 ## Detection Packs
 
-`AnswerLoom GEO Detection Pack v1.1` contains 54 fixed templates per language: nine intents across six decision stages.
+`Aloom GEO Detection Pack v1.1` contains 54 fixed templates per language: nine intents across six decision stages.
 
 | Suite | Matrix | Core prompts per language |
 | --- | --- | ---: |
@@ -57,7 +57,7 @@ Sampling depth is independent from prompt coverage:
 
 ## Official Web Collection
 
-The local collector runs headed Camoufox with one persistent profile per provider. Cookies, local storage, browser fingerprints, and profiles stay on the collector machine. Each baseline prompt starts a fresh provider conversation and records its conversation ID or URL when available.
+The local collector runs headed Camoufox with one persistent profile per provider and automatically minimizes the provider window during normal sampling. Cookies, local storage, browser fingerprints, and profiles stay on the collector machine. Each baseline prompt starts a fresh provider conversation and records its conversation ID or URL when available. Login, inspection, and human verification restore the same real window and blocked page.
 
 Provider challenges are never bypassed. Login expiry, QR confirmation, CAPTCHA, sliders, and security checks move the current checkpoint to `waiting_human`. Completed samples are retained, and the original run resumes after the user finishes verification.
 
@@ -68,7 +68,7 @@ Supported formal providers:
 - Yuanbao (`hunyuan` internally)
 - Qwen
 
-Legacy international adapters remain in the repository for compatibility but are not part of formal AnswerLoom detection flows.
+Legacy international adapters remain in the repository for compatibility but are not part of formal Aloom detection flows.
 
 ## Architecture
 
@@ -99,8 +99,8 @@ Requirements:
 - Python 3.12
 
 ```bash
-git clone https://github.com/MYZ8088/answerloom.git
-cd answerloom
+git clone https://github.com/MYZ8088/aloom.git
+cd aloom
 cp .env.example .env
 pnpm install
 pnpm camoufox:setup
@@ -108,7 +108,9 @@ pnpm camoufox:doctor
 pnpm local
 ```
 
-Open `http://localhost:3000`, then connect each provider under `Providers`. The persistent profiles are stored under `.answerloom-storage/` and are excluded from Git.
+Open `http://localhost:3000`, then connect each provider under `Providers`. The persistent profiles are stored under `.aloom-storage/` and are excluded from Git.
+
+For an existing AnswerLoom or OneGlanse installation, run `pnpm brand:migrate-runtime` once before `pnpm local`. The migration copies legacy Docker volumes and local browser state into Aloom names, verifies volume sizes, keeps the legacy volumes, and backs up any incomplete target volume before replacement.
 
 Useful commands:
 
@@ -131,8 +133,11 @@ Existing optimization, publishing, and intervention tables are retained only for
 - A formal series cannot start until every expected prompt hash has a checkpoint source.
 - Each provider has concurrency one, with at most two providers running globally; no provider exceeds the configured daily sample limit.
 - Browser restarts reuse the same persistent identity and profile.
+- Once a prompt is confirmed as sent, extraction recovery stays in that conversation and never submits the prompt again.
 - Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
 - Collection and analysis statuses are stored independently.
+- Analysis is serialized per collection run and processes only the run checkpoints that are ready, so providers cannot mark one another's samples as analysed.
+- Structured analysis uses strict JSON Schema, balanced JSON extraction, local repair, Zod validation, a configured fallback model, and one conservative repair pass. Every raw attempt and terminal error remains traceable.
 - Trends compare only the same prompt set, provider cohort, mode, language, and hashes.
 - Offline collectors leave work in `waiting_runner` instead of dropping the series.
 
@@ -140,7 +145,7 @@ Existing optimization, publishing, and intervention tables are retained only for
 
 The fixed prompt methodology is derived from Yao GEO Skills at commit `136eb92c90946ea56ec63f912d5025bcbc884f39` under the MIT License. The templates are vendored and versioned; production does not download or execute the Skill, Codex, OpenCLI, or Computer Use.
 
-AnswerLoom retains historical upstream license notices where required. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Aloom is licensed under Apache-2.0 and is copyright 2026 MYZ8088. Historical upstream and vendored MIT notices remain intact. See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Current Limits
 

@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
-import { logger, withTimeout } from "@answerloom/utils";
+import { ExternalServiceError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
+import { logger, withTimeout } from "@aloom/utils";
 import type { Page } from "playwright";
 import {
 	moveMouseToElement,

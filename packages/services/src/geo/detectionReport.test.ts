@@ -1,8 +1,12 @@
-import type { BrandAnalysisResult } from "@answerloom/types";
+import type { BrandAnalysisResult } from "@aloom/types";
 import { describe, expect, it, vi } from "vitest";
-import { buildDetectionSlices } from "./detectionReport.js";
+import {
+	buildDetectionExecutiveSummary,
+	buildDetectionFailureBreakdown,
+	buildDetectionSlices,
+} from "./detectionReport.js";
 
-vi.mock("@answerloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
+vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
 
 function analysis(args: {
@@ -140,5 +144,55 @@ describe("buildDetectionSlices", () => {
 			]),
 		);
 		expect(slices.brand_exposure.find((row) => row.key === "blind")?.planned).toBe(3);
+	});
+
+	it("separates collection failures from structured analysis failures", () => {
+		const rows = [
+			sample({
+				id: "sample-collection-failure",
+				status: "failed",
+				analysisStatus: "not_applicable",
+				analysis: null,
+				errorCode: "response_timeout",
+			}),
+			sample({
+				id: "sample-analysis-failure",
+				analysisStatus: "failed",
+				analysis: null,
+				analysisErrorCode: "invalid_structured_output",
+				analysisErrorMessage: "Schema validation failed",
+			}),
+		];
+
+		expect(buildDetectionFailureBreakdown(rows as never)).toEqual([
+			{ kind: "analysis", code: "invalid_structured_output", count: 1 },
+			{ kind: "collection", code: "response_timeout", count: 1 },
+		]);
+	});
+
+	it("describes rates against the planned sample denominator", () => {
+		const rows = [
+			sample(),
+			sample({
+				id: "sample-failed",
+				status: "failed",
+				analysisStatus: "not_applicable",
+				analysis: null,
+			}),
+		];
+		const slices = buildDetectionSlices({
+			rows: rows as never,
+			tier: "standard",
+			requiredProviders: ["doubao", "deepseek"],
+		});
+		const summary = buildDetectionExecutiveSummary({
+			rows: rows as never,
+			plannedSamples: 2,
+			slices,
+			competitors: [],
+		});
+
+		expect(summary[1]).toContain("Across all planned samples");
+		expect(summary[1]).toContain("50%");
 	});
 });

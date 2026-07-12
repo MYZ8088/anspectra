@@ -312,11 +312,17 @@ export class PlaywrightBrowserContextCompat implements BrowserContext {
 	}
 
 	async newPage(): Promise<Page> {
-		if (this.initialPage) {
+		if (this.initialPage && !this.initialPage.isClosed()) {
 			const page = this.initialPage;
 			this.initialPage = null;
 			return this.wrapPage(page);
 		}
+		this.initialPage = null;
+
+		const browserOwnedBlank = this.context
+			.pages()
+			.find((page) => !page.isClosed() && page.url() === "about:blank");
+		if (browserOwnedBlank) return this.wrapPage(browserOwnedBlank);
 
 		return this.wrapPage(await this.context.newPage());
 	}

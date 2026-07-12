@@ -31,8 +31,8 @@ function healthySnapshot(overrides = {}) {
 		activeChannelError: null,
 		versionOutput: "Installed Yes",
 		versionProbeError: null,
-		entrypointShebang: "#!/workspace/.answerloom-storage/camoufox-venv/bin/python",
-		runtimeRoot: "/workspace/.answerloom-storage/camoufox-venv",
+		entrypointShebang: "#!/workspace/.aloom-storage/camoufox-venv/bin/python",
+		runtimeRoot: "/workspace/.aloom-storage/camoufox-venv",
 		manifest: {
 			pipSpec: desired.pipSpec,
 			browserChannel: desired.browserChannel,
@@ -83,7 +83,7 @@ describe("Camoufox runtime provisioner", () => {
 	});
 
 	it("serializes concurrent provisioners and recovers stale locks", async () => {
-		const directory = await mkdtemp(path.join(tmpdir(), "answerloom-lock-"));
+		const directory = await mkdtemp(path.join(tmpdir(), "aloom-lock-"));
 		temporaryDirectories.push(directory);
 		const lockPath = path.join(directory, "runtime.lock");
 		const releaseFirst = await acquireDirectoryLock({

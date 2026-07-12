@@ -3,7 +3,7 @@ import {
 	ValidationError,
 	classifyError,
 	toErrorMessage,
-} from "@answerloom/errors";
+} from "@aloom/errors";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,12 +11,15 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@answerloom/types";
-import { exponentialBackoff, logger } from "@answerloom/utils";
+} from "@aloom/types";
+import { exponentialBackoff, logger } from "@aloom/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
-import { executePrompt } from "./executePrompt.js";
+import {
+	executePrompt,
+	recoverSubmittedPrompt,
+} from "./executePrompt.js";
 import { describePromptFailure } from "./failureDetails.js";
 
 const MAX_RETRIES = 3;
@@ -89,10 +92,11 @@ export async function executePromptWithRetry(
 ): Promise<{ result: AskPromptResult; proxyNowProven: boolean }> {
 	const config = PROVIDER_CONFIGS[provider];
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(env.ANSWERLOOM_APP_MODE),
+		resolveAppMode(env.ALOOM_APP_MODE),
 	);
 	const maxAttempts = useProxy ? MAX_RETRIES : 2;
 	let lastError: unknown = null;
+	let recoverSubmitted = false;
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		if (attempt > 1) {
@@ -110,16 +114,14 @@ export async function executePromptWithRetry(
 			promptId: promptEntry.id,
 			attemptIndex: attempt,
 			status: "started",
-			phase: "submission",
+			phase: recoverSubmitted ? "extraction" : "submission",
 			pageUrl: page.url(),
 		}).catch(() => {});
 
 		try {
-			const { response, sources } = await executePrompt(
-				page,
-				promptEntry.prompt,
-				provider,
-			);
+			const { response, sources } = recoverSubmitted
+				? await recoverSubmittedPrompt(page, promptEntry.prompt, provider)
+				: await executePrompt(page, promptEntry.prompt, provider);
 
 			logger.success(
 				`prompt ${promptIndex + 1}/${totalPrompts} done${attempt > 1 ? ` (attempt ${attempt})` : ""}`,
@@ -150,6 +152,10 @@ export async function executePromptWithRetry(
 		} catch (err) {
 			lastError = err;
 			const failureType = classifyError(err);
+			const failedAfterSubmission =
+				failureType === "extraction_failed" ||
+				/fetchPromptResponses.*timed out/i.test(toErrorMessage(err));
+			if (failedAfterSubmission) recoverSubmitted = true;
 			const details = describePromptFailure(err);
 			await onAttemptUpdate?.({
 				promptId: promptEntry.id,
@@ -193,6 +199,7 @@ export async function executePromptWithRetry(
 
 			if (
 				attempt < maxAttempts &&
+				!recoverSubmitted &&
 				config.beforeRetryHook &&
 				REFRESH_ON_RETRY_FAILURES.has(failureType)
 			) {

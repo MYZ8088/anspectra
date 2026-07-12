@@ -1,10 +1,10 @@
-import { ExternalServiceError } from "@answerloom/errors";
-import type { Provider } from "@answerloom/types";
+import { ExternalServiceError } from "@aloom/errors";
+import type { Provider } from "@aloom/types";
 import {
 	PROVIDER_FORCE_EXIT_STABLE_MS,
 	PROVIDER_NO_OUTPUT_TIMEOUT_MS,
 	logger,
-} from "@answerloom/utils";
+} from "@aloom/utils";
 import type { Page } from "playwright";
 import {
 	getGenerationStateSignature,

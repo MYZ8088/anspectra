@@ -1,9 +1,9 @@
 {
 	"$schema": "https://mintlify.com/docs.json",
 	"theme": "mint",
-	"name": "AnswerLoom",
+	"name": "Aloom",
 	"favicon": "/images/logo-dark.png",
-	"thumbnail": "/images/Mockup-1.png",
+	"thumbnail": "/images/aloom-detection.png",
 	"colors": {
 		"primary": "#111827"
 	},

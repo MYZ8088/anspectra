@@ -1,6 +1,6 @@
-import { clickhouse, db, schema } from "@answerloom/db";
-import { ValidationError } from "@answerloom/errors";
-import type { BrandAnalysisResult } from "@answerloom/types";
+import { clickhouse, db, schema } from "@aloom/db";
+import { ValidationError } from "@aloom/errors";
+import type { BrandAnalysisResult } from "@aloom/types";
 import { and, desc, eq } from "drizzle-orm";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import {

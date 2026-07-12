@@ -1,8 +1,8 @@
-# Contributing to AnswerLoom
+# Contributing to Aloom
 
 I'm relatively new to open source. This is one of my first public projects. If you find something worth fixing or improving, I'd genuinely love a PR or even just an issue. Every bit of help makes this better.
 
-Thank you for your interest in contributing. AnswerLoom is MIT-licensed and fully open source.
+Thank you for your interest in contributing. Aloom is Apache-2.0 licensed and fully open source.
 
 ## Ways to Contribute
 
@@ -18,8 +18,8 @@ Thank you for your interest in contributing. AnswerLoom is MIT-licensed and full
 **Requirements:** Node.js 20+, pnpm 10+, Docker + Docker Compose
 
 ```bash
-# From your AnswerLoom checkout:
-cd answerloom
+# From your Aloom checkout:
+cd aloom
 pnpm local
 ```
 
@@ -101,7 +101,7 @@ The agent (`apps/agent/`) runs Camoufox + Playwright to capture responses from r
 
 Use the [Bug Report](.github/ISSUE_TEMPLATE/bug_report.yml) template. Include:
 
-- AnswerLoom version or commit hash
+- Aloom version or commit hash
 - OS and Node.js version
 - Steps to reproduce
 - What you expected vs. what happened
@@ -117,4 +117,4 @@ Open a [Feature Request](.github/ISSUE_TEMPLATE/feature_request.yml) issue befor
 
 ## Questions
 
-For general questions, use the discussion area in your configured AnswerLoom repository rather than an issue.
+For general questions, use the discussion area in your configured Aloom repository rather than an issue.

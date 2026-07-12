@@ -1,5 +1,5 @@
 import { AiVisibilityPreview } from "@/components/previews/ai-visibility-preview";
-import { SectionHeading } from "@answerloom/ui";
+import { SectionHeading } from "@aloom/ui";
 
 export function AiVisibilitySection(): React.JSX.Element {
 	return (
@@ -11,7 +11,7 @@ export function AiVisibilitySection(): React.JSX.Element {
 			<SectionHeading
 				eyebrow="Competitor Comparison"
 				title="See how your brand performs across AI answers"
-				description="Track where you lead, where you lag, and what to improve next across all LLM providers."
+				description="Compare observed mentions, recommendations, rank, and sentiment across the four supported official Web providers."
 			/>
 			<AiVisibilityPreview />
 		</section>

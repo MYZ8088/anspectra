@@ -9,7 +9,7 @@
  * runWithProvider() block is automatically prefixed with the provider label.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
-import { setProviderContextGetter } from "@answerloom/utils";
+import { setProviderContextGetter } from "@aloom/utils";
 
 const providerStorage = new AsyncLocalStorage<string>();
 

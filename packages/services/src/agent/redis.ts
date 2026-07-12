@@ -1,4 +1,4 @@
-import { DatabaseError, Logger } from "@answerloom/errors";
+import { DatabaseError, Logger } from "@aloom/errors";
 import { Redis } from "ioredis";
 import { env } from "../env.js";
 

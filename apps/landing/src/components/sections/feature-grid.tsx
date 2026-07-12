@@ -1,5 +1,5 @@
 import { FEATURE_ITEMS } from "@/lib/landing-content";
-import { SectionHeading } from "@answerloom/ui";
+import { SectionHeading } from "@aloom/ui";
 
 export function FeatureGrid(): React.JSX.Element {
 	return (

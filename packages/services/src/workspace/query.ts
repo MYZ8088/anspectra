@@ -1,6 +1,6 @@
-import { db, schema } from "@answerloom/db";
-import type { Workspace } from "@answerloom/db";
-import { NotFoundError, ValidationError } from "@answerloom/errors";
+import { db, schema } from "@aloom/db";
+import type { Workspace } from "@aloom/db";
+import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	GetAllWorkspacesForUserArgs,
 	GetWorkspaceByIdArgs,
@@ -8,7 +8,7 @@ import type {
 	GetWorkspacesForUserArgs,
 	WorkspaceJoinInfo,
 	WorkspaceMemberWithUser,
-} from "@answerloom/types";
+} from "@aloom/types";
 import { and, eq, isNull } from "drizzle-orm";
 import type {
 	JoinByCodeOrganization,

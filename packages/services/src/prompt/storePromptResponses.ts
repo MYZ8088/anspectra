@@ -1,12 +1,12 @@
-import { toErrorMessage } from "@answerloom/errors";
-import { db, schema } from "@answerloom/db";
+import { toErrorMessage } from "@aloom/errors";
+import { db, schema } from "@aloom/db";
 import type {
 	ModelResult,
 	Provider,
 	Source,
 	StorePromptResponsesArgs,
-} from "@answerloom/types";
-import { formatDateToClickHouse } from "@answerloom/utils";
+} from "@aloom/types";
+import { formatDateToClickHouse } from "@aloom/utils";
 import { v4 as uuidv4 } from "uuid";
 import { and, eq, inArray } from "drizzle-orm";
 import { insertClickHouseWithFallback } from "./lib/insertClickHouseWithFallback.js";
@@ -140,8 +140,13 @@ export async function storePromptResponses(
 			source_exposure:
 				sourceResult?.item.sourceExposure ??
 					(value.sources.length > 0 ? "exposed" : "not_exposed"),
-			requested_mode: checkpoint?.requestedMode ?? "default",
-			actual_mode: checkpoint?.actualMode ?? checkpoint?.requestedMode ?? "default",
+			requested_mode:
+				sourceResult?.item.requestedMode ?? checkpoint?.requestedMode ?? "default",
+			actual_mode:
+				sourceResult?.item.actualMode ??
+				checkpoint?.actualMode ??
+				checkpoint?.requestedMode ??
+				"default",
 			conversation_id: sourceResult?.item.conversationId ?? null,
 			conversation_url: sourceResult?.item.conversationUrl ?? null,
 			conversation_isolation:

@@ -1,9 +1,9 @@
-import { HumanChallengeError, classifyError, toErrorMessage } from "@answerloom/errors";
+import { HumanChallengeError, classifyError, toErrorMessage } from "@aloom/errors";
 import type {
 	CollectionPhase,
 	FailureCategory,
 	FailureCode,
-} from "@answerloom/types";
+} from "@aloom/types";
 
 export type PromptFailureDetails = {
 	phase: CollectionPhase;

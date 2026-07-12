@@ -1,4 +1,5 @@
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@answerloom/utils";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	extractLatestChineseChatResponse,
@@ -8,6 +9,7 @@ import {
 	readConversationIdentity,
 	startFreshProviderConversation,
 } from "../_shared/freshConversation.js";
+import { applyOfficialWebMode } from "../_shared/providerModes.js";
 import type { ProviderConfig } from "../types.js";
 import { HUNYUAN_URL, resetHunyuanPage } from "./lib/pageLifecycle.js";
 
@@ -15,6 +17,9 @@ export const hunyuanConfig: ProviderConfig = {
 	url: HUNYUAN_URL,
 	label: "Tencent Hunyuan",
 	displayName: "Tencent Hunyuan",
+	supportedModes: GEO_PROVIDER_MODE_CAPABILITIES.hunyuan,
+	applyMode: (page, mode) =>
+		applyOfficialWebMode({ page, provider: "hunyuan", mode }),
 	beforeRetryHook: resetHunyuanPage,
 	betweenPromptsHook: resetHunyuanPage,
 	startFreshConversation: async (page) => {

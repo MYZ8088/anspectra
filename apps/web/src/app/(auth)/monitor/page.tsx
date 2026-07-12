@@ -10,11 +10,27 @@ import type {
 	DetectionSuiteKey,
 	GeoDecisionStage,
 	GeoIntent,
+	ProviderMode,
 	SamplingDepth,
-} from "@answerloom/types";
-import { GEO_DECISION_STAGE_LIST, GEO_INTENT_LIST } from "@answerloom/types";
-import { Button, Checkbox, Input, toast } from "@answerloom/ui";
-import { cn } from "@answerloom/utils";
+} from "@aloom/types";
+import {
+	GEO_DECISION_STAGE_LIST,
+	GEO_INTENT_LIST,
+	GEO_PROVIDER_MODE_CAPABILITIES,
+	PROVIDER_MODE_LABELS,
+} from "@aloom/types";
+import {
+	Button,
+	Checkbox,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	toast,
+} from "@aloom/ui";
+import { cn } from "@aloom/utils";
 import {
 	CheckCircle2,
 	ChevronDown,
@@ -37,6 +53,13 @@ const PROVIDERS = [
 	["hunyuan", "Yuanbao"],
 	["qwen", "Qwen"],
 ] as const;
+type GeoProvider = (typeof PROVIDERS)[number][0];
+
+const SAMPLING_DEPTH_LABELS: Record<SamplingDepth, string> = {
+	single: "Single",
+	reliable: "Reliable",
+	stability: "Stability",
+};
 
 const INTENT_LABELS: Record<GeoIntent, string> = {
 	information: "Information",
@@ -173,9 +196,17 @@ export default function NewDetectionPage() {
 	const [locales, setLocales] = useState<Array<"zh-CN" | "en-US">>(["zh-CN"]);
 	const [suiteKey, setSuiteKey] = useState<SelectableSuite>("quick_scan");
 	const [samplingDepth, setSamplingDepth] = useState<SamplingDepth>("single");
-	const [providers, setProviders] = useState<string[]>(
+	const [providers, setProviders] = useState<GeoProvider[]>(
 		PROVIDERS.map(([key]) => key),
 	);
+	const [providerModes, setProviderModes] = useState<
+		Record<GeoProvider, ProviderMode>
+	>({
+		doubao: "default",
+		deepseek: "default",
+		hunyuan: "default",
+		qwen: "default",
+	});
 	const [intentFilter, setIntentFilter] = useState<GeoIntent[]>([]);
 	const [stageFilter, setStageFilter] = useState<GeoDecisionStage[]>([]);
 	const [exposureFilter, setExposureFilter] = useState<
@@ -589,7 +620,7 @@ export default function NewDetectionPage() {
 													: "hover:bg-stone-50 dark:hover:bg-neutral-900",
 											)}
 										>
-											{depth}
+											{SAMPLING_DEPTH_LABELS[depth]}
 										</button>
 									),
 								)}
@@ -604,8 +635,46 @@ export default function NewDetectionPage() {
 							}
 							onChange={(values) => values.length && setProviders(values)}
 						/>
-					</div>
-					<details className="rounded-md border border-stone-200 p-4 dark:border-neutral-800">
+						</div>
+						<div>
+							<p className="mb-3 text-xs font-semibold uppercase text-stone-500">
+								Official Web modes
+							</p>
+							<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+								{PROVIDERS.filter(([provider]) =>
+									providers.includes(provider),
+								).map(([provider, label]) => (
+									<label key={provider} className="grid gap-1.5 text-sm">
+										<span className="font-medium">{label}</span>
+										<Select
+											value={providerModes[provider]}
+											onValueChange={(value) =>
+												setProviderModes((current) => ({
+													...current,
+													[provider]: value as ProviderMode,
+												}))
+											}
+										>
+											<SelectTrigger aria-label={`${label} official Web mode`}>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{GEO_PROVIDER_MODE_CAPABILITIES[provider].map((mode) => (
+													<SelectItem key={mode} value={mode}>
+														{PROVIDER_MODE_LABELS[mode]}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</label>
+								))}
+							</div>
+							<p className="mt-3 text-xs text-stone-500">
+								Modes are verified in each official Web UI and frozen into the series
+								signature. Search cohorts are not merged with default-mode trends.
+							</p>
+						</div>
+						<details className="rounded-md border border-stone-200 p-4 dark:border-neutral-800">
 						<summary className="flex cursor-pointer list-none items-center justify-between font-medium">
 							Advanced dimensions <ChevronDown className="size-4" />
 						</summary>
@@ -829,9 +898,15 @@ export default function NewDetectionPage() {
 												start.mutate({
 													workspaceId,
 													promptSetId: set.id,
-													providers: providers as Array<
-														"doubao" | "deepseek" | "hunyuan" | "qwen"
-													>,
+												providers: providers as Array<
+													"doubao" | "deepseek" | "hunyuan" | "qwen"
+												>,
+												providerModes: Object.fromEntries(
+													providers.map((provider) => [
+														provider,
+														providerModes[provider],
+													]),
+												),
 												})
 											}
 										>
