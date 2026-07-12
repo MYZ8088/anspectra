@@ -24,6 +24,7 @@ import { getProviderQueue } from "../agent/queue.js";
 import { redis, waitForRedis } from "../agent/redis.js";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
+import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
 import { getNextRetestObservation } from "./runState.js";
 
@@ -350,10 +351,7 @@ export async function markGeoAnalysisRunning(runId: string) {
 			and(
 				eq(schema.sampleCheckpoints.runId, runId),
 				eq(schema.sampleCheckpoints.status, "completed"),
-				inArray(schema.sampleCheckpoints.analysisStatus, [
-					"pending",
-					"failed",
-				]),
+				inArray(schema.sampleCheckpoints.analysisStatus, ["pending", "failed"]),
 			),
 		);
 }
@@ -489,7 +487,9 @@ export async function startGeoCollectionRun(args: {
 	const remoteCollector = localHeartbeat
 		? null
 		: (collectors.find((node) =>
-				connectedProfiles.some((profile) => profile.collectorNodeId === node.id),
+				connectedProfiles.some(
+					(profile) => profile.collectorNodeId === node.id,
+				),
 			) ?? null);
 	const remoteProfiles = remoteCollector
 		? connectedProfiles.filter(
@@ -567,8 +567,7 @@ export async function startGeoCollectionRun(args: {
 		DAILY_PROVIDER_SAMPLE_LIMIT,
 	);
 	const samplingDepth = promptSetSamplingDepth(promptSet);
-	const roundCount =
-		samplingDepth === "single" ? 1 : samplingDepth === "reliable" ? 2 : 3;
+	const roundCount = samplingDepthRoundCount(samplingDepth);
 	const now = new Date();
 	const plannedSamples = promptRows.length * providers.length * roundCount;
 	const created = await db.transaction(async (tx) => {
@@ -581,12 +580,12 @@ export async function startGeoCollectionRun(args: {
 				status: firstDayDelayHours > 0 ? "scheduled" : "queued",
 				tier: promptSet.tier,
 				requiredProviders: providers,
-					providerModes: Object.fromEntries(
-						providers.map((provider) => [
-							provider,
-							[providerModes[provider] ?? "default"],
-						]),
-					),
+				providerModes: Object.fromEntries(
+					providers.map((provider) => [
+						provider,
+						[providerModes[provider] ?? "default"],
+					]),
+				),
 				roundCount,
 				plannedSamples,
 				manifest: {
@@ -627,8 +626,8 @@ export async function startGeoCollectionRun(args: {
 						scheduledAt,
 						metadata: {
 							seriesId: series.id,
-								providers,
-								providerModes,
+							providers,
+							providerModes,
 							userId: args.userId,
 							promptIds: batchRows.map((prompt) => prompt.id),
 							roundIndex,
@@ -641,7 +640,7 @@ export async function startGeoCollectionRun(args: {
 					})
 					.returning();
 				if (!run) throw new Error("Failed to create collection batch");
-					await tx.insert(schema.sampleCheckpoints).values(
+				await tx.insert(schema.sampleCheckpoints).values(
 					providers.flatMap((provider) =>
 						batchRows.map((prompt) => ({
 							runId: run.id,
@@ -651,7 +650,7 @@ export async function startGeoCollectionRun(args: {
 							repeatIndex: roundIndex - 1,
 							status: "queued",
 							phase: "queued",
-								requestedMode: providerModes[provider] ?? "default",
+							requestedMode: providerModes[provider] ?? "default",
 							analysisStatus: "pending",
 						})),
 					),
@@ -1661,7 +1660,7 @@ export async function retryGeoSamples(args: {
 				eq(schema.sampleCheckpoints.status, "completed"),
 			),
 		});
-			await enqueueProviderJobs({
+		await enqueueProviderJobs({
 			jobGroupId: run.id,
 			collectionRunId: run.id,
 			prompts: asUserPrompts({
@@ -1671,10 +1670,10 @@ export async function retryGeoSamples(args: {
 			}),
 			userId: args.userId,
 			workspaceId: args.workspaceId,
-				providers: [provider],
-				providerModes: {
-					[provider]: (group[0]?.requestedMode ?? "default") as ProviderMode,
-				},
+			providers: [provider],
+			providerModes: {
+				[provider]: (group[0]?.requestedMode ?? "default") as ProviderMode,
+			},
 			initialCompletedCount: completedCount.length,
 			totalPromptCount: completedCount.length + prompts.length,
 			minPromptDelayMs: 3 * 60_000,

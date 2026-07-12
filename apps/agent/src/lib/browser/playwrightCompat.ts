@@ -16,6 +16,13 @@ import type {
 	Worker,
 } from "./runtimeTypes.js";
 
+type CompatibleEvaluatePage = {
+	evaluate<T, Arg>(
+		pageFunction: (arg: Arg) => T | Promise<T>,
+		arg: Arg,
+	): Promise<T>;
+};
+
 class PlaywrightWorkerCompat implements Worker {
 	constructor(private readonly worker: PlaywrightWorker) {}
 
@@ -103,161 +110,173 @@ class PlaywrightLocatorCompat implements Locator {
 	}
 
 	async readInputValue(options?: { timeout?: number }): Promise<string> {
-		return await this.locator.evaluate((element) => {
-			if (
-				element instanceof HTMLInputElement ||
-				element instanceof HTMLTextAreaElement
-			) {
-				return element.value;
-			}
-			if (element instanceof HTMLElement) {
-				return element.innerText || element.textContent || "";
-			}
-			return "";
-		}, undefined, options);
+		return await this.locator.evaluate(
+			(element) => {
+				if (
+					element instanceof HTMLInputElement ||
+					element instanceof HTMLTextAreaElement
+				) {
+					return element.value;
+				}
+				if (element instanceof HTMLElement) {
+					return element.innerText || element.textContent || "";
+				}
+				return "";
+			},
+			undefined,
+			options,
+		);
 	}
 
 	async setInputValue(
 		value: string,
 		options?: { timeout?: number },
 	): Promise<void> {
-		await this.locator.evaluate((element, nextValue) => {
-			if (
-				element instanceof HTMLInputElement ||
-				element instanceof HTMLTextAreaElement
-			) {
-				const proto = Object.getPrototypeOf(element);
-				const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-				if (descriptor?.set) {
-					descriptor.set.call(element, nextValue);
-				} else {
-					element.value = nextValue;
+		await this.locator.evaluate(
+			(element, nextValue) => {
+				if (
+					element instanceof HTMLInputElement ||
+					element instanceof HTMLTextAreaElement
+				) {
+					const proto = Object.getPrototypeOf(element);
+					const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+					if (descriptor?.set) {
+						descriptor.set.call(element, nextValue);
+					} else {
+						element.value = nextValue;
+					}
+					element.dispatchEvent(new Event("input", { bubbles: true }));
+					element.dispatchEvent(new Event("change", { bubbles: true }));
+					return;
 				}
-				element.dispatchEvent(new Event("input", { bubbles: true }));
-				element.dispatchEvent(new Event("change", { bubbles: true }));
-				return;
-			}
 
-			if (element instanceof HTMLElement) {
-				element.focus();
-				element.innerText = nextValue;
-				element.dispatchEvent(new Event("input", { bubbles: true }));
-				element.dispatchEvent(new Event("change", { bubbles: true }));
-			}
-		}, value, options);
+				if (element instanceof HTMLElement) {
+					element.focus();
+					element.innerText = nextValue;
+					element.dispatchEvent(new Event("input", { bubbles: true }));
+					element.dispatchEvent(new Event("change", { bubbles: true }));
+				}
+			},
+			value,
+			options,
+		);
 	}
 
 	async getEditableState(options?: {
 		timeout?: number;
 	}): Promise<ElementEditableState> {
-		return await this.locator.evaluate((element) => {
-			function hasHiddenAncestor(target: HTMLElement): boolean {
-				let current: HTMLElement | null = target;
-				while (current) {
-					if (
-						current.hidden ||
-						current.getAttribute("aria-hidden") === "true" ||
-						current.hasAttribute("inert")
-					) {
+		return await this.locator.evaluate(
+			(element) => {
+				function hasHiddenAncestor(target: HTMLElement): boolean {
+					let current: HTMLElement | null = target;
+					while (current) {
+						if (
+							current.hidden ||
+							current.getAttribute("aria-hidden") === "true" ||
+							current.hasAttribute("inert")
+						) {
+							return true;
+						}
+
+						const style = window.getComputedStyle(current);
+						if (
+							style.display === "none" ||
+							style.visibility === "hidden" ||
+							style.visibility === "collapse" ||
+							style.opacity === "0" ||
+							style.pointerEvents === "none"
+						) {
+							return true;
+						}
+
+						current = current.parentElement;
+					}
+
+					return false;
+				}
+
+				function acceptsTextInput(target: HTMLElement): boolean {
+					if (target instanceof HTMLTextAreaElement) {
 						return true;
 					}
 
-					const style = window.getComputedStyle(current);
-					if (
-						style.display === "none" ||
-						style.visibility === "hidden" ||
-						style.visibility === "collapse" ||
-						style.opacity === "0" ||
-						style.pointerEvents === "none"
-					) {
-						return true;
+					if (target instanceof HTMLInputElement) {
+						const blockedTypes = new Set([
+							"hidden",
+							"button",
+							"checkbox",
+							"color",
+							"file",
+							"image",
+							"radio",
+							"range",
+							"reset",
+							"submit",
+						]);
+						return !blockedTypes.has(target.type);
 					}
 
-					current = current.parentElement;
+					return (
+						target.isContentEditable ||
+						target.getAttribute("contenteditable") === "true"
+					);
 				}
 
-				return false;
-			}
+				function isEnabled(target: HTMLElement): boolean {
+					if (
+						target instanceof HTMLInputElement ||
+						target instanceof HTMLTextAreaElement
+					) {
+						return !target.disabled && !target.readOnly;
+					}
 
-			function acceptsTextInput(target: HTMLElement): boolean {
-				if (target instanceof HTMLTextAreaElement) {
-					return true;
+					return (
+						target.getAttribute("aria-disabled") !== "true" &&
+						!target.hasAttribute("disabled") &&
+						target.getAttribute("contenteditable") !== "false"
+					);
 				}
 
-				if (target instanceof HTMLInputElement) {
-					const blockedTypes = new Set([
-						"hidden",
-						"button",
-						"checkbox",
-						"color",
-						"file",
-						"image",
-						"radio",
-						"range",
-						"reset",
-						"submit",
-					]);
-					return !blockedTypes.has(target.type);
+				if (!(element instanceof HTMLElement)) {
+					return {
+						connected: false,
+						visible: false,
+						editable: false,
+						enabled: false,
+						acceptsTextInput: false,
+					};
 				}
 
-				return (
-					target.isContentEditable ||
-					target.getAttribute("contenteditable") === "true"
-				);
-			}
+				const rect = element.getBoundingClientRect();
+				const clientRects = element.getClientRects();
+				const visibleByBrowser =
+					typeof element.checkVisibility === "function"
+						? element.checkVisibility({
+								checkOpacity: true,
+								checkVisibilityCSS: true,
+							})
+						: true;
+				const visible =
+					element.isConnected &&
+					visibleByBrowser &&
+					!hasHiddenAncestor(element) &&
+					clientRects.length > 0 &&
+					rect.width > 0 &&
+					rect.height > 0;
+				const enabled = isEnabled(element);
+				const textInput = acceptsTextInput(element);
 
-			function isEnabled(target: HTMLElement): boolean {
-				if (
-					target instanceof HTMLInputElement ||
-					target instanceof HTMLTextAreaElement
-				) {
-					return !target.disabled && !target.readOnly;
-				}
-
-				return (
-					target.getAttribute("aria-disabled") !== "true" &&
-					!target.hasAttribute("disabled") &&
-					target.getAttribute("contenteditable") !== "false"
-				);
-			}
-
-			if (!(element instanceof HTMLElement)) {
 				return {
-					connected: false,
-					visible: false,
-					editable: false,
-					enabled: false,
-					acceptsTextInput: false,
+					connected: element.isConnected,
+					visible,
+					editable: visible && enabled && textInput,
+					enabled,
+					acceptsTextInput: textInput,
 				};
-			}
-
-			const rect = element.getBoundingClientRect();
-			const clientRects = element.getClientRects();
-			const visibleByBrowser =
-				typeof element.checkVisibility === "function"
-					? element.checkVisibility({
-							checkOpacity: true,
-							checkVisibilityCSS: true,
-						})
-					: true;
-			const visible =
-				element.isConnected &&
-				visibleByBrowser &&
-				!hasHiddenAncestor(element) &&
-				clientRects.length > 0 &&
-				rect.width > 0 &&
-				rect.height > 0;
-			const enabled = isEnabled(element);
-			const textInput = acceptsTextInput(element);
-
-			return {
-				connected: element.isConnected,
-				visible,
-				editable: visible && enabled && textInput,
-				enabled,
-				acceptsTextInput: textInput,
-			};
-		}, undefined, options);
+			},
+			undefined,
+			options,
+		);
 	}
 
 	async dispatchClick(): Promise<void> {
@@ -280,6 +299,7 @@ export class PlaywrightBrowserContextCompat implements BrowserContext {
 		PlaywrightPage,
 		PlaywrightPageCompat
 	>();
+	private readonly leasedPages = new WeakSet<PlaywrightPage>();
 	private initialPage: PlaywrightPage | null;
 
 	constructor(private readonly context: PlaywrightBrowserContext) {
@@ -298,6 +318,11 @@ export class PlaywrightBrowserContextCompat implements BrowserContext {
 		return wrapped;
 	}
 
+	private leasePage(page: PlaywrightPage): PlaywrightPageCompat {
+		this.leasedPages.add(page);
+		return this.wrapPage(page);
+	}
+
 	getRawContext(): PlaywrightBrowserContext {
 		return this.context;
 	}
@@ -311,20 +336,32 @@ export class PlaywrightBrowserContextCompat implements BrowserContext {
 		};
 	}
 
+	existingPages(): Page[] {
+		return this.context
+			.pages()
+			.filter((page) => !page.isClosed())
+			.map((page) => this.wrapPage(page));
+	}
+
 	async newPage(): Promise<Page> {
 		if (this.initialPage && !this.initialPage.isClosed()) {
 			const page = this.initialPage;
 			this.initialPage = null;
-			return this.wrapPage(page);
+			return this.leasePage(page);
 		}
 		this.initialPage = null;
 
 		const browserOwnedBlank = this.context
 			.pages()
-			.find((page) => !page.isClosed() && page.url() === "about:blank");
-		if (browserOwnedBlank) return this.wrapPage(browserOwnedBlank);
+			.find(
+				(page) =>
+					!page.isClosed() &&
+					page.url() === "about:blank" &&
+					!this.leasedPages.has(page),
+			);
+		if (browserOwnedBlank) return this.leasePage(browserOwnedBlank);
 
-		return this.wrapPage(await this.context.newPage());
+		return this.leasePage(await this.context.newPage());
 	}
 
 	async close(): Promise<void> {
@@ -377,7 +414,8 @@ class PlaywrightPageCompat implements Page {
 		pageFunction: (arg: Arg) => T | Promise<T>,
 		arg: Arg,
 	): Promise<T> {
-		return await this.page.evaluate(pageFunction as any, arg as any);
+		const compatiblePage = this.page as unknown as CompatibleEvaluatePage;
+		return await compatiblePage.evaluate(pageFunction, arg);
 	}
 
 	url(): string {

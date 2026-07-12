@@ -24,16 +24,25 @@ describe("PlaywrightBrowserContextCompat", () => {
 		expect(openAnotherPage).not.toHaveBeenCalled();
 	});
 
-	it("reuses a browser-created blank page between sequential tasks", async () => {
+	it("never leases the same browser-created blank page twice", async () => {
 		const blankPage = {
 			url: () => "about:blank",
 			isClosed: () => false,
 			mouse: {},
 			keyboard: {},
 		} as never;
-		const openAnotherPage = vi.fn();
+		const secondPage = {
+			url: () => "about:blank",
+			isClosed: () => false,
+			mouse: {},
+			keyboard: {},
+		} as never;
+		const openAnotherPage = vi.fn().mockResolvedValue(secondPage);
 		const rawContext = {
-			pages: () => [blankPage, { url: () => "https://closed.test", isClosed: () => true }],
+			pages: () => [
+				blankPage,
+				{ url: () => "https://closed.test", isClosed: () => true },
+			],
 			newPage: openAnotherPage,
 			browser: () => null,
 		} as unknown as RawBrowserContext;
@@ -42,6 +51,6 @@ describe("PlaywrightBrowserContextCompat", () => {
 		await context.newPage();
 		await context.newPage();
 
-		expect(openAnotherPage).not.toHaveBeenCalled();
+		expect(openAnotherPage).toHaveBeenCalledTimes(1);
 	});
 });

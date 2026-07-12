@@ -34,11 +34,7 @@ export const DETECTION_SUITE_LIST = [
 ] as const;
 export type DetectionSuiteKey = (typeof DETECTION_SUITE_LIST)[number];
 
-export const SAMPLING_DEPTH_LIST = [
-	"single",
-	"reliable",
-	"stability",
-] as const;
+export const SAMPLING_DEPTH_LIST = ["single", "reliable", "stability"] as const;
 export type SamplingDepth = (typeof SAMPLING_DEPTH_LIST)[number];
 
 export type DetectionDimensionFilter = {
@@ -121,7 +117,11 @@ export type DetectionReport = {
 		count: number;
 	}>;
 	slices: Record<DetectionSliceKey, DetectionSliceMetrics[]>;
-	competitors: Array<{ name: string; mentions: number; recommendations: number }>;
+	competitors: Array<{
+		name: string;
+		mentions: number;
+		recommendations: number;
+	}>;
 	samples: Array<{
 		checkpointId: string;
 		provider: string;
@@ -195,16 +195,17 @@ export type ProviderMode = (typeof PROVIDER_MODE_LIST)[number];
 
 export const GEO_PROVIDER_MODE_CAPABILITIES = {
 	doubao: ["default", "fast", "expert"],
-	deepseek: [
+	deepseek: ["default", "fast", "expert", "reasoning", "web_search"],
+	hunyuan: ["default", "reasoning", "auto_search", "reasoning_web_search"],
+	qwen: [
 		"default",
+		"auto",
 		"fast",
-		"expert",
 		"reasoning",
 		"web_search",
 		"reasoning_web_search",
+		"auto_search",
 	],
-	hunyuan: ["default", "reasoning", "auto_search"],
-	qwen: ["default", "auto", "fast", "reasoning"],
 } as const satisfies Record<
 	"doubao" | "deepseek" | "hunyuan" | "qwen",
 	readonly ProviderMode[]
@@ -219,8 +220,36 @@ export const PROVIDER_MODE_LABELS: Record<ProviderMode, string> = {
 	web_search: "Web search",
 	expert_web_search: "Expert + web search",
 	reasoning_web_search: "Reasoning + web search",
-	auto_search: "Automatic search",
+	auto_search: "Auto + web search",
 };
+
+export function getProviderModeLabel(
+	provider: Provider | string,
+	mode: ProviderMode,
+): string {
+	if (provider === "deepseek") {
+		if (mode === "fast") return "Instant / Fast";
+		if (mode === "reasoning") return "DeepThink";
+		if (mode === "web_search") return "Instant + Search";
+	}
+	if (provider === "hunyuan") {
+		if (mode === "reasoning") return "Deep Thinking";
+		if (mode === "auto_search") return "Tool > Search";
+		if (mode === "reasoning_web_search") {
+			return "Deep Thinking + Tool > Search";
+		}
+	}
+	if (provider === "qwen") {
+		if (mode === "default") return "Provider default (Auto + Tools)";
+		if (mode === "auto") return "Auto (Tools off)";
+		if (mode === "fast") return "Fast (Tools off)";
+		if (mode === "reasoning") return "Thinking (Tools off)";
+		if (mode === "web_search") return "Fast + Tools";
+		if (mode === "reasoning_web_search") return "Thinking + Tools";
+		if (mode === "auto_search") return "Auto + Tools";
+	}
+	return PROVIDER_MODE_LABELS[mode];
+}
 
 export const COLLECTION_PHASE_LIST = [
 	"queued",

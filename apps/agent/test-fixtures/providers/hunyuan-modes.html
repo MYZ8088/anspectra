@@ -1,10 +1,25 @@
 <!doctype html><html><body>
 <button role="switch" data-state="off">Deep Thinking</button>
-<p>Smart search when you ask - no manual switching needed.</p>
+<button data-tool-trigger>Tool</button>
+<div data-tool-menu style="display:none">
+  <button data-tool="search">Search</button>
+  <button data-tool="writing">Writing</button>
+  <button data-tool="solve">Solve</button>
+</div>
+<button data-selected-tool data-state="off"></button>
 <script>
 document.querySelector('[role=switch]').addEventListener('click', (event) => {
   const button = event.currentTarget;
   button.dataset.state = button.dataset.state === 'on' ? 'off' : 'on';
+});
+document.querySelector('[data-tool-trigger]').addEventListener('click', () => {
+  document.querySelector('[data-tool-menu]').style.display = 'block';
+});
+document.querySelector('[data-tool="search"]').addEventListener('click', () => {
+  const selected = document.querySelector('[data-selected-tool]');
+  selected.textContent = 'Search';
+  selected.dataset.state = 'selected';
+  document.querySelector('[data-tool-menu]').style.display = 'none';
 });
 </script>
 </body></html>

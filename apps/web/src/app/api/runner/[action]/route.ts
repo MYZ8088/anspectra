@@ -85,9 +85,9 @@ export async function POST(
 						conversationIsolation: z
 							.enum(["fresh", "multi_turn_experiment"])
 							.optional(),
-							sourceExposure: z.enum(["exposed", "not_exposed"]).optional(),
-							requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
-							actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
+						sourceExposure: z.enum(["exposed", "not_exposed"]).optional(),
+						requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
+						actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
 					}),
 				})
 				.parse(body);

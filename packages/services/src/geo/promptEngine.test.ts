@@ -7,6 +7,7 @@ import {
 	getYaoPresetPack,
 	planDetectionPrompts,
 	planMonitorPrompts,
+	samplingDepthRoundCount,
 } from "./promptEngine.js";
 
 const profile = {
@@ -19,6 +20,11 @@ const profile = {
 
 describe("Yao Full GEO Pack", () => {
 	it("keeps sampling depth independent while respecting temporal minimums", () => {
+		expect([
+			samplingDepthRoundCount("single"),
+			samplingDepthRoundCount("reliable"),
+			samplingDepthRoundCount("stability"),
+		]).toEqual([1, 2, 3]);
 		expect(estimateSamplingMinimumDays(18, "single")).toBe(1);
 		expect(estimateSamplingMinimumDays(18, "reliable")).toBe(2);
 		expect(estimateSamplingMinimumDays(18, "stability")).toBe(3);
@@ -67,12 +73,12 @@ describe("Yao Full GEO Pack", () => {
 				"standard",
 			);
 			expect(plan.prompts).toHaveLength(54);
-		for (const item of plan.prompts) {
-			expect(item.prompt).not.toMatch(/\{[a-zA-Z]+\}/);
-			expect(item.prompt).not.toMatch(
-				/同类产品|企业团队|其他主流方案|products in this category|business teams|a leading alternative/i,
-			);
-		}
+			for (const item of plan.prompts) {
+				expect(item.prompt).not.toMatch(/\{[a-zA-Z]+\}/);
+				expect(item.prompt).not.toMatch(
+					/同类产品|企业团队|其他主流方案|products in this category|business teams|a leading alternative/i,
+				);
+			}
 		},
 	);
 
@@ -84,9 +90,9 @@ describe("Yao Full GEO Pack", () => {
 		const plan = planMonitorPrompts(profile, tier);
 		expect(plan.manifest.corePromptCount).toBe(count);
 		expect(plan.prompts).toHaveLength(count);
-		expect(new Set(plan.prompts.map((prompt) => prompt.promptHash))).toHaveLength(
-			count,
-		);
+		expect(
+			new Set(plan.prompts.map((prompt) => prompt.promptHash)),
+		).toHaveLength(count);
 		expect(plan.manifest.complete).toBe(true);
 	});
 
@@ -160,19 +166,22 @@ describe("Yao Full GEO Pack", () => {
 		["trust_risk", 9],
 		["buyer_journey", 36],
 		["full_matrix", 54],
-	] as const)("creates the %s detection suite with %s core prompts", (suiteKey, count) => {
-		const plan = planDetectionPrompts(
-			{
-				...profile,
-				products: ["PostHog"],
-				regions: ["APAC"],
-			},
-			{ suiteKey, samplingDepth: "single" },
-		);
-		expect(plan.manifest.corePromptCount).toBe(count);
-		expect(plan.manifest.suiteKey).toBe(suiteKey);
-		expect(plan.manifest.isFiltered).toBe(false);
-	});
+	] as const)(
+		"creates the %s detection suite with %s core prompts",
+		(suiteKey, count) => {
+			const plan = planDetectionPrompts(
+				{
+					...profile,
+					products: ["PostHog"],
+					regions: ["APAC"],
+				},
+				{ suiteKey, samplingDepth: "single" },
+			);
+			expect(plan.manifest.corePromptCount).toBe(count);
+			expect(plan.manifest.suiteKey).toBe(suiteKey);
+			expect(plan.manifest.isFiltered).toBe(false);
+		},
+	);
 
 	it("keeps prompt selection independent from sampling depth", () => {
 		const completeProfile = {
@@ -218,9 +227,11 @@ describe("Yao Full GEO Pack", () => {
 		expect(filtered.manifest.suiteKey).toBe("filtered");
 		expect(filtered.manifest.isFiltered).toBe(true);
 		expect(filtered.prompts.length).toBeLessThan(15);
-		expect(new Set(filtered.prompts.map((prompt) => prompt.promptHash)).size).toBe(
-			filtered.prompts.length,
-		);
-		expect(filtered.prompts.every((prompt) => !/\{[a-zA-Z]+\}/.test(prompt.prompt))).toBe(true);
+		expect(
+			new Set(filtered.prompts.map((prompt) => prompt.promptHash)).size,
+		).toBe(filtered.prompts.length);
+		expect(
+			filtered.prompts.every((prompt) => !/\{[a-zA-Z]+\}/.test(prompt.prompt)),
+		).toBe(true);
 	});
 });

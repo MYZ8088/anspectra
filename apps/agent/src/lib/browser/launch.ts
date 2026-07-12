@@ -32,7 +32,7 @@ export async function launchContext(
 
 	const lease = await acquireProviderSession(provider, {
 		taskId: request.taskId,
-		visibility: request.visibility ?? "headful",
+		visibility: request.visibility ?? "headless",
 	});
 	return {
 		browser: lease.browser as Browser,

@@ -7,8 +7,8 @@ import {
 import { api } from "@/trpc/react";
 import {
 	GEO_PROVIDER_MODE_CAPABILITIES,
-	PROVIDER_MODE_LABELS,
 	type ProviderMode,
+	getProviderModeLabel,
 } from "@aloom/types";
 import { Button, Checkbox, Input, toast } from "@aloom/ui";
 import {
@@ -165,7 +165,7 @@ export default function SchedulePageClient({
 										>
 											{GEO_PROVIDER_MODE_CAPABILITIES[key].map((mode) => (
 												<option key={mode} value={mode}>
-													{PROVIDER_MODE_LABELS[mode]}
+													{getProviderModeLabel(key, mode)}
 												</option>
 											))}
 										</select>
@@ -285,9 +285,7 @@ export default function SchedulePageClient({
 									providerModes: Object.fromEntries(
 										providers.map((provider) => [
 											provider,
-											providerModes[
-												provider as keyof typeof providerModes
-											],
+											providerModes[provider as keyof typeof providerModes],
 										]),
 									),
 									cadence,
@@ -341,12 +339,12 @@ export default function SchedulePageClient({
 											.join(", ")}
 									</p>
 									<p className="mt-1 text-xs text-stone-500">
-										Modes: {" "}
+										Modes:{" "}
 										{(schedule.providers ?? [])
 											.map((provider) => {
 												const mode = (schedule.providerModes?.[provider] ??
 													"default") as ProviderMode;
-												return `${provider}: ${PROVIDER_MODE_LABELS[mode] ?? mode}`;
+												return `${provider}: ${getProviderModeLabel(provider, mode)}`;
 											})
 											.join(" · ")}
 									</p>

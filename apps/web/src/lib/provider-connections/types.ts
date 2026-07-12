@@ -1,8 +1,4 @@
-import type {
-	AuthProvider,
-	Provider,
-	ProviderAuthStatus,
-} from "@aloom/types";
+import type { AuthProvider, Provider, ProviderAuthStatus } from "@aloom/types";
 
 export type ProviderConnectionAction = "connect" | "refresh";
 

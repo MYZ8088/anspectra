@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -29,6 +29,7 @@ const allowlistedTechnicalFiles = [
 	/^apps\/agent\/src\/auth\/cli\.ts$/u,
 	/^apps\/agent\/src\/core\/providers\//u,
 	/^apps\/agent\/src\/core\/prompt-runner\/responseCompleteness\.ts$/u,
+	/^apps\/agent\/src\/inspect-provider-modes\.ts$/u,
 	/^apps\/agent\/src\/lib\/browser\/domOps\.ts$/u,
 	/^apps\/agent\/src\/run-test\.ts$/u,
 	/^packages\/services\/src\/geo\/presets\//u,
@@ -36,6 +37,7 @@ const allowlistedTechnicalFiles = [
 	/^packages\/services\/src\/geo\/(?:content|opportunities|publisher|experimentCohorts)\.ts$/u,
 	/^packages\/utils\/src\/agent\/(?:constants|validateResponse)\.ts$/u,
 	/^scripts\/download_yaojingang_geo_resources\.py$/u,
+	/^README\.md$/u,
 ];
 
 function isAllowedTechnicalFile(file) {
@@ -54,7 +56,9 @@ async function filesAt(path) {
 	const entries = await readdir(absolute, { withFileTypes: true });
 	const nested = await Promise.all(
 		entries
-			.filter((entry) => !["node_modules", ".next", "dist"].includes(entry.name))
+			.filter(
+				(entry) => !["node_modules", ".next", "dist"].includes(entry.name),
+			)
 			.map((entry) => filesAt(resolve(absolute, entry.name))),
 	);
 	return nested.flat();
@@ -63,8 +67,7 @@ async function filesAt(path) {
 const files = (await Promise.all(roots.map(filesAt)))
 	.flat()
 	.filter(
-		(file) =>
-			extensions.has(extname(file)) && !isAllowedTechnicalFile(file),
+		(file) => extensions.has(extname(file)) && !isAllowedTechnicalFile(file),
 	);
 const failures = [];
 for (const file of files) {
@@ -77,7 +80,9 @@ for (const file of files) {
 }
 
 if (failures.length) {
-	console.error("User-facing product text must be English. Preset prompts and provider automation live outside this scan.");
+	console.error(
+		"User-facing product text must be English. The bilingual root README, preset prompts, and provider automation live outside this scan.",
+	);
 	console.error(failures.join("\n"));
 	process.exit(1);
 }

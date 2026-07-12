@@ -3,7 +3,7 @@
 import { formPrimaryButtonClassName } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { PROVIDER_MODE_LABELS } from "@aloom/types";
+import { type ProviderMode, getProviderModeLabel } from "@aloom/types";
 import {
 	Button,
 	Dialog,
@@ -93,12 +93,12 @@ export default function Dashboard() {
 			(sample) =>
 				!query ||
 				sample.prompt.toLocaleLowerCase().includes(query) ||
-					sample.provider.includes(query) ||
-					sample.intent.includes(query) ||
-					sample.requestedMode.includes(query) ||
-					(sample.actualMode ?? "").includes(query) ||
-					(sample.errorCode ?? "").includes(query) ||
-					(sample.analysisErrorCode ?? "").includes(query),
+				sample.provider.includes(query) ||
+				sample.intent.includes(query) ||
+				sample.requestedMode.includes(query) ||
+				(sample.actualMode ?? "").includes(query) ||
+				(sample.errorCode ?? "").includes(query) ||
+				(sample.analysisErrorCode ?? "").includes(query),
 		);
 	}, [report.data?.samples, sampleQuery]);
 
@@ -255,9 +255,9 @@ export default function Dashboard() {
 					<div>
 						<h2 className="text-base font-semibold">Analysis boundary</h2>
 						<p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-							Each answer is analysed in its own schema-validated model call. This
-							report combines those validated fields deterministically; it never
-							sends all prompt answers in one model context.
+							Each answer is analysed in its own schema-validated model call.
+							This report combines those validated fields deterministically; it
+							never sends all prompt answers in one model context.
 						</p>
 						<dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
 							<div>
@@ -279,7 +279,8 @@ export default function Dashboard() {
 							<div>
 								<dt className="text-stone-500">Largest answer</dt>
 								<dd className="mt-0.5 font-medium tabular-nums">
-									{report.data.methodology.largestResponseCharacters.toLocaleString()} chars
+									{report.data.methodology.largestResponseCharacters.toLocaleString()}{" "}
+									chars
 								</dd>
 							</div>
 						</dl>
@@ -465,9 +466,10 @@ export default function Dashboard() {
 										<tr key={row.key}>
 											<td className="px-3 py-3 font-medium">
 												{PROVIDER_LABELS[provider ?? ""] ?? provider} ·{" "}
-												{PROVIDER_MODE_LABELS[
-													mode as keyof typeof PROVIDER_MODE_LABELS
-												] ?? mode}
+												{getProviderModeLabel(
+													provider ?? "unknown",
+													mode as ProviderMode,
+												)}
 											</td>
 											<td className="px-3 py-3 tabular-nums">
 												{row.completed}/{row.planned}
@@ -573,13 +575,18 @@ export default function Dashboard() {
 											{PROVIDER_LABELS[sample.provider] ?? sample.provider}
 										</td>
 										<td className="px-3 py-3 text-xs text-stone-500">
-											{PROVIDER_MODE_LABELS[
-												sample.actualMode ?? sample.requestedMode
-											]}
+											{getProviderModeLabel(
+												sample.provider,
+												sample.actualMode ?? sample.requestedMode,
+											)}
 											{sample.actualMode &&
 											sample.actualMode !== sample.requestedMode ? (
 												<span className="mt-1 block">
-													Requested {PROVIDER_MODE_LABELS[sample.requestedMode]}
+													Requested{" "}
+													{getProviderModeLabel(
+														sample.provider,
+														sample.requestedMode,
+													)}
 												</span>
 											) : null}
 										</td>
@@ -698,9 +705,10 @@ export default function Dashboard() {
 								<div>
 									<dt className="text-xs text-stone-500">Official Web mode</dt>
 									<dd className="mt-1">
-										{PROVIDER_MODE_LABELS[
-											selectedSample.actualMode ?? selectedSample.requestedMode
-										]}
+										{getProviderModeLabel(
+											selectedSample.provider,
+											selectedSample.actualMode ?? selectedSample.requestedMode,
+										)}
 									</dd>
 								</div>
 								<div>

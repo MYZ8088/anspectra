@@ -10,6 +10,10 @@
   <div role="option">Thinking</div>
   <div role="option">Fast</div>
 </div>
+<span class="ant-dropdown-trigger"><span role="img"><svg><use href="#icon-line-plus-01"></use></svg></span></span>
+<ul data-tools-menu style="display:none">
+  <li role="menuitem" data-menu-id="fixture-tools">Tools <div role="switch" aria-checked="true"></div></li>
+</ul>
 <script>
 document.querySelector('.ant-select-selector').addEventListener('click', () => {
   document.querySelector('[data-menu]').style.display = 'block';
@@ -17,6 +21,12 @@ document.querySelector('.ant-select-selector').addEventListener('click', () => {
 for (const option of document.querySelectorAll('[role="option"]')) option.addEventListener('click', () => {
   document.querySelector('.qwen-select-thinking-label-text').textContent = option.textContent;
   document.querySelector('[data-menu]').style.display = 'none';
+});
+document.querySelector('.ant-dropdown-trigger').addEventListener('click', () => {
+  document.querySelector('[data-tools-menu]').style.display = 'block';
+});
+document.querySelector('[role="switch"]').addEventListener('click', (event) => {
+  event.currentTarget.setAttribute('aria-checked', event.currentTarget.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
 });
 </script>
 </body></html>

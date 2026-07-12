@@ -25,10 +25,13 @@ pnpm camoufox:setup
 pnpm camoufox:doctor
 pnpm collector
 pnpm --filter @aloom/agent inspect:modes qwen 180 --watch
+pnpm --filter @aloom/agent inspect:modes qwen 10 --headless --apply=web_search
 ```
 
 `inspect:modes` is a development-only, headful inspection tool. It does not
-send prompts.
+send prompts. Add `--headless` to verify the production launch path without
+opening a visible window. Add `--apply=<mode>` to apply and verify a provider
+mode without submitting a prompt.
 
 ## Environment
 

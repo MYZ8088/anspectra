@@ -22,8 +22,7 @@ export const env = createEnv({
 		API_BASE_URL: process.env.API_BASE_URL,
 		ALOOM_APP_MODE: process.env.ALOOM_APP_MODE,
 		NEXT_PUBLIC_ALOOM_APP_MODE:
-			process.env.NEXT_PUBLIC_ALOOM_APP_MODE ??
-			process.env.ALOOM_APP_MODE,
+			process.env.NEXT_PUBLIC_ALOOM_APP_MODE ?? process.env.ALOOM_APP_MODE,
 		INTERNAL_CRON_SECRET: process.env.INTERNAL_CRON_SECRET,
 		BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
 		GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,

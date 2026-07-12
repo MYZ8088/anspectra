@@ -220,17 +220,17 @@ export const geoRouter = createTRPCRouter({
 	startDetection: authorizedWorkspaceProcedure
 		.use(createRateLimiter("geo.startDetection", { limit: 4, windowSecs: 60 }))
 		.input(
-				z.object({
-					promptSetId: z.string().uuid(),
-					providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
-					providerModes: z
-						.object({
-							doubao: z.enum(PROVIDER_MODE_LIST).optional(),
-							deepseek: z.enum(PROVIDER_MODE_LIST).optional(),
-							hunyuan: z.enum(PROVIDER_MODE_LIST).optional(),
-							qwen: z.enum(PROVIDER_MODE_LIST).optional(),
-						})
-						.optional(),
+			z.object({
+				promptSetId: z.string().uuid(),
+				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
+				providerModes: z
+					.object({
+						doubao: z.enum(PROVIDER_MODE_LIST).optional(),
+						deepseek: z.enum(PROVIDER_MODE_LIST).optional(),
+						hunyuan: z.enum(PROVIDER_MODE_LIST).optional(),
+						qwen: z.enum(PROVIDER_MODE_LIST).optional(),
+					})
+					.optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
@@ -238,8 +238,8 @@ export const geoRouter = createTRPCRouter({
 				workspaceId: ctx.workspaceId,
 				userId: ctx.user.id,
 				promptSetId: input.promptSetId,
-					providers: input.providers,
-					providerModes: input.providerModes,
+				providers: input.providers,
+				providerModes: input.providerModes,
 				requiredPurpose: "baseline",
 			}),
 		),

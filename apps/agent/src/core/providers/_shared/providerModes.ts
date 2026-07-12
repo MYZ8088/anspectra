@@ -1,4 +1,4 @@
-import { ExternalServiceError } from "@aloom/errors";
+import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
 import type { Provider, ProviderMode } from "@aloom/types";
 import { logger } from "@aloom/utils";
 import type { Page } from "playwright";
@@ -35,8 +35,7 @@ export function expectedOfficialWebMode(
 ): ProviderMode {
 	if (mode !== "default") return mode;
 	if (provider === "doubao" || provider === "deepseek") return "fast";
-	if (provider === "hunyuan") return "auto_search";
-	if (provider === "qwen") return "auto";
+	if (provider === "qwen") return "auto_search";
 	return "default";
 }
 
@@ -79,7 +78,9 @@ export async function readProviderModeControls(
 			);
 		};
 		return Array.from(document.querySelectorAll(selector))
-			.filter((element): element is HTMLElement => element instanceof HTMLElement)
+			.filter(
+				(element): element is HTMLElement => element instanceof HTMLElement,
+			)
 			.filter(visible)
 			.map((element) => ({
 				text: normalize(element.innerText || element.textContent || ""),
@@ -165,7 +166,8 @@ async function clickControl(
 		},
 		{ labels: wanted, selector: CONTROL_SELECTOR },
 	);
-	if (!clicked) throw new Error(`mode control click failed: ${labels.join(" / ")}`);
+	if (!clicked)
+		throw new Error(`mode control click failed: ${labels.join(" / ")}`);
 	await page.waitForTimeout(500);
 	return find(await readProviderModeControls(page)) ?? match;
 }
@@ -189,7 +191,7 @@ async function ensureToggle(
 			[control.text, control.ariaLabel, control.title].includes(label),
 		),
 	);
-	if (updated && updated.active !== enabled) {
+	if (!updated || updated.active !== enabled) {
 		throw new Error(`mode toggle did not reach ${enabled ? "on" : "off"}`);
 	}
 }
@@ -198,17 +200,20 @@ async function applyDeepSeekMode(
 	page: Page,
 	mode: ProviderMode,
 ): Promise<ProviderMode> {
+	if (mode === "reasoning_web_search") {
+		throw new Error(
+			"DeepSeek Search is only available with Instant mode, not DeepThink",
+		);
+	}
 	if (mode === "expert") {
 		await clickControl(page, ["Expert", "专家"]);
 		return "expert";
 	}
-	const reasoning =
-		mode === "reasoning" || mode === "reasoning_web_search";
-	const search = ["web_search", "reasoning_web_search"].includes(mode);
+	const reasoning = mode === "reasoning";
+	const search = mode === "web_search";
 	await clickControl(page, ["Instant", "快速"]);
 	await ensureToggle(page, ["DeepThink", "深度思考"], reasoning);
 	await ensureToggle(page, ["Search", "联网搜索"], search);
-	if (reasoning && search) return "reasoning_web_search";
 	if (reasoning) return "reasoning";
 	if (search) return "web_search";
 	return "fast";
@@ -224,73 +229,84 @@ async function applyDoubaoMode(
 	): Promise<boolean> => {
 		const selector =
 			"button,[role='button'],[role='option'],[role='menuitem'],[role='menuitemradio']";
-		const domIndex = await page.evaluate(({ targetLabels, candidateIndex, selector }) => {
-			const normalize = (value: string) =>
-				value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
-			const visible = (element: HTMLElement) => {
-				const rect = element.getBoundingClientRect();
-				const style = window.getComputedStyle(element);
-				return (
-					rect.width > 1 &&
-					rect.height > 1 &&
-					style.display !== "none" &&
-					style.visibility !== "hidden" &&
-					style.pointerEvents !== "none"
-				);
-			};
-			const depth = (element: HTMLElement) => {
-				let value = 0;
-				let current: HTMLElement | null = element;
-				while (current?.parentElement) {
-					value += 1;
-					current = current.parentElement;
-				}
-				return value;
-			};
-			const wanted = targetLabels.map(normalize);
-			const candidates = Array.from(document.querySelectorAll(selector))
-				.filter(
-					(element): element is HTMLElement => element instanceof HTMLElement,
-				)
-				.map((element, index) => {
-					const text = normalize(element.innerText || element.textContent || "");
+		const domIndex = await page.evaluate(
+			({ targetLabels, candidateIndex, selector }) => {
+				const normalize = (value: string) =>
+					value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
+				const visible = (element: HTMLElement) => {
 					const rect = element.getBoundingClientRect();
-					const exact = wanted.includes(text);
-					const prefix = wanted.some((label) => text.startsWith(`${label} `));
-					return {
-						index,
-						text,
-						exact,
-						prefix,
-						visible: visible(element),
-						area: rect.width * rect.height,
-						depth: depth(element),
-					};
-				})
-				.filter(
-					(candidate) =>
-						candidate.visible && (candidate.exact || candidate.prefix),
-				)
-				.sort(
-					(a, b) =>
-						Number(b.exact) - Number(a.exact) ||
-						a.area - b.area ||
-						b.depth - a.depth ||
-						a.text.length - b.text.length,
-				);
-			return candidates[candidateIndex]?.index ?? -1;
-		}, { targetLabels: labels, candidateIndex, selector });
+					const style = window.getComputedStyle(element);
+					return (
+						rect.width > 1 &&
+						rect.height > 1 &&
+						style.display !== "none" &&
+						style.visibility !== "hidden" &&
+						style.pointerEvents !== "none"
+					);
+				};
+				const depth = (element: HTMLElement) => {
+					let value = 0;
+					let current: HTMLElement | null = element;
+					while (current?.parentElement) {
+						value += 1;
+						current = current.parentElement;
+					}
+					return value;
+				};
+				const wanted = targetLabels.map(normalize);
+				const candidates = Array.from(document.querySelectorAll(selector))
+					.filter(
+						(element): element is HTMLElement => element instanceof HTMLElement,
+					)
+					.map((element, index) => {
+						const text = normalize(
+							element.innerText || element.textContent || "",
+						);
+						const rect = element.getBoundingClientRect();
+						const exact = wanted.includes(text);
+						const prefix = wanted.some((label) => text.startsWith(`${label} `));
+						return {
+							index,
+							text,
+							exact,
+							prefix,
+							visible: visible(element),
+							area: rect.width * rect.height,
+							depth: depth(element),
+						};
+					})
+					.filter(
+						(candidate) =>
+							candidate.visible && (candidate.exact || candidate.prefix),
+					)
+					.sort(
+						(a, b) =>
+							Number(b.exact) - Number(a.exact) ||
+							a.area - b.area ||
+							b.depth - a.depth ||
+							a.text.length - b.text.length,
+					);
+				return candidates[candidateIndex]?.index ?? -1;
+			},
+			{ targetLabels: labels, candidateIndex, selector },
+		);
 		if (domIndex < 0) return false;
 
 		if (typeof (page as { locator?: unknown }).locator === "function") {
-			await page.locator(selector).nth(domIndex).click({ force: true, timeout: 3_000 });
+			await page
+				.locator(selector)
+				.nth(domIndex)
+				.click({ force: true, timeout: 3_000 });
 		} else {
-			await page.evaluate(({ domIndex, selector }) => {
-				const target = document.querySelectorAll(selector)[domIndex];
-				if (!(target instanceof HTMLElement)) return false;
-				target.click();
-				return true;
-			}, { domIndex, selector });
+			await page.evaluate(
+				({ domIndex, selector }) => {
+					const target = document.querySelectorAll(selector)[domIndex];
+					if (!(target instanceof HTMLElement)) return false;
+					target.click();
+					return true;
+				},
+				{ domIndex, selector },
+			);
 		}
 		await page.waitForTimeout(550);
 		return true;
@@ -363,15 +379,312 @@ async function applyHunyuanMode(
 	page: Page,
 	mode: ProviderMode,
 ): Promise<ProviderMode> {
-	await ensureToggle(page, ["Deep Thinking", "深度思考"], mode === "reasoning");
-	return mode === "reasoning" ? "reasoning" : "auto_search";
+	const reasoning = mode === "reasoning" || mode === "reasoning_web_search";
+	const search = mode === "auto_search" || mode === "reasoning_web_search";
+	await ensureToggle(page, ["Deep Thinking", "深度思考"], reasoning);
+	await ensureHunyuanSearchTool(page, search);
+	if (reasoning && search) return "reasoning_web_search";
+	if (search) return "auto_search";
+	if (reasoning) return "reasoning";
+	return "default";
+}
+
+async function readHunyuanSearchToolState(page: Page): Promise<boolean | null> {
+	return page.evaluate(() => {
+		const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+		const visible = (element: HTMLElement) => {
+			const rect = element.getBoundingClientRect();
+			const style = window.getComputedStyle(element);
+			return (
+				rect.width > 1 &&
+				rect.height > 1 &&
+				style.display !== "none" &&
+				style.visibility !== "hidden"
+			);
+		};
+		const searchLabels = ["Search", "搜索", "联网搜索"];
+		const controls = Array.from(
+			document.querySelectorAll(
+				"button,[role='button'],[role='menuitem'],[role='option'],[data-state]",
+			),
+		).filter(
+			(element): element is HTMLElement =>
+				element instanceof HTMLElement && visible(element),
+		);
+		const selectedSearch = controls.some((element) => {
+			const text = normalize(element.innerText || element.textContent || "");
+			const signature = [
+				element.getAttribute("aria-pressed"),
+				element.getAttribute("aria-selected"),
+				element.getAttribute("data-state"),
+				element.className,
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLocaleLowerCase();
+			return (
+				searchLabels.some(
+					(label) => text === label || text.startsWith(`${label} `),
+				) && /(selected|active|checked|on|true)/.test(signature)
+			);
+		});
+		if (selectedSearch) return true;
+
+		const toolTrigger = controls.find((element) => {
+			const text = normalize(element.innerText || element.textContent || "");
+			const ariaLabel = normalize(element.getAttribute("aria-label") || "");
+			return (
+				["Tool", "工具"].includes(text) ||
+				["Tool", "工具"].includes(ariaLabel) ||
+				searchLabels.includes(text)
+			);
+		});
+		if (!toolTrigger) return null;
+		const triggerText = normalize(
+			toolTrigger.innerText || toolTrigger.textContent || "",
+		);
+		return searchLabels.includes(triggerText);
+	}, undefined);
+}
+
+async function ensureHunyuanSearchTool(
+	page: Page,
+	enabled: boolean,
+): Promise<void> {
+	const current = await readHunyuanSearchToolState(page);
+	if (current === enabled) return;
+	if (!enabled) {
+		throw new Error(
+			"Yuanbao Search is selected in a non-search cohort; start a fresh conversation before collecting",
+		);
+	}
+	await selectHunyuanSearchTool(page);
+	if ((await readHunyuanSearchToolState(page)) !== true) {
+		throw new Error("Yuanbao Search tool state could not be verified");
+	}
+}
+
+async function selectHunyuanSearchTool(page: Page): Promise<void> {
+	const opened = await page.evaluate(() => {
+		const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+		const visible = (element: HTMLElement) => {
+			const rect = element.getBoundingClientRect();
+			const style = window.getComputedStyle(element);
+			return (
+				rect.width > 1 &&
+				rect.height > 1 &&
+				style.display !== "none" &&
+				style.visibility !== "hidden"
+			);
+		};
+		const tool = Array.from(document.querySelectorAll("button,[role='button']"))
+			.filter(
+				(element): element is HTMLElement => element instanceof HTMLElement,
+			)
+			.find(
+				(element) =>
+					visible(element) &&
+					["Tool", "工具"].includes(
+						normalize(element.innerText || element.textContent || ""),
+					),
+			);
+		if (!tool) return false;
+		tool.click();
+		return true;
+	}, undefined);
+	if (!opened) throw new Error("Yuanbao Tool menu is not available");
+	await page.waitForTimeout(450);
+
+	const selected = await page.evaluate(() => {
+		const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+		const visible = (element: HTMLElement) => {
+			const rect = element.getBoundingClientRect();
+			const style = window.getComputedStyle(element);
+			return (
+				rect.width > 1 &&
+				rect.height > 1 &&
+				style.display !== "none" &&
+				style.visibility !== "hidden"
+			);
+		};
+		const candidates = Array.from(
+			document.querySelectorAll("button,[role='menuitem'],[role='option'],div"),
+		)
+			.filter(
+				(element): element is HTMLElement => element instanceof HTMLElement,
+			)
+			.filter(
+				(element) =>
+					visible(element) &&
+					["Search", "搜索", "联网搜索"].includes(
+						normalize(element.innerText || element.textContent || ""),
+					),
+			);
+		const target = candidates.at(-1);
+		if (!target) return false;
+		target.click();
+		return true;
+	}, undefined);
+	if (!selected) throw new Error("Yuanbao Search tool is not available");
+	await page.waitForTimeout(500);
+
+	const verified = await page.evaluate(() => {
+		const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+		const visible = (element: HTMLElement) => {
+			const rect = element.getBoundingClientRect();
+			const style = window.getComputedStyle(element);
+			return (
+				rect.width > 1 &&
+				rect.height > 1 &&
+				style.display !== "none" &&
+				style.visibility !== "hidden"
+			);
+		};
+		return Array.from(
+			document.querySelectorAll("button,[role='button'],[data-state]"),
+		)
+			.filter(
+				(element): element is HTMLElement => element instanceof HTMLElement,
+			)
+			.some((element) => {
+				if (!visible(element)) return false;
+				const text = normalize(element.innerText || element.textContent || "");
+				const signature = [
+					element.getAttribute("aria-pressed"),
+					element.getAttribute("aria-selected"),
+					element.getAttribute("data-state"),
+					element.className,
+				]
+					.filter(Boolean)
+					.join(" ")
+					.toLocaleLowerCase();
+				return (
+					["Search", "搜索", "联网搜索"].some((label) =>
+						text.includes(label),
+					) && /(selected|active|checked|on|true)/.test(signature)
+				);
+			});
+	}, undefined);
+	if (!verified) {
+		throw new Error("Yuanbao Search tool click could not be verified");
+	}
+}
+
+async function setQwenToolsEnabled(
+	page: Page,
+	enabled: boolean,
+): Promise<void> {
+	const state = await page.evaluate(() => {
+		const toolsItem = Array.from(
+			document.querySelectorAll("[data-menu-id]"),
+		).find((element) =>
+			element.getAttribute("data-menu-id")?.endsWith("-tools"),
+		);
+		const toolsSwitch = toolsItem?.querySelector("[role='switch']");
+		if (toolsSwitch instanceof HTMLElement) {
+			return toolsSwitch.getAttribute("aria-checked") === "true";
+		}
+		const plusIcon = Array.from(document.querySelectorAll("use")).find(
+			(element) => {
+				const href =
+					element.getAttribute("href") ?? element.getAttribute("xlink:href");
+				return (
+					href === "#icon-line-plus-01" &&
+					Boolean(element.closest(".mode-select"))
+				);
+			},
+		);
+		const trigger = plusIcon?.closest(
+			".ant-dropdown-trigger,button,[role='button']",
+		);
+		if (!(trigger instanceof HTMLElement)) return null;
+		trigger.click();
+		return null;
+	}, undefined);
+	if (state === enabled) {
+		await page.keyboard.press("Escape").catch(() => undefined);
+		return;
+	}
+	await page.waitForTimeout(450);
+
+	const changed = await page.evaluate((shouldEnable) => {
+		const toolsItem = Array.from(
+			document.querySelectorAll("[data-menu-id]"),
+		).find((element) =>
+			element.getAttribute("data-menu-id")?.endsWith("-tools"),
+		);
+		const toolsSwitch = toolsItem?.querySelector("[role='switch']");
+		if (!(toolsSwitch instanceof HTMLElement)) return null;
+		const current = toolsSwitch.getAttribute("aria-checked") === "true";
+		if (current !== shouldEnable) toolsSwitch.click();
+		return current;
+	}, enabled);
+	if (changed === null) throw new Error("Qwen Tools switch is not available");
+	await page.waitForTimeout(450);
+
+	let verified = await page.evaluate(() => {
+		const toolsItem = Array.from(
+			document.querySelectorAll("[data-menu-id]"),
+		).find((element) =>
+			element.getAttribute("data-menu-id")?.endsWith("-tools"),
+		);
+		const toolsSwitch = toolsItem?.querySelector("[role='switch']");
+		return toolsSwitch instanceof HTMLElement
+			? toolsSwitch.getAttribute("aria-checked") === "true"
+			: null;
+	}, undefined);
+	if (verified === null) {
+		const reopened = await page.evaluate(() => {
+			const plusIcon = Array.from(document.querySelectorAll("use")).find(
+				(element) => {
+					const href =
+						element.getAttribute("href") ?? element.getAttribute("xlink:href");
+					return (
+						href === "#icon-line-plus-01" &&
+						Boolean(element.closest(".mode-select"))
+					);
+				},
+			);
+			const trigger = plusIcon?.closest(".ant-dropdown-trigger");
+			if (!(trigger instanceof HTMLElement)) return false;
+			trigger.click();
+			return true;
+		}, undefined);
+		if (!reopened) throw new Error("Qwen Tools menu could not be reopened");
+		await page.waitForTimeout(450);
+		verified = await page.evaluate(() => {
+			const toolsItem = Array.from(
+				document.querySelectorAll("[data-menu-id]"),
+			).find((element) =>
+				element.getAttribute("data-menu-id")?.endsWith("-tools"),
+			);
+			const toolsSwitch = toolsItem?.querySelector("[role='switch']");
+			return toolsSwitch instanceof HTMLElement
+				? toolsSwitch.getAttribute("aria-checked") === "true"
+				: null;
+		}, undefined);
+	}
+	await page.keyboard.press("Escape").catch(() => null);
+	if (verified !== enabled) {
+		throw new Error("Qwen Tools switch state could not be verified");
+	}
 }
 
 async function applyQwenMode(
 	page: Page,
 	mode: ProviderMode,
 ): Promise<ProviderMode> {
-	const actualMode = mode === "reasoning" ? "reasoning" : mode === "fast" ? "fast" : "auto";
+	const toolsEnabled =
+		mode === "default" ||
+		mode === "web_search" ||
+		mode === "reasoning_web_search" ||
+		mode === "auto_search";
+	const actualMode =
+		mode === "reasoning" || mode === "reasoning_web_search"
+			? "reasoning"
+			: mode === "fast" || mode === "web_search"
+				? "fast"
+				: "auto";
 	const labels =
 		actualMode === "reasoning"
 			? ["Thinking", "Deep Thinking", "思考", "深度思考"]
@@ -403,7 +716,11 @@ async function applyQwenMode(
 					const option = options.nth(index);
 					if (!(await option.isVisible().catch(() => false))) continue;
 					const text = normalized((await option.readInputValue()) ?? "");
-					if (!wanted.some((label) => text === label || text.startsWith(`${label} `))) {
+					if (
+						!wanted.some(
+							(label) => text === label || text.startsWith(`${label} `),
+						)
+					) {
 						continue;
 					}
 					await option.click({ force: true, timeout: 3_000 });
@@ -412,7 +729,8 @@ async function applyQwenMode(
 				}
 				if (selected) break;
 			}
-			if (!selected) throw new Error(`Qwen mode option not found: ${labels.join(" / ")}`);
+			if (!selected)
+				throw new Error(`Qwen mode option not found: ${labels.join(" / ")}`);
 			await page.waitForTimeout(500);
 		}
 
@@ -420,6 +738,11 @@ async function applyQwenMode(
 		if (!wanted.includes(verified)) {
 			throw new Error(`Qwen mode did not change to ${labels[0]}`);
 		}
+		await setQwenToolsEnabled(page, toolsEnabled);
+		if (toolsEnabled && actualMode === "reasoning")
+			return "reasoning_web_search";
+		if (toolsEnabled && actualMode === "fast") return "web_search";
+		if (toolsEnabled) return "auto_search";
 		return actualMode;
 	}
 
@@ -430,6 +753,10 @@ async function applyQwenMode(
 	} else {
 		await clickControl(page, labels);
 	}
+	await setQwenToolsEnabled(page, toolsEnabled);
+	if (toolsEnabled && actualMode === "reasoning") return "reasoning_web_search";
+	if (toolsEnabled && actualMode === "fast") return "web_search";
+	if (toolsEnabled) return "auto_search";
 	return actualMode;
 }
 
@@ -456,12 +783,14 @@ export async function applyOfficialWebMode(args: {
 	} catch (error) {
 		throw new ExternalServiceError(
 			args.provider,
-			`Official Web mode "${args.mode}" is unavailable or could not be verified`,
+			`Official Web mode "${args.mode}" is unavailable or could not be verified: ${toErrorMessage(error)}`,
 			422,
 			{
 				provider: args.provider,
 				requestedMode: args.mode,
-				visibleControls: await readProviderModeControls(args.page).catch(() => []),
+				visibleControls: await readProviderModeControls(args.page).catch(
+					() => [],
+				),
 			},
 			error,
 		);

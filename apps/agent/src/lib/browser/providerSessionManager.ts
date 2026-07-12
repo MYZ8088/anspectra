@@ -18,6 +18,7 @@ import { resolveCamoufoxLaunchOptions } from "./camoufox.js";
 import { resolveHostDisplayBounds } from "./displayBounds.js";
 import { PlaywrightBrowserContextCompat } from "./playwrightCompat.js";
 import type { Browser, BrowserContext, Page } from "./runtimeTypes.js";
+import { TaskPageRegistry } from "./taskPageRegistry.js";
 import {
 	fitProviderWindow as fitNativeWindow,
 	focusProviderWindow as focusNativeWindow,
@@ -53,6 +54,8 @@ type ProviderSession = {
 	idleTimer: ReturnType<typeof setTimeout> | null;
 	closed: boolean;
 	windowGeometry: ProviderWindowGeometry;
+	pageRegistry: TaskPageRegistry;
+	startupPage: Page | null;
 };
 
 type ProviderSessionLease = {
@@ -108,25 +111,29 @@ export function assertBrowserTaskId(taskId: string): string {
 function normalizePersistentLaunchOptions(
 	options: Awaited<ReturnType<typeof resolveCamoufoxLaunchOptions>>,
 ): Record<string, unknown> {
-	const env = { ...((options.env ?? {}) as Record<string, string>) };
-	delete env.MOZ_HEADLESS;
-	const normalized: Record<string, unknown> = {
-		...options,
-		env,
-	};
-	delete normalized.headless;
-	delete normalized.virtual_display;
-	delete normalized.proxy;
-	return normalized;
+	const env = Object.fromEntries(
+		Object.entries((options.env ?? {}) as Record<string, string>).filter(
+			([key]) => key !== "MOZ_HEADLESS",
+		),
+	);
+	return Object.fromEntries(
+		Object.entries({ ...options, env }).filter(
+			([key]) => !["headless", "virtual_display", "proxy"].includes(key),
+		),
+	);
 }
 
 export function applyPersistentVisibility(
 	options: Record<string, unknown>,
 	visibility: ProviderSessionVisibility,
 ): Record<string, unknown> {
-	const env = { ...((options.env ?? {}) as Record<string, string>) };
-	if (visibility === "headless") env.MOZ_HEADLESS = "1";
-	else delete env.MOZ_HEADLESS;
+	const currentEnv = (options.env ?? {}) as Record<string, string>;
+	const env =
+		visibility === "headless"
+			? { ...currentEnv, MOZ_HEADLESS: "1" }
+			: Object.fromEntries(
+					Object.entries(currentEnv).filter(([key]) => key !== "MOZ_HEADLESS"),
+				);
 	return {
 		...options,
 		env,
@@ -209,11 +216,11 @@ export async function getPersistentLaunchOptions(args: {
 				`[${args.provider}] network environment changed; preserving the existing browser identity`,
 			);
 		}
-			return {
-				options: applyPersistentVisibility(
-					manifest.launchOptions,
-					args.visibility ?? "headful",
-				),
+		return {
+			options: applyPersistentVisibility(
+				manifest.launchOptions,
+				args.visibility ?? "headful",
+			),
 			geometry: normalized.geometry,
 		};
 	}
@@ -255,6 +262,7 @@ async function closeSession(session: ProviderSession): Promise<void> {
 	session.closed = true;
 	if (session.idleTimer) clearTimeout(session.idleTimer);
 	sessions.delete(session.provider);
+	session.pageRegistry.clear();
 	await session.rawContext.close().catch(() => null);
 	logger.log(`[${session.provider}] persistent browser session closed`);
 }
@@ -329,22 +337,51 @@ async function launchSession(
 			logger.log(`[${provider}] migrated saved auth into persistent profile`);
 		}
 		const context = new PlaywrightBrowserContextCompat(rawContext);
+		const pageRegistry = new TaskPageRegistry();
+		const startupPages = context.existingPages();
+		const startupPage =
+			startupPages.find((page) => page.url() === "about:blank") ??
+			startupPages[0] ??
+			null;
+		for (const extraPage of startupPages) {
+			if (extraPage !== startupPage) await extraPage.close().catch(() => null);
+		}
+		if (startupPage) pageRegistry.bind(startupPage, taskId);
 		const session: ProviderSession = {
 			provider,
 			rawContext,
 			context,
 			browser: context.getBrowser(),
 			leaseCount: 0,
-				humanHold: false,
-				heldPage: null,
-				heldTaskId: null,
-				activeTaskId: null,
-				visibility: request.visibility,
-				launchedByTaskId: taskId,
+			humanHold: false,
+			heldPage: null,
+			heldTaskId: null,
+			activeTaskId: null,
+			visibility: request.visibility,
+			launchedByTaskId: taskId,
 			idleTimer: null,
 			closed: false,
 			windowGeometry: geometry,
+			pageRegistry,
+			startupPage,
 		};
+
+		context.on("page", (page) => {
+			const ownerTaskId = session.activeTaskId ?? session.heldTaskId;
+			if (!ownerTaskId) {
+				logger.warn(
+					`[${provider}] closing a browser page created without an active task`,
+				);
+				void page.close().catch(() => null);
+				return;
+			}
+			try {
+				session.pageRegistry.bind(page, ownerTaskId);
+			} catch (error) {
+				logger.warn(`[${provider}] ${toErrorMessage(error)}`);
+				void page.close().catch(() => null);
+			}
+		});
 
 		rawContext.on("close", () => {
 			session.closed = true;
@@ -368,16 +405,42 @@ async function launchSession(
 	}
 }
 
+async function claimTaskPage(
+	session: ProviderSession,
+	taskId: string,
+): Promise<Page> {
+	const startupPage = session.startupPage;
+	if (startupPage) {
+		session.startupPage = null;
+		if (await startupPage.ping().catch(() => false)) {
+			session.pageRegistry.assertOwnedBy(startupPage, taskId);
+			return startupPage;
+		}
+		session.pageRegistry.releaseTask(taskId);
+		await startupPage.close().catch(() => null);
+	}
+
+	const page = await session.context.newPage();
+	session.pageRegistry.bind(page, taskId);
+	session.pageRegistry.assertOwnedBy(page, taskId);
+	return page;
+}
+
+async function closeTaskPages(
+	session: ProviderSession,
+	taskId: string,
+): Promise<void> {
+	const pages = session.pageRegistry.releaseTask(taskId);
+	await Promise.all(pages.map((page) => page.close().catch(() => null)));
+}
+
 async function getOrLaunchSession(
 	provider: Provider,
 	request: ProviderSessionRequest,
 ): Promise<ProviderSession> {
 	const existing = sessions.get(provider);
 	if (existing && !existing.closed) {
-		if (
-			existing.heldPage &&
-			existing.heldTaskId === request.taskId
-		) {
+		if (existing.heldPage && existing.heldTaskId === request.taskId) {
 			return existing;
 		}
 		if (existing.visibility === request.visibility) return existing;
@@ -409,14 +472,10 @@ export async function acquireProviderSession(
 ): Promise<ProviderSessionLease> {
 	const taskId = assertBrowserTaskId(request.taskId);
 	const session = await getOrLaunchSession(provider, { ...request, taskId });
-	if (
-		session.activeTaskId &&
-		session.activeTaskId !== taskId &&
-		session.leaseCount > 0
-	) {
+	if (session.leaseCount > 0) {
 		throw new ExternalServiceError(
 			provider,
-			`Provider browser is already owned by task ${session.activeTaskId}`,
+			`Provider browser is already owned by task ${session.activeTaskId ?? "unknown"}`,
 		);
 	}
 	if (session.idleTimer) {
@@ -425,12 +484,12 @@ export async function acquireProviderSession(
 	}
 	session.leaseCount += 1;
 	session.activeTaskId = taskId;
-	const resumePage =
-		session.heldTaskId === taskId ? session.heldPage : null;
+	const resumePage = session.heldTaskId === taskId ? session.heldPage : null;
 	session.heldPage = null;
 	session.heldTaskId = null;
 	if (resumePage) session.humanHold = false;
-	const page = resumePage ?? (await session.context.newPage());
+	const page = resumePage ?? (await claimTaskPage(session, taskId));
+	session.pageRegistry.assertOwnedBy(page, taskId);
 	let released = false;
 
 	return {
@@ -448,6 +507,7 @@ export async function acquireProviderSession(
 			if (session.activeTaskId === taskId) session.activeTaskId = null;
 			if (session.leaseCount > 0 || session.closed) return;
 			if (session.humanHold) return;
+			await closeTaskPages(session, taskId);
 			if (session.visibility === "headful") {
 				await closeSession(session);
 				return;
@@ -460,6 +520,7 @@ export async function acquireProviderSession(
 			released = true;
 			session.leaseCount = Math.max(0, session.leaseCount - 1);
 			if (session.activeTaskId === taskId) session.activeTaskId = null;
+			session.pageRegistry.releaseTask(taskId);
 			await closeSession(session);
 		},
 		holdForHuman: async (heldPage) => {
@@ -470,7 +531,8 @@ export async function acquireProviderSession(
 					taskId,
 					visibility: "headful",
 				});
-				const humanPage = await humanSession.context.newPage();
+				humanSession.activeTaskId = taskId;
+				const humanPage = await claimTaskPage(humanSession, taskId);
 				if (pageUrl && pageUrl !== "about:blank") {
 					await humanPage
 						.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 60_000 })
@@ -488,6 +550,7 @@ export async function acquireProviderSession(
 				return;
 			}
 			session.humanHold = true;
+			session.pageRegistry.assertOwnedBy(heldPage, taskId);
 			session.heldPage = heldPage;
 			session.heldTaskId = taskId;
 			if (session.idleTimer) {
@@ -526,7 +589,8 @@ export async function focusProviderSession(
 	provider: Provider,
 ): Promise<boolean> {
 	const session = sessions.get(provider);
-	if (!session || session.closed || session.visibility !== "headful") return false;
+	if (!session || session.closed || session.visibility !== "headful")
+		return false;
 	const page = session.rawContext.pages().at(-1);
 	await page?.bringToFront().catch(() => null);
 	await fitNativeWindow(

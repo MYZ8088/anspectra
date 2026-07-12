@@ -5,6 +5,7 @@ import {
 	buildDetectionFailureBreakdown,
 	buildDetectionSlices,
 } from "./detectionReport.js";
+import { planDetectionPrompts } from "./promptEngine.js";
 
 vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
@@ -16,7 +17,10 @@ function analysis(args: {
 }): BrandAnalysisResult {
 	return {
 		geoScore: { overall: args.mentioned ? 70 : 0 },
-		presence: { mentioned: args.mentioned, visibility: args.mentioned ? 70 : 0 },
+		presence: {
+			mentioned: args.mentioned,
+			visibility: args.mentioned ? 70 : 0,
+		},
 		position: { rankPosition: args.mentioned ? 2 : null },
 		sentiment: { score: args.mentioned ? 75 : 0 },
 		recommendation: {
@@ -40,10 +44,29 @@ function analysis(args: {
 				numerator: Number(args.mentioned),
 				denominator: 1,
 			},
-			factuality: { score: null, reviewedClaims: 0, accurateClaims: 0, errors: [] },
-			evidence: { score: 0, visibleCitations: 0, supportedClaims: 0, unsupportedClaims: 0 },
-			stability: { score: null, comparableSamples: 1, consistentSamples: 1, note: "Repeated samples required" },
-			competition: { score: args.targetShare ?? 0, targetShare: args.targetShare ?? 0, competitorShare: 100 - (args.targetShare ?? 0) },
+			factuality: {
+				score: null,
+				reviewedClaims: 0,
+				accurateClaims: 0,
+				errors: [],
+			},
+			evidence: {
+				score: 0,
+				visibleCitations: 0,
+				supportedClaims: 0,
+				unsupportedClaims: 0,
+			},
+			stability: {
+				score: null,
+				comparableSamples: 1,
+				consistentSamples: 1,
+				note: "Repeated samples required",
+			},
+			competition: {
+				score: args.targetShare ?? 0,
+				targetShare: args.targetShare ?? 0,
+				competitorShare: 100 - (args.targetShare ?? 0),
+			},
 			governanceAttribution: { score: 25, confidence: "low", caveats: [] },
 		},
 	};
@@ -84,6 +107,56 @@ function sample(overrides: Record<string, unknown> = {}) {
 }
 
 describe("buildDetectionSlices", () => {
+	it("aggregates a complete 54-cell matrix without combining answer contexts", () => {
+		const plan = planDetectionPrompts(
+			{
+				brandName: "Aloom",
+				category: "GEO detection software",
+				industry: "B2B software",
+				products: ["Aloom Monitor"],
+				competitors: ["Competitor Atlas"],
+				audiences: ["growth teams"],
+				regions: ["APAC"],
+				locale: "en-US",
+			},
+			{ suiteKey: "full_matrix", samplingDepth: "single" },
+		);
+		const rows = plan.prompts.map((prompt, index) =>
+			sample({
+				id: `sample-${index}`,
+				analyticsSampleId: `answer-${index}`,
+				prompt: {
+					id: `prompt-${index}`,
+					prompt: prompt.prompt,
+					promptHash: prompt.promptHash,
+					intent: prompt.promptGroup,
+					decisionStage: prompt.decisionStage,
+					locale: prompt.locale,
+					brandExposure: prompt.brandExposure,
+				},
+				dimensions: prompt.dimensions,
+			}),
+		);
+		const slices = buildDetectionSlices({
+			rows: rows as never,
+			tier: "standard",
+			requiredProviders: ["doubao"],
+		});
+
+		expect(slices.overall[0]).toMatchObject({
+			planned: 54,
+			completed: 54,
+			analysed: 54,
+		});
+		expect(slices.prompt).toHaveLength(54);
+		expect(slices.intent).toHaveLength(9);
+		expect(slices.decision_stage).toHaveLength(6);
+		expect(slices.intent_stage).toHaveLength(54);
+		expect(
+			slices.prompt.every((slice) => slice.mentionRate.denominator === 1),
+		).toBe(true);
+	});
+
 	it("keeps failed checkpoints in every relevant denominator", () => {
 		const rows = [
 			sample(),
@@ -143,7 +216,9 @@ describe("buildDetectionSlices", () => {
 				"recommendation:evaluation",
 			]),
 		);
-		expect(slices.brand_exposure.find((row) => row.key === "blind")?.planned).toBe(3);
+		expect(
+			slices.brand_exposure.find((row) => row.key === "blind")?.planned,
+		).toBe(3);
 	});
 
 	it("separates collection failures from structured analysis failures", () => {

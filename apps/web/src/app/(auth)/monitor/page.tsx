@@ -17,7 +17,7 @@ import {
 	GEO_DECISION_STAGE_LIST,
 	GEO_INTENT_LIST,
 	GEO_PROVIDER_MODE_CAPABILITIES,
-	PROVIDER_MODE_LABELS,
+	getProviderModeLabel,
 } from "@aloom/types";
 import {
 	Button,
@@ -635,46 +635,47 @@ export default function NewDetectionPage() {
 							}
 							onChange={(values) => values.length && setProviders(values)}
 						/>
+					</div>
+					<div>
+						<p className="mb-3 text-xs font-semibold uppercase text-stone-500">
+							Official Web modes
+						</p>
+						<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+							{PROVIDERS.filter(([provider]) =>
+								providers.includes(provider),
+							).map(([provider, label]) => (
+								<div key={provider} className="grid gap-1.5 text-sm">
+									<span className="font-medium">{label}</span>
+									<Select
+										value={providerModes[provider]}
+										onValueChange={(value) =>
+											setProviderModes((current) => ({
+												...current,
+												[provider]: value as ProviderMode,
+											}))
+										}
+									>
+										<SelectTrigger aria-label={`${label} official Web mode`}>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{GEO_PROVIDER_MODE_CAPABILITIES[provider].map((mode) => (
+												<SelectItem key={mode} value={mode}>
+													{getProviderModeLabel(provider, mode)}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							))}
 						</div>
-						<div>
-							<p className="mb-3 text-xs font-semibold uppercase text-stone-500">
-								Official Web modes
-							</p>
-							<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-								{PROVIDERS.filter(([provider]) =>
-									providers.includes(provider),
-								).map(([provider, label]) => (
-									<label key={provider} className="grid gap-1.5 text-sm">
-										<span className="font-medium">{label}</span>
-										<Select
-											value={providerModes[provider]}
-											onValueChange={(value) =>
-												setProviderModes((current) => ({
-													...current,
-													[provider]: value as ProviderMode,
-												}))
-											}
-										>
-											<SelectTrigger aria-label={`${label} official Web mode`}>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{GEO_PROVIDER_MODE_CAPABILITIES[provider].map((mode) => (
-													<SelectItem key={mode} value={mode}>
-														{PROVIDER_MODE_LABELS[mode]}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</label>
-								))}
-							</div>
-							<p className="mt-3 text-xs text-stone-500">
-								Modes are verified in each official Web UI and frozen into the series
-								signature. Search cohorts are not merged with default-mode trends.
-							</p>
-						</div>
-						<details className="rounded-md border border-stone-200 p-4 dark:border-neutral-800">
+						<p className="mt-3 text-xs text-stone-500">
+							Modes are verified in each official Web UI and frozen into the
+							series signature. Search cohorts are not merged with default-mode
+							trends.
+						</p>
+					</div>
+					<details className="rounded-md border border-stone-200 p-4 dark:border-neutral-800">
 						<summary className="flex cursor-pointer list-none items-center justify-between font-medium">
 							Advanced dimensions <ChevronDown className="size-4" />
 						</summary>
@@ -898,15 +899,15 @@ export default function NewDetectionPage() {
 												start.mutate({
 													workspaceId,
 													promptSetId: set.id,
-												providers: providers as Array<
-													"doubao" | "deepseek" | "hunyuan" | "qwen"
-												>,
-												providerModes: Object.fromEntries(
-													providers.map((provider) => [
-														provider,
-														providerModes[provider],
-													]),
-												),
+													providers: providers as Array<
+														"doubao" | "deepseek" | "hunyuan" | "qwen"
+													>,
+													providerModes: Object.fromEntries(
+														providers.map((provider) => [
+															provider,
+															providerModes[provider],
+														]),
+													),
 												})
 											}
 										>

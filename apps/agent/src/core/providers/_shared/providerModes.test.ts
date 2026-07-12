@@ -1,5 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import {
+	GEO_PROVIDER_MODE_CAPABILITIES,
+	getProviderModeLabel,
+} from "@aloom/types";
 import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
@@ -83,19 +87,35 @@ async function modeFixturePage(provider: string): Promise<{
 					if (element instanceof dom.window.HTMLElement) element.click();
 				},
 			});
-			return createLocator(Array.from(dom.window.document.querySelectorAll(selector)));
+			return createLocator(
+				Array.from(dom.window.document.querySelectorAll(selector)),
+			);
 		},
 		waitForTimeout: async () => {},
+		keyboard: { press: async () => {} },
 	} as unknown as Page;
 	return { page, close: () => dom.window.close() };
 }
 
 describe("official Web provider mode adapters", () => {
+	it("publishes only valid provider search combinations", () => {
+		expect(GEO_PROVIDER_MODE_CAPABILITIES.deepseek).toContain("web_search");
+		expect(GEO_PROVIDER_MODE_CAPABILITIES.deepseek).not.toContain(
+			"reasoning_web_search",
+		);
+		expect(getProviderModeLabel("hunyuan", "auto_search")).toBe(
+			"Tool > Search",
+		);
+		expect(getProviderModeLabel("qwen", "reasoning_web_search")).toBe(
+			"Thinking + Tools",
+		);
+	});
+
 	it("normalizes each provider default into the mode that can be verified", () => {
 		expect(expectedOfficialWebMode("deepseek", "default")).toBe("fast");
 		expect(expectedOfficialWebMode("doubao", "default")).toBe("fast");
-		expect(expectedOfficialWebMode("hunyuan", "default")).toBe("auto_search");
-		expect(expectedOfficialWebMode("qwen", "default")).toBe("auto");
+		expect(expectedOfficialWebMode("hunyuan", "default")).toBe("default");
+		expect(expectedOfficialWebMode("qwen", "default")).toBe("auto_search");
 	});
 
 	it.each([
@@ -104,25 +124,102 @@ describe("official Web provider mode adapters", () => {
 		["deepseek", "expert", "expert"],
 		["deepseek", "reasoning", "reasoning"],
 		["deepseek", "web_search", "web_search"],
-		["deepseek", "reasoning_web_search", "reasoning_web_search"],
 		["doubao", "default", "fast"],
 		["doubao", "fast", "fast"],
 		["doubao", "expert", "expert"],
-		["hunyuan", "default", "auto_search"],
+		["hunyuan", "default", "default"],
 		["hunyuan", "reasoning", "reasoning"],
 		["hunyuan", "auto_search", "auto_search"],
-		["qwen", "default", "auto"],
+		["hunyuan", "reasoning_web_search", "reasoning_web_search"],
+		["qwen", "default", "auto_search"],
 		["qwen", "auto", "auto"],
 		["qwen", "fast", "fast"],
 		["qwen", "reasoning", "reasoning"],
-	] as const)("sets and verifies %s mode %s", async (provider, requested, expected) => {
-		const fixture = await modeFixturePage(provider);
+		["qwen", "web_search", "web_search"],
+		["qwen", "reasoning_web_search", "reasoning_web_search"],
+		["qwen", "auto_search", "auto_search"],
+	] as const)(
+		"sets and verifies %s mode %s",
+		async (provider, requested, expected) => {
+			const fixture = await modeFixturePage(provider);
+			try {
+				await expect(
+					applyOfficialWebMode({
+						page: fixture.page,
+						provider,
+						mode: requested,
+					}),
+				).resolves.toBe(expected);
+				const controls = await readProviderModeControls(fixture.page);
+				expect(controls.length).toBeGreaterThan(0);
+			} finally {
+				fixture.close();
+			}
+		},
+	);
+
+	it("rejects the impossible DeepSeek DeepThink plus Search combination", async () => {
+		const fixture = await modeFixturePage("deepseek");
 		try {
 			await expect(
-				applyOfficialWebMode({ page: fixture.page, provider, mode: requested }),
-			).resolves.toBe(expected);
-			const controls = await readProviderModeControls(fixture.page);
-			expect(controls.length).toBeGreaterThan(0);
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "deepseek",
+					mode: "reasoning_web_search",
+				}),
+			).rejects.toThrow(/only available with Instant/i);
+		} finally {
+			fixture.close();
+		}
+	});
+
+	it("never labels a Yuanbao sample as non-search while Search stays selected", async () => {
+		const fixture = await modeFixturePage("hunyuan");
+		try {
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "hunyuan",
+					mode: "auto_search",
+				}),
+			).resolves.toBe("auto_search");
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "hunyuan",
+					mode: "default",
+				}),
+			).rejects.toThrow(/selected in a non-search cohort/i);
+		} finally {
+			fixture.close();
+		}
+	});
+
+	it("turns Qwen Tools off when moving from a search cohort to Fast", async () => {
+		const fixture = await modeFixturePage("qwen");
+		try {
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "qwen",
+					mode: "web_search",
+				}),
+			).resolves.toBe("web_search");
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "qwen",
+					mode: "fast",
+				}),
+			).resolves.toBe("fast");
+			const toolsEnabled = await fixture.page.evaluate(() => {
+				return (
+					document
+						.querySelector("[data-menu-id$='-tools'] [role='switch']")
+						?.getAttribute("aria-checked") === "true"
+				);
+			}, undefined);
+			expect(toolsEnabled).toBe(false);
 		} finally {
 			fixture.close();
 		}

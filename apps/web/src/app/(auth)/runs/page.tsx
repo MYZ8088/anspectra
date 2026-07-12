@@ -6,6 +6,7 @@ import {
 } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
+import { type ProviderMode, getProviderModeLabel } from "@aloom/types";
 import {
 	Button,
 	Checkbox,
@@ -485,7 +486,10 @@ export default function RunsPage() {
 													<p className="mt-2 text-[11px] text-stone-500">
 														round {sample.repeatIndex + 1} ·{" "}
 														{sample.prompt?.locale ?? "unknown"} ·{" "}
-														{sample.requestedMode}
+														{getProviderModeLabel(
+															sample.provider,
+															sample.requestedMode as ProviderMode,
+														)}
 													</p>
 												</td>
 												<td className="px-3 py-4 align-top capitalize">

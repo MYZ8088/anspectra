@@ -79,13 +79,13 @@ async function executeTask(task: CollectorTask): Promise<void> {
 	};
 	let completed = 0;
 	try {
-			const results = await agentHandler(
-				PROVIDER_CONFIGS[task.provider].label,
-				() =>
-					createAgent(task.provider, {
-						taskId: `remote-collection:${task.taskId}:${task.provider}`,
-						visibility: "headful",
-					}),
+		const results = await agentHandler(
+			PROVIDER_CONFIGS[task.provider].label,
+			() =>
+				createAgent(task.provider, {
+					taskId: `remote-collection:${task.taskId}:${task.provider}`,
+					visibility: "headless",
+				}),
 			payload,
 			task.provider,
 			{
@@ -93,8 +93,8 @@ async function executeTask(task: CollectorTask): Promise<void> {
 					await request("attempt", {
 						runId: task.runId,
 						provider: task.provider,
-							requestedMode: update.requestedMode ?? task.providerMode,
-							actualMode: update.actualMode,
+						requestedMode: update.requestedMode ?? task.providerMode,
+						actualMode: update.actualMode,
 						...update,
 					});
 				},

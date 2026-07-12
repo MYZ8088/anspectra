@@ -15,7 +15,7 @@ describe("task-bound persistent provider sessions", () => {
 		);
 	});
 
-	it("keeps headless diagnostics isolated from headful collection", () => {
+	it("keeps headless collection isolated from visible login and challenge windows", () => {
 		const base = { env: { LANG: "en_US.UTF-8" }, headless: false };
 		const headless = applyPersistentVisibility(base, "headless");
 		expect(headless.headless).toBe(true);

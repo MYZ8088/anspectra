@@ -2,7 +2,8 @@
 
 ## OneGlanse upstream codebase
 
-Portions of Aloom are derived from the OneGlanse codebase.
+Portions of Aloom are derived from the
+[OneGlanse codebase](https://github.com/aryamantodkar/oneglanse).
 
 MIT License
 

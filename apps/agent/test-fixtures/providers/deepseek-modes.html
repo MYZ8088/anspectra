@@ -8,7 +8,9 @@ for (const button of document.querySelectorAll('[data-mode]')) button.addEventLi
   for (const peer of document.querySelectorAll('[data-mode]')) peer.dataset.state = peer === button ? 'on' : 'off';
 });
 for (const button of document.querySelectorAll('[data-toggle]')) button.addEventListener('click', () => {
-  button.dataset.state = button.dataset.state === 'on' ? 'off' : 'on';
+  const next = button.dataset.state === 'on' ? 'off' : 'on';
+  for (const peer of document.querySelectorAll('[data-toggle]')) peer.dataset.state = 'off';
+  button.dataset.state = next;
 });
 </script>
 </body></html>

@@ -30,12 +30,12 @@ import { createProviderLogger, logger } from "@aloom/utils";
 import type { Job } from "bullmq";
 import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";
+import { describePromptFailure } from "../core/prompt-runner/failureDetails.js";
 import { PROVIDER_CONFIGS } from "../core/providers/index.js";
 import { releaseProviderHumanHold } from "../lib/browser/providerSessionManager.js";
 import { StopProviderRunError } from "../lib/browser/proxy/runner.js";
 import { runAnalysisInBackground } from "./analysis.js";
 import { persistSampleCheckpoint } from "./sampleCheckpoint.js";
-import { describePromptFailure } from "../core/prompt-runner/failureDetails.js";
 
 type ProviderStatus =
 	| "pending"
@@ -248,9 +248,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 	let persistedSampleCount = initialCompletedCount;
 	let clickhouseSampleCount = 0;
 	let activePromptId: string | undefined;
-	let terminalFailure:
-		| ReturnType<typeof describePromptFailure>
-		| undefined;
+	let terminalFailure: ReturnType<typeof describePromptFailure> | undefined;
 	let terminalFailureMessage: string | undefined;
 
 	registerActiveProviderStop(jobGroupId, provider, async () => {
@@ -277,13 +275,13 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				throw new StopProviderRunError(provider);
 			}
 
-				const result = await agentHandler(
-					label,
-					() =>
-						createAgent(provider, {
-							taskId: `collection:${collectionRunId ?? jobGroupId}:${provider}`,
-							visibility: "headful",
-						}),
+			const result = await agentHandler(
+				label,
+				() =>
+					createAgent(provider, {
+						taskId: `collection:${collectionRunId ?? jobGroupId}:${provider}`,
+						visibility: "headless",
+					}),
 				payload,
 				provider,
 				{
@@ -491,7 +489,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					? "completed"
 					: persistedSampleCount > 0
 						? "partial"
-					: "failed",
+						: "failed",
 			activePromptId: terminalFailure ? activePromptId : undefined,
 			failureCategory: terminalFailure?.category,
 			failureCode: terminalFailure?.code,

@@ -57,8 +57,8 @@ export default function PromptPacksPage() {
 							{catalog.data?.name ?? "Aloom GEO Detection Pack"}
 						</h1>
 						<p className="mt-2 text-sm text-stone-500">
-							Version {catalog.data?.version ?? "1.1.0"} · fixed and read-only
-							· Yao method licensed under MIT
+							Version {catalog.data?.version ?? "1.1.0"} · fixed and read-only ·
+							Yao method licensed under MIT
 						</p>
 					</div>
 					<BookOpenText className="size-6 text-stone-400" />
