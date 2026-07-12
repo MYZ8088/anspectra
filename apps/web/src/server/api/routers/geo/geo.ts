@@ -1,98 +1,94 @@
 import {
 	GEO_WEB_PROVIDERS,
-	approveContentRevision,
-	archiveWorkspacePrompt,
 	auditWorkspaceSite,
-	classifyCustomPromptDimensions,
 	confirmBrandProfile,
-	createBrandFact,
-	createContentDraft,
-	createGeneratedPromptSet,
-	createRetestExperiment,
-	getBaselineScorecard,
+	createDetectionSet,
+	deleteDetectionSchedule,
 	getBrandProfile,
 	getCamoufoxDiagnostics,
-	getExperimentResults,
+	getDetectionPromptCatalog,
+	getDetectionReport,
+	getDetectionTrend,
 	getGeoOverview,
 	getGeoRunDetail,
-	getLatestFormalBaselineScorecard,
-	getPromptLibraryTaxonomy,
-	importCustomPrompts,
-	instantiatePresetPack,
+	getLatestDetectionReport,
 	listCollectorNodes,
-	listExternalEvidenceTasks,
+	listDetectionSchedules,
 	listGeoRuns,
 	listOpenHumanChallenges,
-	listPublishedInterventions,
-	listPublisherConnections,
-	listRetestExperiments,
-	listWorkspaceContent,
 	listWorkspaceFacts,
-	listWorkspaceOpportunities,
-	listWorkspacePromptLibrary,
-	listWorkspacePromptLibraryV2,
 	listWorkspacePromptSets,
 	listWorkspaceSitePages,
 	pairCollectorNode,
-	previewPresetPack,
-	publishApprovedRevision,
-	refreshWorkspaceOpportunities,
+	pauseDetectionSchedule,
+	previewDetection,
 	requestHumanChallengeWindow,
 	resumeHumanChallenge,
 	retryGeoSamples,
-	reviseContentAsset,
-	reviseCustomPrompt,
-	rollbackPublishedIntervention,
+	runProviderSmoke,
 	saveBrandProfile,
-	savePublisherConnection,
+	saveDetectionSchedule,
 	startGeoCollectionRun,
 	suggestProfileFromSite,
-	migrateLegacyPrompts,
-	runProviderSmoke,
-	validateContentRevision,
 } from "@answerloom/services";
-import { GEO_DECISION_STAGE_LIST, GEO_INTENT_LIST } from "@answerloom/types";
+import {
+	GEO_DECISION_STAGE_LIST,
+	GEO_INTENT_LIST,
+	SAMPLING_DEPTH_LIST,
+} from "@answerloom/types";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { authorizedWorkspaceProcedure } from "../../procedures";
 import { createTRPCRouter } from "../../trpc";
 
 const optionalStringArray = z.array(z.string().trim().min(1)).default([]);
-const publisherConfigSchema = z.discriminatedUnion("type", [
-	z.object({
-		type: z.literal("wordpress"),
-		baseUrl: z.string().url(),
-		username: z.string().min(1),
-		applicationPassword: z.string().min(1),
-	}),
-	z.object({
-		type: z.literal("geoflow"),
-		baseUrl: z.string().url(),
-		apiToken: z.string().min(1),
-	}),
-	z.object({
-		type: z.literal("github"),
-		owner: z.string().min(1),
-		repo: z.string().min(1),
-		token: z.string().min(1),
-		baseBranch: z.string().min(1).default("main"),
-		contentPath: z.string().optional(),
-	}),
+const suiteSchema = z.enum([
+	"quick_scan",
+	"discovery",
+	"competitive_position",
+	"trust_risk",
+	"buyer_journey",
+	"full_matrix",
 ]);
+const detectionFilterSchema = z
+	.object({
+		intents: z.array(z.enum(GEO_INTENT_LIST)).optional(),
+		stages: z.array(z.enum(GEO_DECISION_STAGE_LIST)).optional(),
+		brandExposures: z.array(z.enum(["blind", "aided"])).optional(),
+		products: z.array(z.string().trim().min(1)).optional(),
+		competitors: z.array(z.string().trim().min(1)).optional(),
+		audiences: z.array(z.string().trim().min(1)).optional(),
+		regions: z.array(z.string().trim().min(1)).optional(),
+	})
+	.optional();
 
 export const geoRouter = createTRPCRouter({
 	overview: authorizedWorkspaceProcedure.query(({ ctx }) =>
 		getGeoOverview(ctx.workspaceId),
 	),
-	scorecard: authorizedWorkspaceProcedure
+	detectionReport: authorizedWorkspaceProcedure
 		.input(z.object({ seriesId: z.string().uuid().optional() }))
 		.query(({ ctx, input }) =>
 			input.seriesId
-				? getBaselineScorecard({
+				? getDetectionReport({
 						workspaceId: ctx.workspaceId,
 						seriesId: input.seriesId,
 					})
-				: getLatestFormalBaselineScorecard(ctx.workspaceId),
+				: getLatestDetectionReport(ctx.workspaceId),
+		),
+	detectionTrend: authorizedWorkspaceProcedure
+		.input(
+			z.object({
+				seriesId: z.string().uuid().optional(),
+				limit: z.number().int().min(2).max(24).default(12),
+			}),
+		)
+		.query(({ ctx, input }) =>
+			getDetectionTrend({
+				workspaceId: ctx.workspaceId,
+				seriesId: input.seriesId,
+				limit: input.limit,
+			}),
 		),
 	collectors: authorizedWorkspaceProcedure.query(({ ctx }) =>
 		listCollectorNodes(ctx.workspaceId),
@@ -101,7 +97,9 @@ export const geoRouter = createTRPCRouter({
 		getCamoufoxDiagnostics(ctx.workspaceId),
 	),
 	runProviderSmoke: authorizedWorkspaceProcedure
-		.use(createRateLimiter("geo.runProviderSmoke", { limit: 2, windowSecs: 300 }))
+		.use(
+			createRateLimiter("geo.runProviderSmoke", { limit: 2, windowSecs: 300 }),
+		)
 		.input(
 			z.object({
 				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
@@ -153,26 +151,17 @@ export const geoRouter = createTRPCRouter({
 		)
 		.mutation(({ ctx, input }) =>
 			saveBrandProfile({
+				...input,
 				workspaceId: ctx.workspaceId,
-				brandName: input.brandName,
-				officialDomain: input.officialDomain,
-				aliases: input.aliases,
-				products: input.products,
-				category: input.category,
-				industry: input.industry,
-				market: input.market,
-				audiences: input.audiences,
-				competitors: input.competitors,
-				regions: input.regions,
-				locales: input.locales,
-				budget: input.budget,
-				teamSize: input.teamSize,
-				implementationPeriod: input.implementationPeriod,
-				evidenceRequirement: input.evidenceRequirement,
 			}),
 		),
 	suggestProfileFromSite: authorizedWorkspaceProcedure
-		.use(createRateLimiter("geo.suggestProfileFromSite", { limit: 2, windowSecs: 60 }))
+		.use(
+			createRateLimiter("geo.suggestProfileFromSite", {
+				limit: 2,
+				windowSecs: 60,
+			}),
+		)
 		.input(
 			z.object({
 				domain: z.string().trim().min(3),
@@ -189,168 +178,46 @@ export const geoRouter = createTRPCRouter({
 	confirmBrandProfile: authorizedWorkspaceProcedure.mutation(({ ctx }) =>
 		confirmBrandProfile(ctx.workspaceId),
 	),
+	promptPacks: authorizedWorkspaceProcedure.query(() =>
+		getDetectionPromptCatalog(),
+	),
 	promptSets: authorizedWorkspaceProcedure.query(({ ctx }) =>
 		listWorkspacePromptSets(ctx.workspaceId),
 	),
-	promptTaxonomy: authorizedWorkspaceProcedure.query(() =>
-		getPromptLibraryTaxonomy(),
-	),
-	promptLibrary: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listWorkspacePromptLibrary(ctx.workspaceId),
-	),
-	promptLibraryV2: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listWorkspacePromptLibraryV2(ctx.workspaceId),
-	),
-	migrateLegacyPrompts: authorizedWorkspaceProcedure.mutation(({ ctx }) =>
-		migrateLegacyPrompts(ctx.workspaceId),
-	),
-	classifyCustomPrompts: authorizedWorkspaceProcedure
+	previewDetection: authorizedWorkspaceProcedure
 		.input(
 			z.object({
-				prompts: z.array(z.string().trim().min(1)).min(1).max(100),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			classifyCustomPromptDimensions({
-				workspaceId: ctx.workspaceId,
-				prompts: input.prompts,
-			}),
-		),
-	previewPresetPack: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				tier: z.enum(["quick", "standard", "deep"]),
+				suiteKey: suiteSchema,
+				samplingDepth: z.enum(SAMPLING_DEPTH_LIST),
 				locales: z.array(z.string().min(2)).optional(),
+				filters: detectionFilterSchema,
+				providerCount: z.number().int().min(1).max(4).optional(),
 			}),
 		)
 		.query(({ ctx, input }) =>
-			previewPresetPack({
+			previewDetection({
+				...input,
 				workspaceId: ctx.workspaceId,
-				tier: input.tier,
-				locales: input.locales,
 			}),
 		),
-	instantiatePresetPack: authorizedWorkspaceProcedure
+	createDetectionSet: authorizedWorkspaceProcedure
 		.input(
 			z.object({
-				tier: z.enum(["quick", "standard", "deep"]),
+				suiteKey: suiteSchema,
+				samplingDepth: z.enum(SAMPLING_DEPTH_LIST),
 				locales: z.array(z.string().min(2)).optional(),
+				filters: detectionFilterSchema,
 				name: z.string().trim().min(1).max(200).optional(),
-				customPromptIds: z.array(z.string().uuid()).optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
-			instantiatePresetPack({
+			createDetectionSet({
+				...input,
 				workspaceId: ctx.workspaceId,
-				tier: input.tier,
-				locales: input.locales,
-				name: input.name,
-				customPromptIds: input.customPromptIds,
 			}),
 		),
-	importCustomPrompts: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				importSource: z.enum(["manual", "csv"]).default("manual"),
-				items: z
-					.array(
-						z.object({
-							prompt: z.string().trim().min(1),
-							locale: z.string().optional(),
-							intent: z.enum(GEO_INTENT_LIST).optional(),
-							decisionStage: z.enum(GEO_DECISION_STAGE_LIST).optional(),
-							brandExposure: z.enum(["blind", "aided"]).optional(),
-							targetProduct: z.string().nullable().optional(),
-							targetCompetitor: z.string().nullable().optional(),
-							targetAudience: z.string().nullable().optional(),
-							targetRegion: z.string().nullable().optional(),
-							tags: z.array(z.string().trim().min(1)).optional(),
-						}),
-					)
-					.min(1)
-					.max(500),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			importCustomPrompts({
-				workspaceId: ctx.workspaceId,
-				items: input.items,
-				userId: ctx.user.id,
-				importSource: input.importSource,
-			}),
-		),
-	reviseCustomPrompt: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				promptId: z.string().uuid(),
-				input: z.object({
-					prompt: z.string().trim().min(1),
-					locale: z.string().optional(),
-					intent: z.enum(GEO_INTENT_LIST).optional(),
-					decisionStage: z.enum(GEO_DECISION_STAGE_LIST).optional(),
-					brandExposure: z.enum(["blind", "aided"]).optional(),
-					targetProduct: z.string().nullable().optional(),
-					targetCompetitor: z.string().nullable().optional(),
-					targetAudience: z.string().nullable().optional(),
-					targetRegion: z.string().nullable().optional(),
-					tags: z.array(z.string().trim().min(1)).optional(),
-				}),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			reviseCustomPrompt({
-				workspaceId: ctx.workspaceId,
-				promptId: input.promptId,
-				input: input.input,
-			}),
-		),
-	archivePrompt: authorizedWorkspaceProcedure
-		.input(z.object({ promptId: z.string().uuid() }))
-		.mutation(({ ctx, input }) =>
-			archiveWorkspacePrompt({
-				workspaceId: ctx.workspaceId,
-				promptId: input.promptId,
-			}),
-		),
-	generatePromptSet: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				brandName: z.string().trim().min(1),
-				tier: z.enum(["quick", "standard", "deep"]),
-				locale: z.string().default("zh-CN"),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			createGeneratedPromptSet({
-				workspaceId: ctx.workspaceId,
-				brandName: input.brandName,
-				tier: input.tier,
-				locale: input.locale,
-			}),
-		),
-	startRun: authorizedWorkspaceProcedure
-		.use(createRateLimiter("geo.startRun", { limit: 4, windowSecs: 60 }))
-		.input(
-			z.object({
-				promptSetId: z.string().uuid(),
-				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			startGeoCollectionRun({
-				workspaceId: ctx.workspaceId,
-				userId: ctx.user.id,
-				promptSetId: input.promptSetId,
-				providers: input.providers,
-			}),
-		),
-	startBaselineSeries: authorizedWorkspaceProcedure
-		.use(
-			createRateLimiter("geo.startBaselineSeries", {
-				limit: 2,
-				windowSecs: 60,
-			}),
-		)
+	startDetection: authorizedWorkspaceProcedure
+		.use(createRateLimiter("geo.startDetection", { limit: 4, windowSecs: 60 }))
 		.input(
 			z.object({
 				promptSetId: z.string().uuid(),
@@ -417,7 +284,7 @@ export const geoRouter = createTRPCRouter({
 		.input(
 			z.object({
 				domain: z.string().min(3),
-				maxPages: z.number().int().min(1).max(100).default(30),
+				maxPages: z.number().int().min(1).max(30).default(12),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
@@ -433,177 +300,47 @@ export const geoRouter = createTRPCRouter({
 	facts: authorizedWorkspaceProcedure.query(({ ctx }) =>
 		listWorkspaceFacts(ctx.workspaceId),
 	),
-	createFact: authorizedWorkspaceProcedure
+	detectionSchedules: authorizedWorkspaceProcedure.query(({ ctx }) =>
+		listDetectionSchedules(ctx.workspaceId),
+	),
+	saveDetectionSchedule: authorizedWorkspaceProcedure
 		.input(
 			z.object({
-				subject: z.string().min(1),
-				predicate: z.string().min(1),
-				value: z.string().min(1),
-				sourceUrl: z.string().url().optional(),
-				sourceType: z.string().trim().min(1).optional(),
-				evidenceGrade: z.enum(["A", "B", "C", "D"]).optional(),
-				status: z.enum(["verified", "unverified", "rejected"]).optional(),
-				retrievedAt: z.coerce.date().optional(),
-				region: z.string().trim().min(1).optional(),
-				validUntil: z.coerce.date().optional(),
-				supportedClaims: z.array(z.string().trim().min(1)).optional(),
-				confidence: z.number().int().min(0).max(100).optional(),
+				promptSetId: z.string().uuid(),
+				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).min(1),
+				cadence: z.enum(["weekly", "monthly"]),
+				timezone: z.string().trim().min(1),
+				localTime: z.string().regex(/^\d{2}:\d{2}$/),
+				dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
+				dayOfMonth: z.number().int().min(1).max(28).nullable().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
-			createBrandFact({
+			saveDetectionSchedule({
+				...input,
 				workspaceId: ctx.workspaceId,
-				subject: input.subject,
-				predicate: input.predicate,
-				value: input.value,
-				sourceUrl: input.sourceUrl,
-				sourceType: input.sourceType,
-				evidenceGrade: input.evidenceGrade,
-				status: input.status,
-				retrievedAt: input.retrievedAt,
-				region: input.region,
-				validUntil: input.validUntil,
-				supportedClaims: input.supportedClaims,
-				confidence: input.confidence,
+				userId: ctx.user.id,
 			}),
 		),
-	opportunities: authorizedWorkspaceProcedure
-		.input(z.object({ seriesId: z.string().uuid().optional() }))
-		.query(({ ctx, input }) =>
-			listWorkspaceOpportunities(ctx.workspaceId, input.seriesId),
-		),
-	externalEvidenceTasks: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listExternalEvidenceTasks(ctx.workspaceId),
-	),
-	refreshOpportunities: authorizedWorkspaceProcedure
-		.input(z.object({ seriesId: z.string().uuid().optional() }))
-		.mutation(({ ctx, input }) =>
-			refreshWorkspaceOpportunities(ctx.workspaceId, input.seriesId),
-		),
-	content: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listWorkspaceContent(ctx.workspaceId),
-	),
-	createContentDraft: authorizedWorkspaceProcedure
+	pauseDetectionSchedule: authorizedWorkspaceProcedure
 		.input(
 			z.object({
-				opportunityId: z.string().uuid(),
-				kind: z.string().min(1),
-				sourceContent: z.string().optional(),
+				scheduleId: z.string().uuid(),
+				enabled: z.boolean(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
-			createContentDraft({
+			pauseDetectionSchedule({
+				...input,
 				workspaceId: ctx.workspaceId,
-				createdBy: ctx.user.id,
-				opportunityId: input.opportunityId,
-				kind: input.kind,
-				sourceContent: input.sourceContent,
 			}),
 		),
-	generateOptimization: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				opportunityId: z.string().uuid(),
-				kind: z.string().min(1),
-				sourceContent: z.string().optional(),
-			}),
-		)
+	deleteDetectionSchedule: authorizedWorkspaceProcedure
+		.input(z.object({ scheduleId: z.string().uuid() }))
 		.mutation(({ ctx, input }) =>
-			createContentDraft({
+			deleteDetectionSchedule({
 				workspaceId: ctx.workspaceId,
-				createdBy: ctx.user.id,
-				opportunityId: input.opportunityId,
-				kind: input.kind,
-				sourceContent: input.sourceContent,
-			}),
-		),
-	validateRevision: authorizedWorkspaceProcedure
-		.input(z.object({ revisionId: z.string().uuid() }))
-		.mutation(({ ctx, input }) =>
-			validateContentRevision({
-				workspaceId: ctx.workspaceId,
-				revisionId: input.revisionId,
-			}),
-		),
-	approveContent: authorizedWorkspaceProcedure
-		.input(z.object({ revisionId: z.string().uuid() }))
-		.mutation(({ ctx, input }) =>
-			approveContentRevision({
-				workspaceId: ctx.workspaceId,
-				revisionId: input.revisionId,
-			}),
-		),
-	reviseContent: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				revisionId: z.string().uuid(),
-				markdown: z.string().min(100),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			reviseContentAsset({
-				workspaceId: ctx.workspaceId,
-				revisionId: input.revisionId,
-				markdown: input.markdown,
-				createdBy: ctx.user.id,
-			}),
-		),
-	publishers: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listPublisherConnections(ctx.workspaceId),
-	),
-	savePublisher: authorizedWorkspaceProcedure
-		.input(z.object({ name: z.string().min(1), config: publisherConfigSchema }))
-		.mutation(({ ctx, input }) =>
-			savePublisherConnection({
-				workspaceId: ctx.workspaceId,
-				name: input.name,
-				config: input.config,
-			}),
-		),
-	publish: authorizedWorkspaceProcedure
-		.input(
-			z.object({
-				revisionId: z.string().uuid(),
-				connectionId: z.string().uuid(),
-				baselineSeriesId: z.string().uuid(),
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			publishApprovedRevision({
-				workspaceId: ctx.workspaceId,
-				revisionId: input.revisionId,
-				connectionId: input.connectionId,
-				baselineSeriesId: input.baselineSeriesId,
-			}),
-		),
-	experiments: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listRetestExperiments(ctx.workspaceId),
-	),
-	createExperiment: authorizedWorkspaceProcedure
-		.input(z.object({ interventionId: z.string().uuid() }))
-		.mutation(({ ctx, input }) =>
-			createRetestExperiment({
-				workspaceId: ctx.workspaceId,
-				interventionId: input.interventionId,
-			}),
-		),
-	experimentResults: authorizedWorkspaceProcedure
-		.input(z.object({ experimentId: z.string().uuid() }))
-		.query(({ ctx, input }) =>
-			getExperimentResults({
-				workspaceId: ctx.workspaceId,
-				experimentId: input.experimentId,
-			}),
-		),
-	interventions: authorizedWorkspaceProcedure.query(({ ctx }) =>
-		listPublishedInterventions(ctx.workspaceId),
-	),
-	rollback: authorizedWorkspaceProcedure
-		.input(z.object({ interventionId: z.string().uuid() }))
-		.mutation(({ ctx, input }) =>
-			rollbackPublishedIntervention({
-				workspaceId: ctx.workspaceId,
-				interventionId: input.interventionId,
+				scheduleId: input.scheduleId,
 			}),
 		),
 });

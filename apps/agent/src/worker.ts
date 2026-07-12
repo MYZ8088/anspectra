@@ -1,12 +1,12 @@
 import {
-	dispatchDueRetestExperiments,
+	dispatchDueDetectionSchedules,
 	dispatchScheduledGeoRuns,
-	getProviderQueue,
+	GEO_WEB_PROVIDERS,
 	getQueueName,
 	redis,
 	waitForRedis,
 } from "@answerloom/services";
-import { PROVIDER_LIST } from "@answerloom/types";
+import type { Provider } from "@answerloom/types";
 import { logger } from "@answerloom/utils";
 import { Worker } from "bullmq";
 import { env } from "./env.js";
@@ -32,10 +32,10 @@ async function startWorkers() {
 	};
 	await writeHeartbeat();
 	setInterval(() => void writeHeartbeat().catch(() => null), 30_000).unref();
-	await dispatchDueRetestExperiments().catch(() => 0);
+	await dispatchDueDetectionSchedules().catch(() => 0);
 	await dispatchScheduledGeoRuns().catch(() => 0);
 	setInterval(() => {
-		void dispatchDueRetestExperiments()
+		void dispatchDueDetectionSchedules()
 			.catch(() => 0)
 			.then(() => dispatchScheduledGeoRuns())
 			.catch(() => 0);
@@ -49,7 +49,7 @@ async function startWorkers() {
 			try {
 				const payload = JSON.parse(message) as {
 					jobGroupId?: string;
-					provider?: (typeof PROVIDER_LIST)[number];
+					provider?: Provider;
 				};
 				if (!payload.provider) {
 					return;
@@ -75,7 +75,7 @@ async function startWorkers() {
 		password: env.REDIS_PASSWORD,
 	};
 
-	workers = PROVIDER_LIST.map((provider) => {
+	workers = GEO_WEB_PROVIDERS.map((provider) => {
 		const queueName = getQueueName(provider);
 		const worker = new Worker(
 			queueName,

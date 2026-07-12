@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 
 export interface SubmitSuccessContext {
 	preSubmitUrl: string;
+	preSubmitContent: string;
 }
 
 /**

@@ -16,7 +16,6 @@ import {
 import { writeSkipProviderGate } from "@/lib/provider-connections/provider-gate";
 import type { ProviderConnectionCard } from "@/lib/provider-connections/types";
 import { api } from "@/trpc/react";
-import { AUTH_PROVIDER_LIST } from "@answerloom/types";
 import type { AuthProvider } from "@answerloom/types";
 import {
 	Button,
@@ -43,16 +42,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const CARD_ORDER: Array<ProviderConnectionCard["provider"]> = [
-	"google",
-	"gemini",
-	"chatgpt",
-	"perplexity",
-	"claude",
-	"deepseek",
 	"doubao",
+	"deepseek",
 	"hunyuan",
 	"qwen",
 ];
+
+const FORMAL_AUTH_PROVIDERS = [...CARD_ORDER] as AuthProvider[];
 
 const CONNECTION_UPDATED_AT_FORMATTER = new Intl.DateTimeFormat("en-US", {
 	month: "short",
@@ -66,7 +62,7 @@ const CONNECTION_UPDATED_AT_FORMATTER = new Intl.DateTimeFormat("en-US", {
 });
 
 function getConnectionCardTitle(card: ProviderConnectionCard): string {
-	return card.provider === "google" ? "AI Overview" : card.displayName;
+	return card.provider === "hunyuan" ? "Yuanbao" : card.displayName;
 }
 
 function sortConnectionCards(
@@ -247,9 +243,7 @@ export function ProviderConnectionsPanel(props: {
 				? localEnabled
 				: (enabledProvidersQuery.data?.enabledProviders ?? null);
 		const currentList =
-			currentState === null
-				? ([...AUTH_PROVIDER_LIST] as AuthProvider[])
-				: currentState;
+			currentState === null ? [...FORMAL_AUTH_PROVIDERS] : currentState;
 		const currentlyEnabled =
 			currentState === null || currentState.includes(provider);
 
@@ -259,7 +253,7 @@ export function ProviderConnectionsPanel(props: {
 			next = remaining as AuthProvider[];
 		} else {
 			const nextList = [...currentList, provider] as AuthProvider[];
-			next = nextList.length === AUTH_PROVIDER_LIST.length ? null : nextList;
+			next = nextList.length === FORMAL_AUTH_PROVIDERS.length ? null : nextList;
 		}
 
 		setLocalEnabled(next);
@@ -301,7 +295,11 @@ export function ProviderConnectionsPanel(props: {
 			toast.error(error.message);
 		},
 	});
-	const cards = sortConnectionCards(authProvidersQuery.data?.cards ?? []);
+	const cards = sortConnectionCards(
+		(authProvidersQuery.data?.cards ?? []).filter((card) =>
+			FORMAL_AUTH_PROVIDERS.includes(card.provider),
+		),
+	);
 	const hasAtLeastOneConnection = cards.some((card) => card.status.connected);
 	const isAnyConnectionPending =
 		providerActionMutation.isPending ||

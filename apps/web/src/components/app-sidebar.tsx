@@ -29,13 +29,11 @@ import {
 import { cn, getFaviconUrls } from "@answerloom/utils";
 import {
 	BookOpenText,
+	CalendarClock,
 	Check,
 	ChevronDown,
 	ChevronUp,
-	FilePenLine,
-	FlaskConical,
 	LayoutGrid,
-	Lightbulb,
 	ListChecks,
 	Loader2,
 	Plug,
@@ -111,12 +109,12 @@ export function AppSidebar({
 			icon: LayoutGrid,
 		},
 		{
-			title: "Monitor",
+			title: "New Detection",
 			url: `/monitor?workspace=${activeWorkspace?.id ?? ""}`,
 			icon: Radar,
 		},
 		{
-			title: "Prompt Library",
+			title: "Prompt Packs",
 			url: `/prompt-library?workspace=${activeWorkspace?.id ?? ""}`,
 			icon: BookOpenText,
 		},
@@ -126,19 +124,9 @@ export function AppSidebar({
 			icon: ListChecks,
 		},
 		{
-			title: "Opportunities",
-			url: `/opportunities?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: Lightbulb,
-		},
-		{
-			title: "Content",
-			url: `/content?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: FilePenLine,
-		},
-		{
-			title: "Experiments",
-			url: `/experiments?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: FlaskConical,
+			title: "Schedules",
+			url: `/schedule?workspace=${activeWorkspace?.id ?? ""}`,
+			icon: CalendarClock,
 		},
 	];
 

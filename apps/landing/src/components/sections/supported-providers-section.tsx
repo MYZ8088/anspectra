@@ -1,9 +1,12 @@
-import { getModelFavicon, modelSelectors } from "@answerloom/utils";
+import { getModelFavicon } from "@answerloom/utils";
 import { CheckCircle2 } from "lucide-react";
 
-const PROVIDER_ITEMS = modelSelectors.filter(
-	(item) => item.value !== "All Models",
-);
+const PROVIDER_ITEMS = [
+	{ value: "doubao", label: "Doubao" },
+	{ value: "deepseek", label: "DeepSeek" },
+	{ value: "hunyuan", label: "Yuanbao" },
+	{ value: "qwen", label: "Qwen" },
+] as const;
 
 export function SupportedProvidersSection(): React.JSX.Element {
 	return (
@@ -20,8 +23,7 @@ export function SupportedProvidersSection(): React.JSX.Element {
 					Supported Providers
 				</h2>
 				<p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground sm:text-base">
-					Unified tracking across all LLM providers with consistent metrics and
-					source-level evidence.
+					Official Web sampling with consistent dimensions and source exposure.
 				</p>
 			</div>
 

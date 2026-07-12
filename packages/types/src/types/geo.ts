@@ -23,6 +23,132 @@ export const GEO_DECISION_STAGE_LIST = [
 ] as const;
 export type GeoDecisionStage = (typeof GEO_DECISION_STAGE_LIST)[number];
 
+export const DETECTION_SUITE_LIST = [
+	"quick_scan",
+	"discovery",
+	"competitive_position",
+	"trust_risk",
+	"buyer_journey",
+	"full_matrix",
+	"filtered",
+] as const;
+export type DetectionSuiteKey = (typeof DETECTION_SUITE_LIST)[number];
+
+export const SAMPLING_DEPTH_LIST = [
+	"single",
+	"reliable",
+	"stability",
+] as const;
+export type SamplingDepth = (typeof SAMPLING_DEPTH_LIST)[number];
+
+export type DetectionDimensionFilter = {
+	locales?: string[];
+	intents?: GeoIntent[];
+	stages?: GeoDecisionStage[];
+	brandExposures?: Array<"blind" | "aided">;
+	products?: string[];
+	competitors?: string[];
+	audiences?: string[];
+	regions?: string[];
+};
+
+export const DETECTION_SLICE_LIST = [
+	"overall",
+	"provider",
+	"locale",
+	"intent",
+	"decision_stage",
+	"brand_exposure",
+	"product",
+	"competitor",
+	"audience",
+	"region",
+	"prompt",
+	"intent_stage",
+] as const;
+export type DetectionSliceKey = (typeof DETECTION_SLICE_LIST)[number];
+
+export type DetectionMetricRate = {
+	numerator: number;
+	denominator: number;
+	value: number;
+};
+
+export type DetectionSliceMetrics = {
+	key: string;
+	label: string;
+	planned: number;
+	completed: number;
+	analysed: number;
+	failed: number;
+	completionRate: number;
+	analysisRate: number;
+	confidence: "low" | "medium" | "high";
+	mentionRate: DetectionMetricRate;
+	candidateRate: DetectionMetricRate;
+	recommendationRate: DetectionMetricRate;
+	averageRank: number | null;
+	averageSentiment: number | null;
+	sourceExposureRate: DetectionMetricRate;
+	stability: number | null;
+	targetShare: number;
+	competitorShare: number;
+};
+
+export type DetectionReport = {
+	seriesId: string;
+	promptSetId: string;
+	seriesStatus: string;
+	provisional: boolean;
+	suiteKey: DetectionSuiteKey;
+	samplingDepth: SamplingDepth;
+	createdAt: Date;
+	slices: Record<DetectionSliceKey, DetectionSliceMetrics[]>;
+	competitors: Array<{ name: string; mentions: number; recommendations: number }>;
+	samples: Array<{
+		checkpointId: string;
+		provider: string;
+		status: string;
+		analysisStatus: string;
+		prompt: string;
+		promptHash: string | null;
+		intent: string;
+		decisionStage: string | null;
+		locale: string;
+		brandExposure: string | null;
+		response: string | null;
+		sources: Array<{
+			title: string;
+			url: string;
+			citedText: string;
+			domain: string | null;
+		}>;
+		sourceExposure: string | null;
+		conversationId: string | null;
+		conversationUrl: string | null;
+		errorCode: string | null;
+		errorMessage: string | null;
+		dimensions: Record<string, unknown>;
+	}>;
+};
+
+export type DetectionSchedule = {
+	id: string;
+	workspaceId: string;
+	promptSetId: string;
+	providers: string[];
+	cadence: "weekly" | "monthly";
+	timezone: string;
+	localTime: string;
+	dayOfWeek: number | null;
+	dayOfMonth: number | null;
+	enabled: boolean;
+	nextRunAt: Date | null;
+	lastRunAt: Date | null;
+	lastSeriesId: string | null;
+	lastError: string | null;
+};
+
 export const PROMPT_ORIGIN_LIST = [
 	"yao_preset",
 	"user_custom",

@@ -212,6 +212,7 @@ async function runRetryCycle(
 	signal?: AbortSignal,
 	onAttemptStart?: (attempt: BrowserAttempt) => void | Promise<void>,
 	onAttemptComplete?: () => void | Promise<void>,
+	completedByPromptId?: Map<string, AskPromptResult>,
 ): Promise<{ done: true } | { done: false; updatedPayload: PromptPayload }> {
 	const useProxy = shouldUseProxyInMode(
 		resolveAppMode(process.env.ANSWERLOOM_APP_MODE),
@@ -219,6 +220,16 @@ async function runRetryCycle(
 	let nextPayload = currentPayload;
 
 	for (let attempt = 0; attempt < attemptsPerCycle; attempt++) {
+		if (completedByPromptId?.size) {
+			nextPayload = {
+				...nextPayload,
+				prompts: nextPayload.prompts.filter(
+					(prompt) => !completedByPromptId.has(prompt.id),
+				),
+			};
+		}
+		if (nextPayload.prompts.length === 0) return { done: true };
+
 		const totalAttempt = cycle * attemptsPerCycle + attempt + 1;
 		const totalMax = maxCycles * attemptsPerCycle;
 
@@ -247,6 +258,9 @@ async function runRetryCycle(
 				onAttemptStart,
 			);
 
+			for (const sample of result) {
+				completedByPromptId?.set(sample.promptId, sample);
+			}
 			accumulatedResults.push(...result);
 			return { done: true };
 		} catch (err) {
@@ -260,6 +274,9 @@ async function runRetryCycle(
 					`needs IP refresh after failed attempts on prompt ${err.failedPromptIndex + 1} (type=${failureType})`,
 				);
 
+				for (const sample of err.partialResults) {
+					completedByPromptId?.set(sample.promptId, sample);
+				}
 				accumulatedResults.push(...err.partialResults);
 				nextPayload = updatePayloadAfterIpRefresh(nextPayload, err);
 
@@ -405,7 +422,13 @@ export async function runWithRetryCycles(
 	const attemptsPerCycle = useProxy ? ATTEMPTS_PER_CYCLE : 2;
 	const maxCycles = useProxy ? MAX_CYCLES : 1;
 	const accumulatedResults: AskPromptResult[] = [];
+	const completedByPromptId = new Map<string, AskPromptResult>();
 	let currentPayload = payload;
+	const onSampleComplete = async (sample: AskPromptResult) => {
+		if (completedByPromptId.has(sample.promptId)) return;
+		await options?.onSampleComplete?.(sample);
+		completedByPromptId.set(sample.promptId, sample);
+	};
 	const executor =
 		options?.executor ??
 		((attempt, currentAttemptPayload) =>
@@ -414,7 +437,7 @@ export async function runWithRetryCycles(
 				attempt.page,
 				provider,
 				options?.onPromptProgress,
-				options?.onSampleComplete,
+				onSampleComplete,
 				options?.onAttemptUpdate,
 			));
 
@@ -455,16 +478,31 @@ export async function runWithRetryCycles(
 			options?.signal,
 			options?.onAttemptStart,
 			options?.onAttemptComplete,
+			completedByPromptId,
 		);
 
 		if (outcome.done) {
-			return accumulatedResults;
+			const merged = new Map<string, AskPromptResult>();
+			for (const sample of [...completedByPromptId.values(), ...accumulatedResults]) {
+				merged.set(sample.promptId, sample);
+			}
+			return payload.prompts
+				.map((prompt) => merged.get(prompt.id))
+				.filter((sample): sample is AskPromptResult => Boolean(sample));
 		}
 
 		currentPayload = outcome.updatedPayload;
 	}
 
 	const totalAttempts = maxCycles * attemptsPerCycle;
+	if (completedByPromptId.size > 0) {
+		plog.warn(
+			`exhausted remaining prompts after ${totalAttempts} attempts; preserving ${completedByPromptId.size} completed sample(s)`,
+		);
+		return payload.prompts
+			.map((prompt) => completedByPromptId.get(prompt.id))
+			.filter((sample): sample is AskPromptResult => Boolean(sample));
+	}
 	plog.error(
 		`exhausted — failed all ${totalAttempts} attempts across ${maxCycles} cycles`,
 	);

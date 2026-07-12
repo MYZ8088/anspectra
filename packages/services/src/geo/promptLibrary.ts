@@ -2,11 +2,14 @@ import { createHash } from "node:crypto";
 import { clickhouse, db, schema } from "@answerloom/db";
 import { NotFoundError, ValidationError } from "@answerloom/errors";
 import type {
+	DetectionDimensionFilter,
+	DetectionSuiteKey,
 	GeoDecisionStage,
 	GeoIntent,
 	ProfileCompleteness,
 	PromptOrigin,
 	PromptRelevance,
+	SamplingDepth,
 } from "@answerloom/types";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -22,8 +25,11 @@ import {
 	GEO_PROMPT_GROUPS,
 	type GeneratedMonitorPrompt,
 	type GeoDetectionTier,
+	estimateSamplingMinimumDays,
 	getYaoPresetPack,
-	planMonitorPrompts,
+	listDetectionSuites,
+	planDetectionPrompts,
+	samplingDepthRoundCount,
 } from "./promptEngine.js";
 
 export type CustomPromptInput = {
@@ -355,10 +361,12 @@ export async function syncYaoPromptTemplates(locales = ["zh-CN", "en-US"]) {
 	return values;
 }
 
-export async function previewPresetPack(args: {
+export async function previewDetection(args: {
 	workspaceId: string;
-	tier: GeoDetectionTier;
+	suiteKey: Exclude<DetectionSuiteKey, "filtered">;
+	samplingDepth: SamplingDepth;
 	locales?: string[];
+	filters?: Omit<DetectionDimensionFilter, "locales">;
 	providerCount?: number;
 }) {
 	const profile = await loadProfile(args.workspaceId);
@@ -371,34 +379,64 @@ export async function previewPresetPack(args: {
 		),
 	];
 	const plans = locales.map((locale) =>
-		planMonitorPrompts(toBrandPromptProfile(profile, locale), args.tier),
+		planDetectionPrompts(toBrandPromptProfile(profile, locale), {
+			suiteKey: args.suiteKey,
+			samplingDepth: args.samplingDepth,
+			filters: args.filters,
+		}),
 	);
 	const promptCount = plans.reduce(
 		(total, plan) => total + plan.prompts.length,
 		0,
 	);
-	const roundCount =
-		args.tier === "quick" ? 1 : args.tier === "standard" ? 2 : 3;
+	const roundCount = samplingDepthRoundCount(args.samplingDepth);
 	const providerCount = args.providerCount ?? DEFAULT_PROVIDERS.length;
 	const profileCompleteness = getProfileCompleteness(profile);
 	return {
 		packKey: YAO_PACK_KEY,
 		packVersion: YAO_PACK_VERSION,
-		tier: args.tier,
+		suiteKey: plans.some((plan) => plan.manifest.isFiltered)
+			? "filtered"
+			: args.suiteKey,
+		requestedSuiteKey: args.suiteKey,
+		samplingDepth: args.samplingDepth,
+		filters: args.filters ?? {},
 		locales,
 		promptCount,
 		roundCount,
 		providerCount,
 		plannedSamples: promptCount * roundCount * providerCount,
-		estimatedMinimumDays: Math.max(
-			1,
-			Math.ceil((promptCount * roundCount) / 30),
+		estimatedMinimumDays: estimateSamplingMinimumDays(
+			promptCount,
+			args.samplingDepth,
 		),
 		complete: plans.every((plan) => plan.manifest.complete),
 		profileCompleteness,
+		suites: listDetectionSuites(),
 		manifests: plans.map((plan) => plan.manifest),
 		prompts: plans.flatMap((plan) => plan.prompts),
 	};
+}
+
+export async function previewPresetPack(args: {
+	workspaceId: string;
+	tier: GeoDetectionTier;
+	locales?: string[];
+	providerCount?: number;
+}) {
+	const samplingDepth: SamplingDepth =
+		args.tier === "quick"
+			? "single"
+			: args.tier === "standard"
+				? "reliable"
+				: "stability";
+	return previewDetection({
+		workspaceId: args.workspaceId,
+		suiteKey: args.tier === "quick" ? "quick_scan" : "full_matrix",
+		samplingDepth,
+		locales: args.locales,
+		providerCount: args.providerCount,
+	}).then((preview) => ({ ...preview, tier: args.tier }));
 }
 
 async function upsertGeneratedWorkspacePrompts(args: {
@@ -456,15 +494,16 @@ async function upsertGeneratedWorkspacePrompts(args: {
 	});
 }
 
-export async function instantiatePresetPack(args: {
+export async function createDetectionSet(args: {
 	workspaceId: string;
-	tier: GeoDetectionTier;
+	suiteKey: Exclude<DetectionSuiteKey, "filtered">;
+	samplingDepth: SamplingDepth;
 	locales?: string[];
+	filters?: Omit<DetectionDimensionFilter, "locales">;
 	name?: string;
-	customPromptIds?: string[];
 }) {
 	const profile = await loadProfile(args.workspaceId);
-	const preview = await previewPresetPack(args);
+	const preview = await previewDetection(args);
 	if (!preview.profileCompleteness.complete) {
 		throw new ValidationError(
 			`Complete the brand profile before creating a baseline: ${preview.profileCompleteness.missing.join(", ")}`,
@@ -485,16 +524,6 @@ export async function instantiatePresetPack(args: {
 		prompts: generated,
 		profileVersion: profile.version,
 	});
-	const customRows = args.customPromptIds?.length
-		? await db.query.workspacePrompts.findMany({
-				where: and(
-					eq(schema.workspacePrompts.workspaceId, args.workspaceId),
-					inArray(schema.workspacePrompts.id, args.customPromptIds),
-					eq(schema.workspacePrompts.origin, "user_custom"),
-					eq(schema.workspacePrompts.active, true),
-				),
-			})
-		: [];
 	const generatedByKey = new Map(
 		generatedRows.map((row) => [`${row.origin}:${row.promptHash}`, row]),
 	);
@@ -505,32 +534,42 @@ export async function instantiatePresetPack(args: {
 	if (orderedGenerated.length !== generated.length) {
 		throw new ValidationError("Not all generated prompts were persisted");
 	}
-	const existingHashes = new Set(orderedGenerated.map((row) => row.promptHash));
-	const dedupedCustom = customRows.filter(
-		(row) => !existingHashes.has(row.promptHash),
-	);
-	const allRows = [...orderedGenerated, ...dedupedCustom];
-	const completePreset = dedupedCustom.length === customRows.length;
+	const allRows = orderedGenerated;
 	const manifest = {
 		packKey: preview.packKey,
 		packVersion: preview.packVersion,
 		sourceCommit: getYaoPresetPack(preview.locales[0]).sourceCommit,
 		locales: preview.locales,
-		tier: args.tier,
+		suiteKey: preview.suiteKey,
+		requestedSuiteKey: preview.requestedSuiteKey,
+		samplingDepth: preview.samplingDepth,
+		filters: preview.filters,
+		profileVersion: profile.version,
 		roundCount: preview.roundCount,
 		coreAndExpansionCount: generated.length,
-		customPromptCount: dedupedCustom.length,
+		customPromptCount: 0,
 		expectedPromptHashes: allRows.map((row) => row.promptHash),
 		coverage: preview.manifests,
-		completePreset,
+		completePreset: true,
 	};
+	const legacyTier: GeoDetectionTier =
+		preview.samplingDepth === "single"
+			? "quick"
+			: preview.samplingDepth === "reliable"
+				? "standard"
+				: "deep";
 	return db.transaction(async (tx) => {
 		const [promptSet] = await tx
 			.insert(schema.promptSets)
 			.values({
 				workspaceId: args.workspaceId,
-				name: args.name ?? `${profile.brandName} ${args.tier} Yao GEO baseline`,
-				tier: args.tier,
+				name:
+					args.name ??
+					`${profile.brandName} ${
+						preview.suites.find((suite) => suite.key === preview.requestedSuiteKey)
+							?.label ?? "GEO Detection"
+					} · ${preview.samplingDepth}`,
+				tier: legacyTier,
 				status: "active",
 				purpose: "baseline",
 				packKey: preview.packKey,
@@ -586,6 +625,32 @@ export async function instantiatePresetPack(args: {
 			throw new Error("Prompt set checkpoint source is incomplete");
 		}
 		return { promptSet, prompts: monitorRows, manifest };
+	});
+}
+
+export async function instantiatePresetPack(args: {
+	workspaceId: string;
+	tier: GeoDetectionTier;
+	locales?: string[];
+	name?: string;
+	customPromptIds?: string[];
+}) {
+	if (args.customPromptIds?.length) {
+		throw new ValidationError(
+			"Custom prompts cannot be added to formal detection sets",
+		);
+	}
+	return createDetectionSet({
+		workspaceId: args.workspaceId,
+		suiteKey: args.tier === "quick" ? "quick_scan" : "full_matrix",
+		samplingDepth:
+			args.tier === "quick"
+				? "single"
+				: args.tier === "standard"
+					? "reliable"
+					: "stability",
+		locales: args.locales,
+		name: args.name,
 	});
 }
 

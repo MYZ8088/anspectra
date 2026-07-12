@@ -117,6 +117,7 @@ async function checkSubmissionSuccess(ctx: SubmitContext): Promise<boolean> {
 	const config = PROVIDER_CONFIGS[provider];
 	const customResult = await config.checkSubmitSuccess?.(page, {
 		preSubmitUrl,
+		preSubmitContent,
 	});
 	if (customResult !== undefined) return customResult;
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 	metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
 	title: "AnswerLoom",
 	description:
-		"Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
+		"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 	robots: {
 		index: false,
 		follow: false,
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 	openGraph: {
 		title: "AnswerLoom",
 		description:
-			"Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
+			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		type: "website",
 		images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
 	},
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "AnswerLoom",
 		description:
-			"Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
+			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		images: ["/twitter-image"],
 	},
 };

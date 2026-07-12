@@ -13,9 +13,9 @@ const repositoryUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteUrl),
-	title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
+	title: "AnswerLoom | Official Web GEO Detection",
 	description:
-		"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+		"AnswerLoom measures product visibility across Doubao, DeepSeek, Yuanbao, and Qwen using preset prompt suites and official Web interfaces.",
 	keywords: [
 		"GEO",
 		"generative engine optimization",
@@ -23,13 +23,13 @@ export const metadata: Metadata = {
 		"AI visibility tracker",
 		"AI visibility tracking",
 		"brand visibility AI",
-		"ChatGPT brand tracking",
-		"Gemini brand tracking",
-		"Perplexity brand tracking",
+		"Doubao brand tracking",
+		"DeepSeek brand tracking",
+		"Qwen brand tracking",
 		"open source GEO tool",
 		"self-hosted GEO",
 		"LLM visibility",
-		"AI search optimization",
+		"AI search detection",
 		"AI mention tracking",
 		"answerloom",
 	],
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
 		],
 	},
 	openGraph: {
-		title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
+		title: "AnswerLoom | Official Web GEO Detection",
 		description:
-			"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		url: siteUrl,
 		siteName: "AnswerLoom",
 		type: "website",
@@ -74,15 +74,15 @@ export const metadata: Metadata = {
 				url: "/opengraph-image",
 				width: 1200,
 				height: 630,
-				alt: "AnswerLoom open-source AI visibility tracking",
+				alt: "AnswerLoom official Web GEO detection report",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "AnswerLoom | Open-source GEO & AI Visibility Tracker",
+		title: "AnswerLoom | Official Web GEO Detection",
 		description:
-			"AnswerLoom is the open-source GEO tracker that monitors how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. Self-hosted, free to run, your data stays on your machine.",
+			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		images: ["/twitter-image"],
 	},
 };
@@ -93,7 +93,7 @@ const jsonLd = {
 	name: "AnswerLoom",
 	url: siteUrl,
 	description:
-		"Open-source GEO and AI visibility tracking platform. Monitors how brands appear in ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview using real browser automation.",
+		"Open-source GEO detection for Doubao, DeepSeek, Yuanbao, and Qwen using persistent local browser profiles and official Web interfaces.",
 	applicationCategory: "BusinessApplication",
 	operatingSystem: "Linux, macOS, Windows",
 	offers: {
@@ -110,7 +110,7 @@ const jsonLd = {
 		...(repositoryUrl ? { sameAs: [repositoryUrl] } : {}),
 	},
 	keywords:
-		"GEO, generative engine optimization, AI visibility, AI tracking, ChatGPT tracking, open source, self-hosted",
+		"GEO, AI visibility, Doubao tracking, DeepSeek tracking, Yuanbao tracking, Qwen tracking, open source, self-hosted",
 };
 
 export default function RootLayout({

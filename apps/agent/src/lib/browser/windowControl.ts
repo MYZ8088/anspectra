@@ -180,7 +180,8 @@ tell targetProcess
 set observedValues to {}
 repeat with candidateWindow in windows
 try
-if subrole of candidateWindow is "AXStandardWindow" then
+set candidateSubrole to subrole of candidateWindow
+if candidateSubrole is "AXStandardWindow" or candidateSubrole is "AXDialog" then
 try
 try
 set value of attribute "AXFullScreen" of candidateWindow to false

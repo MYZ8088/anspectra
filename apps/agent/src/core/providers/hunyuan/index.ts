@@ -24,6 +24,18 @@ export const hunyuanConfig: ProviderConfig = {
 			homeUrl: HUNYUAN_URL,
 		});
 	},
+	checkSubmitSuccess: async (page, { preSubmitContent }) =>
+		page.evaluate((prompt) => {
+			const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+			const expected = normalize(prompt);
+			if (!expected) return false;
+
+			return Array.from(
+				document.querySelectorAll(
+					'[data-conv-speaker="human"] .hyc-content-text, [data-conv-speaker="human"] [class*="content-text"]',
+				),
+			).some((element) => normalize(element.textContent || "") === expected);
+		}, preSubmitContent),
 	getConversationIdentity: (page) => readConversationIdentity(page, "hunyuan"),
 	waitForResponse: (page) => waitForAssistantToFinish(page, "hunyuan"),
 	extractResponse: (page) =>

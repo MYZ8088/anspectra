@@ -44,12 +44,9 @@ function getPageHeader(pathname: string | null): string | null {
 		return "Overview";
 	}
 
-	if (pathname.startsWith("/monitor")) return "Monitor";
-	if (pathname.startsWith("/prompt-library")) return "Prompt Library";
+	if (pathname.startsWith("/monitor")) return "New Detection";
+	if (pathname.startsWith("/prompt-library")) return "Prompt Packs";
 	if (pathname.startsWith("/runs")) return "Runs";
-	if (pathname.startsWith("/opportunities")) return "Opportunities";
-	if (pathname.startsWith("/content")) return "Content";
-	if (pathname.startsWith("/experiments")) return "Experiments";
 
 	if (pathname.startsWith("/prompts")) {
 		return "Prompts";
@@ -60,7 +57,7 @@ function getPageHeader(pathname: string | null): string | null {
 	}
 
 	if (pathname.startsWith("/schedule")) {
-		return "Schedule";
+		return "Schedules";
 	}
 
 	if (pathname.startsWith("/people")) {

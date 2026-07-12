@@ -4,7 +4,13 @@ import { persistActiveProviderRun } from "@/components/provider-run-toast";
 import { api } from "@/trpc/react";
 import { Button, toast } from "@answerloom/ui";
 import { cn } from "@answerloom/utils";
-import { AlertTriangle, CheckCircle2, Loader2, Play, RefreshCw } from "lucide-react";
+import {
+	AlertTriangle,
+	CheckCircle2,
+	Loader2,
+	Play,
+	RefreshCw,
+} from "lucide-react";
 import Link from "next/link";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -21,7 +27,10 @@ export function ProviderDiagnosticsPanel(props: { workspaceId: string }) {
 	});
 	const smoke = api.geo.runProviderSmoke.useMutation({
 		onSuccess: async (run) => {
-			persistActiveProviderRun({ workspaceId: props.workspaceId, jobId: run.id });
+			persistActiveProviderRun({
+				workspaceId: props.workspaceId,
+				jobId: run.id,
+			});
 			await utils.geo.runs.invalidate();
 			toast.success("Eight-sample Official Web diagnostic scheduled");
 		},
@@ -72,7 +81,8 @@ export function ProviderDiagnosticsPanel(props: { workspaceId: string }) {
 							className={cn(
 								"min-w-0 p-3",
 								index > 0 && "border-t sm:border-t-0 sm:border-l",
-								index === 2 && "sm:border-l-0 sm:border-t lg:border-l lg:border-t-0",
+								index === 2 &&
+									"sm:border-l-0 sm:border-t lg:border-l lg:border-t-0",
 								"border-stone-200 dark:border-neutral-800",
 							)}
 						>
@@ -87,7 +97,11 @@ export function ProviderDiagnosticsPanel(props: { workspaceId: string }) {
 								)}
 							</div>
 							<p className="mt-2 truncate text-xs text-stone-500">
-								{item.identity ? "Persistent identity" : item.profileExists ? "Profile ready" : "No profile"}
+								{item.identity
+									? "Persistent identity"
+									: item.profileExists
+										? "Profile ready"
+										: "No profile"}
 							</p>
 						</div>
 					);
@@ -96,7 +110,8 @@ export function ProviderDiagnosticsPanel(props: { workspaceId: string }) {
 
 			<div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
 				<span>
-					Runtime {diagnostics.data?.runtime.available ? "ready" : "unavailable"}
+					Runtime{" "}
+					{diagnostics.data?.runtime.available ? "ready" : "unavailable"}
 					{" · "}
 					{diagnostics.data?.openChallengeCount ?? 0} waiting for human
 				</span>

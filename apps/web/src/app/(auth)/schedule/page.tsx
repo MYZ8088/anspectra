@@ -1,4 +1,3 @@
-import { resolveAppMode } from "@answerloom/types";
 import SchedulePageClient from "./schedule-page-client";
 
 export default async function SchedulePage({
@@ -6,10 +5,7 @@ export default async function SchedulePage({
 }: {
 	searchParams?: Promise<{ workspace?: string }>;
 }) {
-	const appMode = resolveAppMode(process.env.ANSWERLOOM_APP_MODE);
 	const params = await searchParams;
 
-	return (
-		<SchedulePageClient appMode={appMode} workspaceId={params?.workspace} />
-	);
+	return <SchedulePageClient workspaceId={params?.workspace ?? ""} />;
 }

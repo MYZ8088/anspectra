@@ -9,7 +9,7 @@ const FAQ_ITEMS: FaqItem[] = [
 	{
 		question: "What is AnswerLoom?",
 		answer:
-			"AnswerLoom is an open-source GEO (Generative Engine Optimization) and AI visibility tracking platform. It monitors how your brand appears inside real AI products — ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview — and produces scores for visibility, rank, sentiment, and recommendation strength.",
+			"AnswerLoom is an open-source GEO detection platform. It measures how a product appears in Doubao, DeepSeek, Yuanbao, and Qwen and reports visibility, rank, sentiment, recommendation strength, source exposure, and stability.",
 	},
 	{
 		question: "What is GEO (Generative Engine Optimization)?",
@@ -19,32 +19,32 @@ const FAQ_ITEMS: FaqItem[] = [
 	{
 		question: "How is AnswerLoom different from API-based AI trackers?",
 		answer:
-			"Most GEO tools claim to track AI visibility by querying model APIs. AnswerLoom opens the actual ChatGPT, Gemini, Perplexity, Claude, and AI Overview interfaces the same way a real user would. The UI layer adds inline citations, source cards, and recommendation ordering that never appear in raw API output. AnswerLoom captures what users actually see, not what the API returns.",
+			"AnswerLoom opens the official provider interfaces the same way a signed-in user does. Web answers can include wording, ordering, modes, and visible sources that differ from API output, so API responses are never substituted for monitoring samples.",
 	},
 	{
 		question: "Which AI providers does AnswerLoom support?",
 		answer:
-			"AnswerLoom supports ChatGPT (OpenAI), Google Gemini, Perplexity, Claude (Anthropic), and Google AI Overview. All five are monitored through their real web UIs using your own authenticated accounts.",
+			"Formal detection supports Doubao, DeepSeek, Yuanbao, and Qwen. Each provider uses a dedicated persistent local browser profile and your own authenticated account.",
 	},
 	{
 		question: "Is AnswerLoom free?",
 		answer:
-			"Yes. AnswerLoom is MIT licensed and free to run locally or on your own VPS. There is no subscription and no usage limit. You bring your own OpenAI or Anthropic API key for response analysis, and your own AI provider accounts for data collection.",
+			"Yes. AnswerLoom is MIT licensed and free to run locally. You bring your own AIHubMix key for answer analysis and your own provider accounts for official Web collection.",
 	},
 	{
 		question: "Does AnswerLoom store my data in the cloud?",
 		answer:
-			"No. All data — responses, analytics, auth sessions, and scores — is stored in a PostgreSQL and ClickHouse instance you own and control, running locally or on your own VPS. Nothing passes through any third-party server. Analysis requests go directly from your machine to OpenAI or Anthropic.",
+			"Provider cookies and browser profiles remain on the collector machine. Detection metadata is stored in PostgreSQL and captured answers in ClickHouse. Only captured answer text and configured evidence are sent to the selected analysis model.",
 	},
 	{
 		question: "What is a GEO score?",
 		answer:
-			"A GEO score (0–100) is a weighted average of four equal components: Visibility (how prominently you surface), Rank (your absolute position in the response), Sentiment (how positively you are described), and Recommendation (whether the AI actively recommends you). Each component is scored separately so you can diagnose exactly where you are winning or losing.",
+			"AnswerLoom does not hide results behind one composite score. Reports show completion, mention, candidate, recommendation, rank, sentiment, source exposure, competition, factuality, and stability with their sample denominators.",
 	},
 	{
 		question: "How do I get started with AnswerLoom?",
 		answer:
-			"Clone the repository, copy .env.example to .env, set your OpenAI or Anthropic API key, and run pnpm local. The script starts Postgres, ClickHouse, Redis, runs migrations, and opens the app at localhost:3000. Go to /providers to connect your AI accounts, then add prompts and run. Full instructions are in the project docs.",
+			"Clone the repository, configure .env, run pnpm camoufox:setup, then run pnpm local. Connect the four providers, confirm a product profile, preview a preset detection suite, and start a frozen series.",
 	},
 ];
 

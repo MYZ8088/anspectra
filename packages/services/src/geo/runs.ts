@@ -5,6 +5,7 @@ import type {
 	BrandAnalysisResult,
 	Provider,
 	SampleAttemptEvent,
+	SamplingDepth,
 	UserPrompt,
 } from "@answerloom/types";
 import { formatDateToClickHouse } from "@answerloom/utils";
@@ -33,6 +34,25 @@ export const GEO_WEB_PROVIDERS = [
 
 const DAILY_PROVIDER_SAMPLE_LIMIT = 30;
 const PROVIDER_WINDOW_CHANNEL = "answerloom:agent:provider-window";
+
+function promptSetSamplingDepth(promptSet: {
+	tier: string;
+	manifest: Record<string, unknown> | null;
+}): SamplingDepth {
+	const configured = promptSet.manifest?.samplingDepth;
+	if (
+		configured === "single" ||
+		configured === "reliable" ||
+		configured === "stability"
+	) {
+		return configured;
+	}
+	return promptSet.tier === "quick"
+		? "single"
+		: promptSet.tier === "standard"
+			? "reliable"
+			: "stability";
+}
 
 function percentageValue(numerator: number, denominator: number) {
 	return denominator > 0
@@ -238,6 +258,9 @@ export async function recordGeoSampleAttempt(args: SampleAttemptEvent) {
 		),
 	});
 	if (!checkpoint) throw new NotFoundError("Sample checkpoint not found");
+	if (checkpoint.status === "completed") {
+		return { checkpointId: checkpoint.id, accepted: false };
+	}
 	const now = new Date();
 	await db
 		.insert(schema.sampleAttempts)
@@ -407,31 +430,52 @@ export async function startGeoCollectionRun(args: {
 		orderBy: [asc(schema.monitorPrompts.createdAt)],
 	});
 	if (promptRows.length === 0) throw new ValidationError("Prompt set is empty");
+	if (promptSet.purpose === "baseline") {
+		const formalManifest = (promptSet.manifest ?? {}) as {
+			completePreset?: boolean;
+			customPromptCount?: number;
+			expectedPromptHashes?: string[];
+		};
+		if (
+			promptSet.packKey !== "yao-full-geo-v1" ||
+			formalManifest.completePreset !== true ||
+			(formalManifest.customPromptCount ?? 0) !== 0 ||
+			!formalManifest.expectedPromptHashes?.length ||
+			promptRows.some((prompt) =>
+				["user_custom", "legacy"].includes(prompt.origin),
+			)
+		) {
+			throw new ValidationError(
+				"Formal detection requires a complete preset-only frozen set",
+			);
+		}
+	}
 
 	const requestedProviders = (
 		args.providers?.length ? args.providers : [...GEO_WEB_PROVIDERS]
 	).filter((provider) => GEO_WEB_PROVIDERS.includes(provider as never));
-	const [localHeartbeat, collectors] = await Promise.all([
+	const [localHeartbeat, collectors, connectedProfiles] = await Promise.all([
 		redis.get("answerloom:agent:heartbeat").catch(() => null),
 		db.query.collectorNodes.findMany({
 			where: eq(schema.collectorNodes.workspaceId, args.workspaceId),
 			orderBy: [desc(schema.collectorNodes.lastHeartbeatAt)],
 		}),
+		db.query.providerProfiles.findMany({
+			where: and(
+				eq(schema.providerProfiles.workspaceId, args.workspaceId),
+				eq(schema.providerProfiles.status, "connected"),
+			),
+		}),
 	]);
 	const remoteCollector = localHeartbeat
 		? null
-		: (collectors.find(
-				(node) =>
-					node.lastHeartbeatAt &&
-					Date.now() - node.lastHeartbeatAt.getTime() < 90_000,
+		: (collectors.find((node) =>
+				connectedProfiles.some((profile) => profile.collectorNodeId === node.id),
 			) ?? null);
 	const remoteProfiles = remoteCollector
-		? await db.query.providerProfiles.findMany({
-				where: and(
-					eq(schema.providerProfiles.collectorNodeId, remoteCollector.id),
-					eq(schema.providerProfiles.status, "connected"),
-				),
-			})
+		? connectedProfiles.filter(
+				(profile) => profile.collectorNodeId === remoteCollector.id,
+			)
 		: [];
 	const providers = remoteCollector
 		? requestedProviders.filter((provider) =>
@@ -488,8 +532,9 @@ export async function startGeoCollectionRun(args: {
 		DAILY_PROVIDER_SAMPLE_LIMIT,
 		DAILY_PROVIDER_SAMPLE_LIMIT,
 	);
+	const samplingDepth = promptSetSamplingDepth(promptSet);
 	const roundCount =
-		promptSet.tier === "quick" ? 1 : promptSet.tier === "standard" ? 2 : 3;
+		samplingDepth === "single" ? 1 : samplingDepth === "reliable" ? 2 : 3;
 	const now = new Date();
 	const plannedSamples = promptRows.length * providers.length * roundCount;
 	const created = await db.transaction(async (tx) => {
@@ -509,6 +554,7 @@ export async function startGeoCollectionRun(args: {
 				plannedSamples,
 				manifest: {
 					promptSetManifest: promptSet.manifest,
+					samplingDepth,
 					expectedPromptHashes: promptRows.map((prompt) => prompt.promptHash),
 					conversationIsolation: "fresh",
 					sampleSource: "official_web",
@@ -557,13 +603,14 @@ export async function startGeoCollectionRun(args: {
 					})
 					.returning();
 				if (!run) throw new Error("Failed to create collection batch");
-				await tx.insert(schema.sampleCheckpoints).values(
+					await tx.insert(schema.sampleCheckpoints).values(
 					providers.flatMap((provider) =>
 						batchRows.map((prompt) => ({
 							runId: run.id,
 							promptId: prompt.id,
 							workspacePromptId: prompt.workspacePromptId,
 							provider,
+							repeatIndex: roundIndex - 1,
 							status: "queued",
 							phase: "queued",
 							requestedMode: "default",
@@ -573,10 +620,10 @@ export async function startGeoCollectionRun(args: {
 				);
 				runs.push({ ...run, promptRows: batchRows });
 			}
-			scheduleOffsetHours += chunks.length * 24;
-			if (roundIndex < roundCount) {
-				scheduleOffsetHours += promptSet.tier === "standard" ? 6 : 24;
-			}
+			const lastBatchOffset =
+				scheduleOffsetHours + Math.max(0, chunks.length - 1) * 24;
+			scheduleOffsetHours =
+				lastBatchOffset + (samplingDepth === "reliable" ? 6 : 24);
 		}
 		return { series, runs };
 	});
@@ -1640,21 +1687,18 @@ export async function listOpenHumanChallenges(workspaceId: string) {
 }
 
 export async function getGeoOverview(workspaceId: string) {
-	const [runs, challenges, opportunities, assets, collectors, localHeartbeat] =
+	const [runs, challenges, collectors, schedules, localHeartbeat] =
 		await Promise.all([
 			listGeoRuns(workspaceId),
 			listOpenHumanChallenges(workspaceId),
-			db.query.opportunities.findMany({
-				where: and(
-					eq(schema.opportunities.workspaceId, workspaceId),
-					inArray(schema.opportunities.status, ["open", "in_progress"]),
-				),
-			}),
-			db.query.contentAssets.findMany({
-				where: eq(schema.contentAssets.workspaceId, workspaceId),
-			}),
 			db.query.collectorNodes.findMany({
 				where: eq(schema.collectorNodes.workspaceId, workspaceId),
+			}),
+			db.query.detectionSchedules.findMany({
+				where: and(
+					eq(schema.detectionSchedules.workspaceId, workspaceId),
+					eq(schema.detectionSchedules.enabled, true),
+				),
 			}),
 			redis.get("answerloom:agent:heartbeat").catch(() => null),
 		]);
@@ -1667,9 +1711,7 @@ export async function getGeoOverview(workspaceId: string) {
 					Date.now() - node.lastHeartbeatAt.getTime() < 90_000,
 			),
 		openChallenges: challenges.length,
-		openOpportunities: opportunities.length,
-		contentAwaitingReview: assets.filter((asset) => asset.status === "draft")
-			.length,
+		activeSchedules: schedules.length,
 		latestRun: runs[0] ?? null,
 	};
 }

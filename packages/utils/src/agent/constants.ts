@@ -18,7 +18,10 @@ export const PROVIDER_FORCE_EXIT_STABLE_MS: Record<Provider, number> = {
 	gemini: 45_000,
 	claude: 45_000,
 	deepseek: 45_000,
-	doubao: 45_000,
+	// Doubao's web-search mode can pause between numbered sections while its
+	// stop control remains visible. Keep the stable-state fallback conservative;
+	// response completeness validation still rejects genuinely truncated output.
+	doubao: 90_000,
 	hunyuan: 45_000,
 	qwen: 45_000,
 	"ai-overview": 30_000,

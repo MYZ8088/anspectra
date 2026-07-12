@@ -1,226 +1,150 @@
 <p align="center">
-  <img src="assets/brand/answerloom-lockup.svg" alt="AnswerLoom" width="420" />
+  <img src="assets/brand/answerloom-lockup.svg" alt="AnswerLoom" width="320" />
 </p>
+
+<h1 align="center">AnswerLoom GEO Detection</h1>
 
 <p align="center">
-  Measure what AI products actually answer, turn the evidence into content improvements, and retest the same questions over time.
+  Measure how an existing product appears across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.
 </p>
 
-<p align="center">
-  <strong>Official Web monitoring</strong> · <strong>Evidence-led optimization</strong> · <strong>Matched retesting</strong>
-</p>
+AnswerLoom is a self-hosted GEO detection and recurring monitoring tool. It combines fixed, versioned prompt suites with persistent local browser profiles, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official Web monitoring samples.
 
-<p align="center">
-  <img src="apps/web/src/app/opengraph-image.png" alt="AnswerLoom Monitor and brand profile" width="100%" />
-</p>
+## What It Measures
 
-AnswerLoom is a local-first, open-source GEO workflow for measuring and improving how a brand appears in consumer AI answers. Its first-class providers are **Doubao, DeepSeek, Yuanbao, and Qwen**. Collection happens through each provider's real, signed-in Web interface rather than a model API, so the recorded answer reflects the surface a user actually sees.
+- Product mention, candidate, and recommendation rates.
+- Absolute rank, sentiment, target share, and competitor share.
+- Blind discovery versus aided brand recognition.
+- Visible source exposure and extracted citations.
+- Factuality against public reference pages.
+- Stability across repeated samples.
+- Completion and analysis success as separate metrics.
 
-The product loop is:
+Every failed, blocked, or unattempted checkpoint remains in the report denominator. `not_exposed` means that the provider page did not expose extractable links; it does not mean that the answer had no underlying sources.
 
-`brand profile → website audit → prompt library → official Web baseline → diagnosis → content optimization → human approval → publishing → T+7/T+14/T+30 retesting`
+## Detection Packs
 
-> **Beta status:** the complete workflow is represented in the application and data model, but real AI Web collection is inherently subject to provider UI changes, session expiry, and human verification. AnswerLoom does not bypass CAPTCHAs. Publisher connectors and long-running four-provider operation should be verified against your own accounts and deployment before production use.
+`AnswerLoom GEO Detection Pack v1.1` contains 54 fixed templates per language: nine intents across six decision stages.
 
-## What Works Today
+| Suite | Matrix | Core prompts per language |
+| --- | --- | ---: |
+| Quick Scan | All intents × Awareness and Evaluation | 18 |
+| Discovery | Information, Recommendation, Scenario, Alternative × first three stages | 12 |
+| Competitive Position | Recommendation, Comparison, Alternative × Screening, Evaluation, Purchase | 9 |
+| Trust & Risk | Risk, Price, Brand Validation × Screening, Evaluation, Purchase | 9 |
+| Buyer Journey | All intents × Awareness through Purchase | 36 |
+| Full Matrix | All nine intents × all six stages | 54 |
 
-- **Four official Web providers:** Doubao, DeepSeek, Tencent Yuanbao, and Qwen.
-- **Persistent Camoufox identity:** one long-lived browser profile per provider preserves cookies, local storage, locale, screen settings, and browser identity across runs.
-- **Isolated samples:** every baseline prompt starts a fresh conversation and records its conversation URL or ID.
-- **Human challenge recovery:** login expiry, QR login, image or slider verification, security confirmation, and UI changes pause the affected sample as `waiting_human`; completed samples remain saved.
-- **Yao Full GEO Pack v1.1:** 54 versioned prompts per locale, covering nine intents across six decision stages, plus deterministic entity coverage extensions.
-- **Custom prompts:** user-created and imported prompts remain separate from system templates, diagnostics, and legacy imports.
-- **Traceable analysis:** visibility, factuality, evidence, stability, competition, and governance are calculated from captured Web answers.
-- **Optimization workflow:** opportunities, fact-constrained content drafts, quality gates, human approval, and WordPress, GEOFlow, or GitHub PR publisher connectors.
-- **Matched retesting:** a selected formal baseline is frozen and reused for T+7, T+14, and T+30 observations.
-- **Durable JSON handling:** strict JSON Schema, local repair, fallback models, one bounded model repair pass, and complete attempt logs.
+Advanced dimensions can narrow a suite by language, intent, decision stage, brand exposure, product, competitor, audience, or region. Entity assignment is deterministic and the coverage planner adds only the minimum missing questions. It never creates a Cartesian product.
 
-## Detection Tiers
+Formal detection does not accept arbitrary custom prompts. Historical custom and legacy prompts remain linked to their original samples but are excluded from new prompt sets and reports.
 
-| Tier | Prompt coverage per locale | Rounds | Intended use |
-|---|---:|---:|---|
-| Quick | 18 core prompts | 1 | Provider and early visibility scan |
-| Standard | 54 core prompts plus required coverage extensions | 2 | Formal baseline |
-| Deep | 54 core prompts plus required coverage extensions | 3 | Multi-day stability measurement |
+Sampling depth is independent from prompt coverage:
 
-The planned sample count is:
+- `Single`: one sample for every prompt/provider pair.
+- `Reliable`: two rounds separated by at least six hours and daily provider limits.
+- `Stability`: three rounds spread across three calendar days.
 
-`prompt count × rounds × selected providers`
+## Product Flow
 
-Each prompt hash receives a checkpoint before a formal run starts. Failed samples remain in the denominator, and a baseline below 90% completion is presented as provisional.
+1. Scan the official product website.
+2. Confirm the brand, category, products, audiences, regions, and competitors.
+3. Select a detection suite, language, providers, dimensions, and sampling depth.
+4. Review every rendered prompt and its frozen hash.
+5. Create a versioned prompt set and run it across official Web providers.
+6. Inspect the report by provider, locale, intent, stage, exposure, entity, or prompt.
+7. Schedule the same frozen prompt set weekly or monthly for comparable trends.
+
+## Official Web Collection
+
+The local collector runs headed Camoufox with one persistent profile per provider. Cookies, local storage, browser fingerprints, and profiles stay on the collector machine. Each baseline prompt starts a fresh provider conversation and records its conversation ID or URL when available.
+
+Provider challenges are never bypassed. Login expiry, QR confirmation, CAPTCHA, sliders, and security checks move the current checkpoint to `waiting_human`. Completed samples are retained, and the original run resumes after the user finishes verification.
+
+Supported formal providers:
+
+- Doubao
+- DeepSeek
+- Yuanbao (`hunyuan` internally)
+- Qwen
+
+Legacy international adapters remain in the repository for compatibility but are not part of formal AnswerLoom detection flows.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  A["Brand profile and website"] --> B["Site audit and fact ledger"]
-  B --> C["Yao preset and custom prompts"]
-  C --> D["Local collector"]
-  D --> E["Persistent Camoufox profiles"]
-  E --> F["Doubao · DeepSeek · Yuanbao · Qwen"]
-  F --> G["PostgreSQL and ClickHouse"]
-  G --> H["Structured LLM analysis"]
-  H --> I["Opportunities"]
-  I --> J["Fact-constrained content review"]
-  J --> K["WordPress · GEOFlow · GitHub PR"]
-  K --> L["T+7 · T+14 · T+30 retests"]
-  L --> G
+  UI["Next.js control plane"] --> PG["PostgreSQL manifests and checkpoints"]
+  UI --> CH["ClickHouse answers and analysis"]
+  UI --> R["Redis and BullMQ"]
+  R --> C["Local persistent Camoufox collector"]
+  C --> D["Doubao Web"]
+  C --> DS["DeepSeek Web"]
+  C --> Y["Yuanbao Web"]
+  C --> Q["Qwen Web"]
+  C --> CH
+  CH --> A["AIHubMix structured analysis"]
 ```
 
-The Web console owns workspaces, prompt sets, runs, reports, content, and schedules. The local collector owns provider browser profiles and only makes outbound requests. Provider cookies and browser profiles are not uploaded by the normal collector flow.
+The collector uses the user's current network and authenticated profiles. AIHubMix is used only after collection to structure observed answers; it is not a monitoring provider.
 
-## Quick Start
+## Local Setup
 
-### Requirements
+Requirements:
 
-- Node.js 20 or newer
-- pnpm 10
-- Docker Desktop or a compatible Docker engine
-- Native macOS, Windows, or Linux desktop for real Web collection
-
-WSL is not supported for interactive Camoufox provider sessions. A browser icon can appear under WSLg without a reliable login window.
-
-### Install and run
+- macOS or Windows for the interactive collector
+- Node.js 20+
+- pnpm 10+
+- Docker Desktop
+- Python 3.12
 
 ```bash
 git clone https://github.com/MYZ8088/answerloom.git
 cd answerloom
 cp .env.example .env
-```
-
-Configure one analysis provider in `.env`:
-
-```bash
-# Recommended for the current local setup
-AIHUBMIX_API_KEY=your-key
-AIHUBMIX_ANALYSIS_MODEL=deepseek-v4-pro
-AIHUBMIX_ANALYSIS_FALLBACK_MODEL=gpt-4.1-mini
-ANALYSIS_LLM_PROVIDER=aihubmix
-```
-
-OpenAI and Anthropic are also supported:
-
-```bash
-OPENAI_API_KEY=your-key
-ANALYSIS_LLM_PROVIDER=openai
-
-# or
-ANTHROPIC_API_KEY=your-key
-ANALYSIS_LLM_PROVIDER=claude
-```
-
-Start the local stack:
-
-```bash
+pnpm install
+pnpm camoufox:setup
+pnpm camoufox:doctor
 pnpm local
 ```
 
-`pnpm local` installs workspace dependencies, provisions the pinned Camoufox virtual environment when needed, starts PostgreSQL, ClickHouse, and Redis, applies migrations, then starts the Web app and collector. Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`, then connect each provider under `Providers`. The persistent profiles are stored under `.answerloom-storage/` and are excluded from Git.
 
-### First run
+Useful commands:
 
-1. Create or sign in to an AnswerLoom account.
-2. Open **Providers** and log in to each official Web provider in the Camoufox window.
-3. Open **Monitor**, scan the target website, review the suggested brand profile, and confirm the required fields.
-4. Preview the complete prompt matrix, choose providers and a detection tier, then start the baseline.
-5. Resolve any item shown under **Human action required** in the original provider window and resume it from the application.
+```bash
+pnpm camoufox:doctor  # verify Python, Camoufox, browser, GeoIP, and executable
+pnpm collector        # start only the local collector
+pnpm test             # unit and fixture tests
+pnpm typecheck        # workspace TypeScript checks
+pnpm build            # English UI gate plus production builds
+```
 
-Provider sessions normally survive restarts. A provider must be logged in again only when its own cookie expires, it requests a new QR scan, or it presents another account challenge.
+## Data Model
 
-## Reliable Structured Output
+PostgreSQL stores product profiles, prompt templates, frozen prompt sets, collection series, runs, checkpoints, attempts, human challenges, provider metadata, and recurring detection schedules. ClickHouse stores raw answer samples, visible citations, structured analyses, and terminal failure records.
 
-AIHubMix, OpenAI, and Anthropic do not always return usable JSON even when instructed to do so. AnswerLoom applies the same bounded strategy to answer analysis, content generation, and custom-prompt classification:
+Existing optimization, publishing, and intervention tables are retained only for non-destructive historical compatibility. The active product does not expose or create optimization workflow data.
 
-1. Request a strict JSON Schema response when the selected model supports it.
-2. Fall back to JSON Object mode only when the endpoint rejects strict schema mode.
-3. Extract JSON from prose or Markdown fences and repair common syntax defects locally.
-4. Validate every candidate with Zod; syntactically valid but schema-invalid data is rejected.
-5. Ask the configured fallback model for a fresh result.
-6. If both generation attempts fail, run one final repair pass that is instructed to preserve meaning and never invent facts.
-7. Persist the raw outputs, model names, finish reasons, parse mode, attempt count, and validation errors when recovery is exhausted.
+## Reliability Rules
 
-There is no unbounded retry loop, and invalid output is never silently accepted as analysis.
-
-## GEO Workflow
-
-### 1. Profile and audit
-
-A formal baseline requires a confirmed brand name, official domain, category, product, audience, region, and competitor. The website audit records public page snapshots, technical signals, and a source-backed fact ledger. Unverified prices, customers, certifications, rankings, cases, and performance claims cannot enter publishable content.
-
-### 2. Prompt library
-
-System templates, workspace instances, user custom prompts, diagnostics, and legacy imports have distinct provenance. Editing a prompt after it enters a baseline creates a new version and hash; historical runs retain the original text.
-
-### 3. Official Web baseline
-
-The collector submits prompts to real provider pages with per-provider concurrency of one. It rejects prompt echoes, login pages, verification pages, error states, and empty responses. A page with no extractable citation is stored as `not_exposed`, which does not mean the provider used no sources.
-
-### 4. Diagnosis and optimization
-
-Captured answers become evidence-linked opportunities such as factual errors, content gaps, weak evidence, poor extractability, competitor pressure, technical page issues, or missing off-site sources. Content drafts include Markdown, HTML, FAQ, JSON-LD, claim mappings, and evidence gaps, then pass explicit quality gates before human approval.
-
-### 5. Publish and retest
-
-Publishing requires an approved revision and an explicitly selected formal baseline. AnswerLoom stores intervention metadata and schedules matched retests. Experiment views compare prompt-level before and after answers, treatment and control cohorts, sample size, and confidence. Results are described as observational unless the evidence supports a stronger conclusion.
-
-## Data and Privacy
-
-- Provider cookies, local storage, and persistent browser profiles stay under `.answerloom-storage/` on the collector machine.
-- PostgreSQL, ClickHouse, Redis, captured answers, and reports run locally by default.
-- Captured answer text and supplied brand context are sent to the analysis provider you configure: AIHubMix, OpenAI, or Anthropic.
-- Publisher credentials are encrypted with `PUBLISHER_ENCRYPTION_KEY` before storage.
-- AnswerLoom does not solve or bypass provider CAPTCHAs.
-
-Review your provider terms, privacy obligations, and applicable laws before collecting or publishing data.
-
-## Useful Commands
-
-| Command | Purpose |
-|---|---|
-| `pnpm local` | Start the local data services, Web app, and collector |
-| `pnpm collector` | Start only the local collector against an existing control plane |
-| `pnpm camoufox:setup` | Create or repair the pinned Camoufox runtime |
-| `pnpm camoufox:doctor` | Verify Python, Camoufox, browser, GeoIP, and executable paths |
-| `pnpm test` | Run Vitest tests |
-| `pnpm typecheck` | Type-check every workspace package |
-| `pnpm build` | Create production builds |
-| `pnpm self-host` | Start the self-hosted Docker control plane |
-
-## Current Limitations
-
-- Provider DOM and anti-abuse behavior can change without notice. Human verification remains a normal recoverable state.
-- First-time provider login requires visible browser interaction on the collector machine.
-- Long-running reliability still depends on account health, the user's network, machine uptime, and provider rate limits.
-- WordPress, GEOFlow, and GitHub publishing behavior must be validated against the target installation before production use.
-- VPS browser collection is not the default architecture. The recommended deployment keeps the control plane hosted and the signed-in collector on the user's desktop.
-
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Web application | Next.js 15, React 19, tRPC |
-| Relational data | PostgreSQL, Drizzle ORM |
-| Samples and analytics | ClickHouse |
-| Queue and events | Redis, BullMQ |
-| Browser collector | Camoufox, Playwright Core |
-| Structured analysis | AIHubMix, OpenAI, or Anthropic |
-| Validation | Zod, JSON Schema, jsonrepair |
-
-## Documentation
-
-- [Getting started](docs/getting-started.mdx)
-- [Local setup](docs/local-setup.mdx)
-- [Environment variables](docs/environment-variables.mdx)
-- [Self-hosted setup](docs/self-hosted-setup.mdx)
-- [Troubleshooting](docs/troubleshooting.mdx)
-- [API reference](docs/api-reference.mdx)
+- A formal series cannot start until every expected prompt hash has a checkpoint source.
+- Each provider has concurrency one, with at most two providers running globally; no provider exceeds the configured daily sample limit.
+- Browser restarts reuse the same persistent identity and profile.
+- Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
+- Collection and analysis statuses are stored independently.
+- Trends compare only the same prompt set, provider cohort, mode, language, and hashes.
+- Offline collectors leave work in `waiting_runner` instead of dropping the series.
 
 ## Attribution
 
-AnswerLoom's prompt taxonomy and Web-sampling quality gates were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills). The pinned methodology is distributed under its MIT terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The fixed prompt methodology is derived from Yao GEO Skills at commit `136eb92c90946ea56ec63f912d5025bcbc884f39` under the MIT License. The templates are vendored and versioned; production does not download or execute the Skill, Codex, OpenCLI, or Computer Use.
 
-Camoufox, Playwright, ClickHouse, PostgreSQL, Redis, BullMQ, Drizzle, Better Auth, and other dependencies retain their respective licenses.
+AnswerLoom retains historical upstream license notices where required. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## License
+## Current Limits
 
-[MIT](LICENSE)
+- Provider UI changes may require adapter maintenance.
+- CAPTCHA and account verification require a person.
+- Official Web sampling is designed for a user-operated macOS or Windows collector, not an unattended Linux VPS.
+- Results are observational measurements of provider output and should not be interpreted as guaranteed causal effects.

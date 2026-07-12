@@ -16,7 +16,7 @@ import LayoutContent from "./layoutContent";
 export const metadata: Metadata = {
 	title: "AnswerLoom",
 	description:
-		"Track how your brand appears in ChatGPT, Gemini, Perplexity, Claude, and AI Overview.",
+		"Official Web GEO detection for Doubao, DeepSeek, Yuanbao, and Qwen.",
 	icons: appIcons,
 };
 

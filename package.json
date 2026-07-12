@@ -5,7 +5,7 @@
 	"homepage": "http://localhost:3000",
 	"private": true,
 	"scripts": {
-		"build": "turbo build",
+		"build": "pnpm check:english && turbo build",
 		"dev": "turbo dev",
 		"dev:web": "turbo dev --filter=@answerloom/web",
 		"dev:landing": "turbo dev --filter=@answerloom/landing",
@@ -24,6 +24,7 @@
 		"lint": "turbo lint",
 		"typecheck": "turbo typecheck",
 		"test": "vitest run",
+		"check:english": "node scripts/check-user-facing-english.mjs",
 		"clean": "turbo clean && rm -rf node_modules",
 		"db:generate": "pnpm --filter @answerloom/db db:generate",
 		"db:migrate": "pnpm --filter @answerloom/db db:migrate",

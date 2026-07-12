@@ -1,7 +1,6 @@
 import { AuthError, ValidationError } from "@answerloom/errors";
 import {
 	addMemberToWorkspaceByEmail,
-	getLastPromptRunTime,
 	getWorkspaceById,
 	getWorkspaceJoinInfo,
 	getWorkspaceMembersWithUsers,
@@ -9,17 +8,12 @@ import {
 	updateOrganizationName,
 	updateWorkspaceDetails,
 	updateWorkspaceEnabledProviders,
-	updateWorkspaceSchedule,
-	updateWorkspaceSelectedPrompts,
 } from "@answerloom/services";
 import { authorizedWorkspaceProcedure } from "../../../procedures";
-import { parseCronExpressionOrThrow } from "../_helpers/scheduling";
 import {
 	addMemberInputSchema,
 	removeMemberInputSchema,
 	setEnabledProvidersInputSchema,
-	setScheduleInputSchema,
-	setSelectedPromptsInputSchema,
 	updateDetailsInputSchema,
 	updateOrganizationNameInputSchema,
 } from "../_schemas";
@@ -92,35 +86,10 @@ export const authorizedWorkspaceRoutes = {
 			return removeMemberFromWorkspace({ workspaceId, userId });
 		}),
 
-	getSchedule: authorizedWorkspaceProcedure.query(async ({ ctx }) => {
-		const workspace = await getWorkspaceById({ workspaceId: ctx.workspaceId });
-		return { schedule: workspace.schedule ?? null };
-	}),
-
 	getEnabledProviders: authorizedWorkspaceProcedure.query(async ({ ctx }) => {
 		const workspace = await getWorkspaceById({ workspaceId: ctx.workspaceId });
 		return { enabledProviders: workspace.enabledProviders ?? null };
 	}),
-
-	setSchedule: authorizedWorkspaceProcedure
-		.input(setScheduleInputSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { workspaceId } = ctx;
-			const userId = ctx.user.id;
-			const { schedule } = input;
-
-			if (schedule) {
-				parseCronExpressionOrThrow(schedule);
-			}
-
-			const result = await updateWorkspaceSchedule({
-				workspaceId,
-				userId,
-				schedule,
-			});
-
-			return result;
-		}),
 
 	setEnabledProviders: authorizedWorkspaceProcedure
 		.input(setEnabledProvidersInputSchema)
@@ -130,43 +99,4 @@ export const authorizedWorkspaceRoutes = {
 				enabledProviders: input.enabledProviders,
 			});
 		}),
-
-	getSelectedPrompts: authorizedWorkspaceProcedure.query(async ({ ctx }) => {
-		const workspace = await getWorkspaceById({ workspaceId: ctx.workspaceId });
-		return { selectedPromptIds: workspace.selectedPromptIds ?? null };
-	}),
-
-	setSelectedPrompts: authorizedWorkspaceProcedure
-		.input(setSelectedPromptsInputSchema)
-		.mutation(async ({ ctx, input }) => {
-			return updateWorkspaceSelectedPrompts({
-				workspaceId: ctx.workspaceId,
-				selectedPromptIds: input.selectedPromptIds,
-			});
-		}),
-
-	getCronTiming: authorizedWorkspaceProcedure.query(async ({ ctx }) => {
-		const { workspaceId } = ctx;
-		const workspace = await getWorkspaceById({ workspaceId });
-		const cronSchedule = workspace.schedule;
-
-		let nextRun = null;
-		if (cronSchedule) {
-			try {
-				const expression = parseCronExpressionOrThrow(cronSchedule);
-				nextRun = expression.next().toDate().toISOString();
-			} catch (err) {
-				console.error("Error calculating next run:", err);
-			}
-		}
-
-		let lastPromptRun = null;
-		try {
-			lastPromptRun = await getLastPromptRunTime({ workspaceId });
-		} catch (err) {
-			console.error("Error fetching last prompt run:", err);
-		}
-
-		return { nextRun, lastPromptRun };
-	}),
 };

@@ -5,16 +5,20 @@ import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
 import { extractResponseFromDeepseek } from "../deepseek/lib/extractResponse.js";
+import { hunyuanConfig } from "../hunyuan/index.js";
 import {
 	extractLatestChineseChatResponse,
 	extractSourcesFromChineseChat,
 } from "./chineseChat.js";
 
-async function fixturePage(provider: Provider): Promise<Page> {
+async function fixturePage(
+	provider: Provider,
+	fixtureName = `${provider}-answer`,
+): Promise<Page> {
 	const fixturePath = path.resolve(
 		process.cwd(),
 		"apps/agent/test-fixtures/providers",
-		`${provider}-answer.html`,
+		`${fixtureName}.html`,
 	);
 	const html = await readFile(fixturePath, "utf8");
 	return {
@@ -105,5 +109,17 @@ describe("redacted China provider DOM fixtures", () => {
 		);
 		expect(response).toContain("PostHog");
 		expect(response).not.toContain("推理过程");
+	});
+
+	it("accepts Yuanbao submission when the sent bubble exists but the editor retains its text", async () => {
+		const result = await hunyuanConfig.checkSubmitSuccess?.(
+			await fixturePage("hunyuan", "hunyuan-submitting"),
+			{
+				preSubmitUrl: "https://example.test/hunyuan/conversation-1",
+				preSubmitContent:
+					"请用三点说明企业选择产品分析工具时应评估哪些因素。",
+			},
+		);
+		expect(result).toBe(true);
 	});
 });

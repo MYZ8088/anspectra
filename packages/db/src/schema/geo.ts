@@ -359,6 +359,48 @@ export const collectionRuns = pgTable(
 	}),
 );
 
+export const detectionSchedules = pgTable(
+	"detection_schedules",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		promptSetId: uuid("prompt_set_id")
+			.notNull()
+			.references(() => promptSets.id, { onDelete: "cascade" }),
+		createdByUserId: text("created_by_user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		providers: jsonb("providers").$type<string[]>().default([]),
+		cadence: varchar("cadence", { length: 16 }).notNull(),
+		timezone: varchar("timezone", { length: 80 }).notNull().default("UTC"),
+		localTime: varchar("local_time", { length: 5 }).notNull().default("09:00"),
+		dayOfWeek: integer("day_of_week"),
+		dayOfMonth: integer("day_of_month"),
+		enabled: boolean("enabled").notNull().default(true),
+		nextRunAt: timestamp("next_run_at"),
+		lastRunAt: timestamp("last_run_at"),
+		lastSeriesId: uuid("last_series_id").references(() => collectionSeries.id, {
+			onDelete: "set null",
+		}),
+		lastError: text("last_error"),
+		...timestamps,
+	},
+	(table) => ({
+		workspaceIdx: index("detection_schedules_workspace_idx").on(
+			table.workspaceId,
+		),
+		dueIdx: index("detection_schedules_due_idx").on(
+			table.enabled,
+			table.nextRunAt,
+		),
+		uniqueWorkspaceSet: uniqueIndex(
+			"detection_schedules_workspace_prompt_set_unique",
+		).on(table.workspaceId, table.promptSetId),
+	}),
+);
+
 export const sampleCheckpoints = pgTable(
 	"sample_checkpoints",
 	{

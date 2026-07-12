@@ -4,7 +4,7 @@ import type { BrandAnalysisResult } from "@answerloom/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 
-type ScorecardSample = {
+export type ScorecardSample = {
 	id: string;
 	provider: string;
 	status: string;
@@ -302,7 +302,7 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 	};
 }
 
-async function loadAnalysisMap(workspaceId: string, sampleIds: string[]) {
+export async function loadAnalysisMap(workspaceId: string, sampleIds: string[]) {
 	if (sampleIds.length === 0) return new Map<string, BrandAnalysisResult>();
 	const result = await clickhouse.query({
 		query: `

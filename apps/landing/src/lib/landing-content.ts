@@ -58,7 +58,7 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 	{
 		title: "Multi-Provider Prompt Testing",
 		description:
-			"Run one prompt set across ChatGPT, Claude, Gemini, Perplexity, and AI Overview.",
+			"Run one frozen prompt set across Doubao, DeepSeek, Yuanbao, and Qwen.",
 		icon: SearchCheck,
 	},
 	{
@@ -82,16 +82,16 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 export const STORAGE_KEY = "answerloom-landing-theme" as const;
 
 export const METHOD_POINTS = [
-	"All five providers are monitored through their real web UIs: ChatGPT, Gemini, Perplexity, Claude, and Google AI Overview. They are not monitored through model APIs.",
+	"Doubao, DeepSeek, Yuanbao, and Qwen are monitored through their official Web interfaces, never through model APIs.",
 	"You log in to each provider with your own account. Sessions are stored locally on your machine and never leave your infrastructure.",
-	"Captured responses are analyzed using your own OpenAI or Anthropic API key. No data passes through any third-party server.",
+	"AIHubMix analyses captured answers after collection; it is never used as the monitoring data source.",
 	"UI responses can differ from API responses in ranking, wording, and citation behavior for the same prompt.",
-	"Most GEO vendors do not disclose collection methods, refresh cadence, or model provenance details.",
+	"Every formal series freezes prompt hashes, providers, modes, sampling depth, and collection checkpoints.",
 ] as const;
 
 export const OPEN_SOURCE_POINTS: Array<{ text: string; icon: LucideIcon }> = [
 	{
-		text: "Free to run locally with no subscription, no API calls to third-party servers.",
+		text: "Free to run locally with no subscription for official Web collection.",
 		icon: KeyRound,
 	},
 	{
@@ -114,9 +114,7 @@ export const OPEN_SOURCE_POINTS: Array<{ text: string; icon: LucideIcon }> = [
 
 export const FOOTER_LINKS = [
 	{ label: "Docs", href: SITE_URLS.docs },
-	...(SITE_URLS.github
-		? [{ label: "GitHub", href: SITE_URLS.github }]
-		: []),
+	...(SITE_URLS.github ? [{ label: "GitHub", href: SITE_URLS.github }] : []),
 	...(SITE_URLS.githubLicense
 		? [{ label: "License", href: SITE_URLS.githubLicense }]
 		: []),

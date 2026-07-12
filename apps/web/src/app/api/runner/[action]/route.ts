@@ -3,8 +3,8 @@ import {
 	claimCollectorTask,
 	completeCollectorTask,
 	heartbeatCollector,
-	reportCollectorChallenge,
 	recordCollectorSampleAttempt,
+	reportCollectorChallenge,
 	uploadCollectorSample,
 } from "@answerloom/services";
 import { GEO_WEB_PROVIDERS } from "@answerloom/services";
@@ -67,7 +67,7 @@ export async function POST(
 				command: await claimCollectorCommand(deviceToken),
 			});
 		}
-			if (action === "sample") {
+		if (action === "sample") {
 			const input = z
 				.object({
 					runId: z.string().uuid(),
@@ -92,39 +92,39 @@ export async function POST(
 			return NextResponse.json(
 				await uploadCollectorSample({ deviceToken, ...input }),
 			);
-			}
-			if (action === "attempt") {
-				const input = z
-					.object({
-						runId: z.string().uuid(),
-						provider: providerSchema,
-						promptId: z.string().uuid(),
-						attemptIndex: z.number().int().min(1),
-						status: z.enum(["started", "progress", "completed", "failed"]),
-						phase: z.enum(COLLECTION_PHASE_LIST),
-						requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
-						actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
-						failureCategory: z.enum(FAILURE_CATEGORY_LIST).optional(),
-						failureCode: z.enum(FAILURE_CODE_LIST).optional(),
-						failureMessage: z.string().optional(),
-						retryable: z.boolean().optional(),
-						pageUrl: z.string().url().optional(),
-						conversationId: z.string().optional(),
-						diagnostics: z.record(z.unknown()).optional(),
-					})
-					.parse(body);
-				const { runId, provider, requestedMode, actualMode, ...update } = input;
-				return NextResponse.json(
-					await recordCollectorSampleAttempt({
-						deviceToken,
-						runId,
-						provider,
-						requestedMode,
-						actualMode,
-						update,
-					}),
-				);
-			}
+		}
+		if (action === "attempt") {
+			const input = z
+				.object({
+					runId: z.string().uuid(),
+					provider: providerSchema,
+					promptId: z.string().uuid(),
+					attemptIndex: z.number().int().min(1),
+					status: z.enum(["started", "progress", "completed", "failed"]),
+					phase: z.enum(COLLECTION_PHASE_LIST),
+					requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
+					actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
+					failureCategory: z.enum(FAILURE_CATEGORY_LIST).optional(),
+					failureCode: z.enum(FAILURE_CODE_LIST).optional(),
+					failureMessage: z.string().optional(),
+					retryable: z.boolean().optional(),
+					pageUrl: z.string().url().optional(),
+					conversationId: z.string().optional(),
+					diagnostics: z.record(z.unknown()).optional(),
+				})
+				.parse(body);
+			const { runId, provider, requestedMode, actualMode, ...update } = input;
+			return NextResponse.json(
+				await recordCollectorSampleAttempt({
+					deviceToken,
+					runId,
+					provider,
+					requestedMode,
+					actualMode,
+					update,
+				}),
+			);
+		}
 		if (action === "event") {
 			const input = z
 				.object({

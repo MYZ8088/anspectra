@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
 	GEO_DECISION_STAGES,
 	GEO_PROMPT_GROUPS,
+	estimateSamplingMinimumDays,
 	generateMonitorPrompts,
 	getYaoPresetPack,
+	planDetectionPrompts,
 	planMonitorPrompts,
 } from "./promptEngine.js";
 
@@ -16,6 +18,13 @@ const profile = {
 };
 
 describe("Yao Full GEO Pack", () => {
+	it("keeps sampling depth independent while respecting temporal minimums", () => {
+		expect(estimateSamplingMinimumDays(18, "single")).toBe(1);
+		expect(estimateSamplingMinimumDays(18, "reliable")).toBe(2);
+		expect(estimateSamplingMinimumDays(18, "stability")).toBe(3);
+		expect(estimateSamplingMinimumDays(54, "stability")).toBe(6);
+	});
+
 	it.each(["zh-CN", "en-US"])(
 		"ships all 54 intent-stage cells for %s",
 		(locale) => {
@@ -142,5 +151,76 @@ describe("Yao Full GEO Pack", () => {
 		expect(first.manifest.expectedPromptHashes).toEqual(
 			second.manifest.expectedPromptHashes,
 		);
+	});
+
+	it.each([
+		["quick_scan", 18],
+		["discovery", 12],
+		["competitive_position", 9],
+		["trust_risk", 9],
+		["buyer_journey", 36],
+		["full_matrix", 54],
+	] as const)("creates the %s detection suite with %s core prompts", (suiteKey, count) => {
+		const plan = planDetectionPrompts(
+			{
+				...profile,
+				products: ["PostHog"],
+				regions: ["APAC"],
+			},
+			{ suiteKey, samplingDepth: "single" },
+		);
+		expect(plan.manifest.corePromptCount).toBe(count);
+		expect(plan.manifest.suiteKey).toBe(suiteKey);
+		expect(plan.manifest.isFiltered).toBe(false);
+	});
+
+	it("keeps prompt selection independent from sampling depth", () => {
+		const completeProfile = {
+			...profile,
+			products: ["PostHog"],
+			regions: ["APAC"],
+		};
+		const single = planDetectionPrompts(completeProfile, {
+			suiteKey: "discovery",
+			samplingDepth: "single",
+		});
+		const stability = planDetectionPrompts(completeProfile, {
+			suiteKey: "discovery",
+			samplingDepth: "stability",
+		});
+		expect(single.manifest.expectedPromptHashes).toEqual(
+			stability.manifest.expectedPromptHashes,
+		);
+		expect(single.manifest.samplingDepth).toBe("single");
+		expect(stability.manifest.samplingDepth).toBe("stability");
+	});
+
+	it("applies deterministic advanced dimensions without a Cartesian expansion", () => {
+		const filtered = planDetectionPrompts(
+			{
+				...profile,
+				products: ["PostHog", "PostHog Feature Flags"],
+				regions: ["APAC", "Europe"],
+			},
+			{
+				suiteKey: "full_matrix",
+				samplingDepth: "reliable",
+				filters: {
+					intents: ["comparison", "recommendation"],
+					stages: ["screening", "evaluation"],
+					brandExposures: ["aided"],
+					products: ["PostHog Feature Flags"],
+					competitors: ["Amplitude"],
+					regions: ["Europe"],
+				},
+			},
+		);
+		expect(filtered.manifest.suiteKey).toBe("filtered");
+		expect(filtered.manifest.isFiltered).toBe(true);
+		expect(filtered.prompts.length).toBeLessThan(15);
+		expect(new Set(filtered.prompts.map((prompt) => prompt.promptHash)).size).toBe(
+			filtered.prompts.length,
+		);
+		expect(filtered.prompts.every((prompt) => !/\{[a-zA-Z]+\}/.test(prompt.prompt))).toBe(true);
 	});
 });

@@ -467,7 +467,15 @@ function useProviderRunToast(args: {
 				isStopping: stoppingProvider === nextRunningProvider,
 			});
 		}
-	}, [active, buildStopHandler, jobId, parsed, response, stoppingProvider]);
+	}, [
+		active,
+		buildStopHandler,
+		jobId,
+		parsed,
+		response,
+		stoppingProvider,
+		workspaceId,
+	]);
 }
 
 export function ProviderRunToastManager() {

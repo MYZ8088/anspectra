@@ -13,6 +13,15 @@ const withBundleAnalyzer = bundleAnalyzer({
 const config = {
 	output: "standalone",
 	outputFileTracingRoot: path.join(process.cwd(), "../../"),
+	async redirects() {
+		return [
+			{ source: "/opportunities", destination: "/dashboard", permanent: false },
+			{ source: "/content", destination: "/dashboard", permanent: false },
+			{ source: "/experiments", destination: "/dashboard", permanent: false },
+			{ source: "/sources", destination: "/dashboard", permanent: false },
+			{ source: "/prompts", destination: "/prompt-library", permanent: false },
+		];
+	},
 	env: {
 		// Pass SKIP_ENV_VALIDATION to the runtime so it's not inlined as undefined
 		SKIP_ENV_VALIDATION: process.env.SKIP_ENV_VALIDATION,

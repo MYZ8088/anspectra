@@ -17,9 +17,7 @@ const connectProviderSchema = z.object({
 });
 
 function isLocalProvidersMode(): boolean {
-	return (
-		resolveAppMode(process.env.ANSWERLOOM_APP_MODE) === "local"
-	);
+	return resolveAppMode(process.env.ANSWERLOOM_APP_MODE) === "local";
 }
 
 async function requireProvidersApiAccess() {

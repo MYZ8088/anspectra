@@ -1,27 +1,14 @@
 import { cancelProviderRun, redis, waitForRedis } from "@answerloom/services";
 import { PROVIDER_LIST } from "@answerloom/types";
 import { z } from "zod";
-import { createRateLimiter } from "../../middleware/rateLimit";
 import { validWorkspace } from "../../middleware/validWorkspace";
 import {
 	authorizedWorkspaceProcedure,
 	protectedProcedure,
 } from "../../procedures";
 import { createTRPCRouter } from "../../trpc";
-import { submitAgentRun } from "../_shared/submitAgentRun";
 
 export const agentRouter = createTRPCRouter({
-	run: authorizedWorkspaceProcedure
-		.use(createRateLimiter("agent.run", { limit: 3, windowSecs: 60 }))
-		.mutation(async ({ ctx }) => {
-			const {
-				user: { id: userId },
-				workspaceId,
-			} = ctx;
-
-			return submitAgentRun({ workspaceId, userId });
-		}),
-
 	status: authorizedWorkspaceProcedure
 		.input(z.object({ jobId: z.string() }))
 		.output(
