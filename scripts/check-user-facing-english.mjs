@@ -37,7 +37,6 @@ const allowlistedTechnicalFiles = [
 	/^packages\/services\/src\/geo\/(?:content|opportunities|publisher|experimentCohorts)\.ts$/u,
 	/^packages\/utils\/src\/agent\/(?:constants|validateResponse)\.ts$/u,
 	/^scripts\/download_yaojingang_geo_resources\.py$/u,
-	/^README\.md$/u,
 ];
 
 function isAllowedTechnicalFile(file) {
@@ -46,6 +45,13 @@ function isAllowedTechnicalFile(file) {
 		name.includes("/test-fixtures/") ||
 		name.endsWith(".test.ts") ||
 		allowlistedTechnicalFiles.some((pattern) => pattern.test(name))
+	);
+}
+
+function isLocalizedReadmeNavigation(file, line) {
+	return (
+		relative(root, file) === "README.md" &&
+		line.includes('href="./README.zh-CN.md"')
 	);
 }
 
@@ -73,7 +79,7 @@ const failures = [];
 for (const file of files) {
 	const lines = (await readFile(file, "utf8")).split(/\r?\n/u);
 	for (const [index, line] of lines.entries()) {
-		if (han.test(line)) {
+		if (han.test(line) && !isLocalizedReadmeNavigation(file, line)) {
 			failures.push(`${relative(root, file)}:${index + 1}: ${line.trim()}`);
 		}
 	}
@@ -81,7 +87,7 @@ for (const file of files) {
 
 if (failures.length) {
 	console.error(
-		"User-facing product text must be English. The bilingual root README, preset prompts, and provider automation live outside this scan.",
+		"User-facing product text must be English. Localized documentation, preset prompts, and provider automation live outside this scan.",
 	);
 	console.error(failures.join("\n"));
 	process.exit(1);

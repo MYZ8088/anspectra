@@ -1,0 +1,161 @@
+<p align="center">
+  <img src="assets/brand/aloom-lockup.svg" alt="Aloom" width="320" />
+</p>
+
+<h1 align="center">Aloom GEO 检测</h1>
+
+<p align="center">
+  通过豆包、DeepSeek、元宝和千问的官方 Web 页面，检测现有产品在生成式 AI 回答中的可见性。
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a> · <strong>简体中文</strong>
+</p>
+
+Aloom 是一个可自托管的 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
+
+![Aloom 检测面板](docs/images/aloom-detection.png)
+
+### 检测指标
+
+- 品牌与产品的出现率、候选率和推荐率。
+- 绝对排名、情感、目标份额和竞品份额。
+- 品牌盲测与品牌显式测试之间的差异。
+- 页面可见信源、已抽取引用和引用支持度。
+- 对照已确认公开资料的事实准确性。
+- 多轮采样中的回答稳定性。
+- 分开统计采集完成率与结构化分析成功率。
+
+失败、阻塞和未执行的 checkpoint 都会保留在报告分母中。`not_exposed` 仅表示平台页面没有暴露可抽取链接，不代表回答没有底层信源。
+
+### 检测流程
+
+1. 扫描产品官网。
+2. 确认品牌、品类、产品、受众、地区和竞品。
+3. 选择检测套件、语言、平台、官方 Web 模式和采样深度。
+4. 预览实际提示词、冻结 hash、全部 checkpoint 和预计周期。
+5. 每条提示词在独立的新对话中执行。
+6. 按平台、模式、语言、意图、阶段、品牌暴露方式、实体或单条提示词查看报告。
+7. 使用同一冻结提示词集创建周度或月度周期监测。
+
+正式检测不接受任意自定义提示词。历史 custom 与 legacy 提示词仍与原始样本关联，但不会进入新的正式检测和报告。
+
+### Aloom GEO Detection Pack v1.1
+
+每种语言内置 54 条固定模板，由 9 类意图和 6 个决策阶段组成。
+
+| 套件 | 检测矩阵 | 每种语言的核心题数 |
+| --- | --- | ---: |
+| Quick Scan | 全部意图 × 认知、评估 | 18 |
+| Discovery | 信息、推荐、场景、替代 × 前三个阶段 | 12 |
+| Competitive Position | 推荐、比较、替代 × 筛选、评估、采购 | 9 |
+| Trust & Risk | 风险、价格、品牌验证 × 筛选、评估、采购 | 9 |
+| Buyer Journey | 全部意图 × 认知到采购 | 36 |
+| Full Matrix | 完整 9 × 6 矩阵 | 54 |
+
+高级筛选支持语言、意图、阶段、品牌盲测或显式测试、产品、竞品、受众和地区。系统以确定性方式分配实体，覆盖器只补充必要缺口，不生成完整笛卡尔积。
+
+采样深度与提示词覆盖范围相互独立：
+
+- `Single`：每个提示词与平台组合采样一次。
+- `Reliable`：采样两轮，两轮至少间隔 6 小时。
+- `Stability`：采样三轮，并分布在三个自然日。
+
+### 官方 Web 模式与联网搜索
+
+Aloom 会分别保存请求模式和页面验证后的实际模式。联网与非联网 cohort 不会混合统计。
+
+| 平台 | 支持的文本检测 cohort | 联网规则 |
+| --- | --- | --- |
+| 豆包 | 快速、专家 | GEO 文本基线不包含办公 Agent 模式。 |
+| DeepSeek | 快速、专家、DeepThink、快速 + Search | Search 只能与 Instant/快速模式组合；系统会拒绝 DeepThink + Search。 |
+| 元宝 | 默认、深度思考、Search、深度思考 + Search | 联网必须从 `Tool > Search` 显式选择。 |
+| 千问 | Auto、Fast、Thinking 及各自的联网组合 | 系统会打开输入区工具菜单，读取并验证 `Tools` 开关；不能只根据模型模式推断联网状态。 |
+
+如果平台 UI 发生变化或开关状态无法验证，样本会以具体的模式错误失败，不会被错误标记为联网成功。
+
+### 浏览器采集与隐私
+
+本机采集器使用任务绑定的无头 Camoufox，每个平台持久化一个独立 profile。登录态、Cookie、localStorage、浏览器身份和 profile 始终保存在用户电脑，不上传到控制端。
+
+- 每个浏览器页面都必须绑定到具体采集任务。
+- 任务结束时会统一关闭该任务拥有的全部页面。
+- 每条正式提示词都创建独立的新对话。
+- 已确认发送的提示词不会因为抽取失败而重复提交。
+- 登录失效、扫码、验证码、滑块和安全确认会进入 `waiting_human`。
+- 人工处理会使用同一持久 profile 打开可见窗口；Aloom 不破解或绕过验证。
+- 浏览器、采集器或验证流程恢复后会继续使用 checkpoint，不重复已完成样本。
+
+AIHubMix 只负责分析已经采集到的 Web 回答。Full Matrix 不会把 54 个回答放进同一个模型上下文：每个回答分别执行一次受 Schema 约束的分析，再由代码确定性聚合报告。
+
+### 系统架构
+
+```mermaid
+flowchart LR
+  UI["Next.js 控制端"] --> PG["PostgreSQL manifest 与 checkpoint"]
+  UI --> CH["ClickHouse 回答与分析"]
+  UI --> R["Redis 与 BullMQ"]
+  R --> C["本机持久化 Camoufox 采集器"]
+  C --> D["豆包 Web"]
+  C --> DS["DeepSeek Web"]
+  C --> Y["元宝 Web"]
+  C --> Q["千问 Web"]
+  C --> CH
+  CH --> A["AIHubMix 结构化分析"]
+```
+
+### 本地安装
+
+环境要求：macOS 或 Windows、Node.js 20+、pnpm 10+、Docker Desktop 和 Python 3.12。
+
+```bash
+git clone https://github.com/MYZ8088/aloom.git
+cd aloom
+cp .env.example .env
+pnpm install
+pnpm camoufox:setup
+pnpm camoufox:doctor
+pnpm local
+```
+
+打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。持久 profile 保存在 `.aloom-storage/` 中，该目录已排除在 Git 之外。
+
+如果从 AnswerLoom 或 OneGlanse 的现有安装迁移，请在首次执行 `pnpm local` 前运行一次 `pnpm brand:migrate-runtime`。该命令会复制旧 Docker volume 和本机浏览器状态、核验 volume 大小、保留旧 volume，并备份不完整的目标 volume。
+
+常用命令：
+
+```bash
+pnpm camoufox:doctor  # 检查 Python、Camoufox、浏览器、GeoIP 和可执行文件
+pnpm collector        # 只启动本机采集器
+pnpm test             # 运行单元测试和 fixture 测试
+pnpm typecheck        # 检查工作区 TypeScript 类型
+pnpm build            # 执行语言、隐私检查与生产构建
+```
+
+### 可靠性规则
+
+- 只有全部预期 Prompt hash 都建立 checkpoint 来源后，正式 series 才能启动。
+- 每个平台并发固定为 1，并通过每日上限和随机冷却避免突发采样。
+- 浏览器重启后继续使用同一个持久身份和 profile。
+- Prompt 回显、登录页、验证页、平台错误页和空回答会被拒绝。
+- 采集状态与分析状态分开保存。
+- 结构化分析使用严格 JSON Schema、平衡 JSON 提取、本地修复、Zod 校验、备用模型和一次定向修复。
+- 趋势只比较 Prompt hash、平台、模式、语言和采样定义完全一致的 series。
+- 采集器离线时任务进入 `waiting_runner`，不会丢弃整个 series。
+
+### 项目来源与许可证
+
+Aloom 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
+
+- 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、冻结提示词 manifest、模式分 cohort、样本 checkpoint 和完整报告。
+- 提示词分类、意图挖掘、Web 采样质量门和分析方法借鉴自 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 固定提交 `136eb92c90946ea56ec63f912d5025bcbc884f39`，Copyright 2026 Yao，MIT License。模板已在项目中版本化，运行时不依赖 Skill、Codex、OpenCLI 或远程仓库。
+- Aloom 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
+
+完整声明见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+### 当前限制
+
+- 平台页面更新后可能需要维护适配器。
+- 验证码和账号安全确认必须由用户处理。
+- 官方 Web 采集面向有人使用的 macOS 或 Windows 本机，不支持无人值守 Linux VPS。
+- 检测结果是对平台输出的观察性测量，不承诺曝光结果，也不代表确定因果关系。
