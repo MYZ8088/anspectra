@@ -340,8 +340,16 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 							status: "running",
 							resultCount: persistedSampleCount,
 						});
-						if (checkpointResult.destination === "clickhouse")
+						if (checkpointResult.destination === "clickhouse") {
 							clickhouseSampleCount += 1;
+							runAnalysisInBackground({
+								workspaceId: workspace_id,
+								userId: user_id,
+								provider,
+								jobGroupId,
+								collectionRunId,
+							});
+						}
 					},
 				},
 			);

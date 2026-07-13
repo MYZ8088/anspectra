@@ -35,7 +35,7 @@ export function expectedOfficialWebMode(
 ): ProviderMode {
 	if (mode !== "default") return mode;
 	if (provider === "doubao" || provider === "deepseek") return "fast";
-	if (provider === "qwen") return "auto_search";
+	if (provider === "qwen") return "auto";
 	return "default";
 }
 
@@ -670,12 +670,167 @@ async function setQwenToolsEnabled(
 	}
 }
 
+const QWEN_WEB_SEARCH_LABELS = [
+	"Web search",
+	"Web Search",
+	"网页搜索",
+	"联网搜索",
+] as const;
+
+async function isQwenWebSearchSelected(page: Page): Promise<boolean> {
+	return page.evaluate(
+		(labels) => {
+			const normalize = (value: string) =>
+				value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
+			const wanted = labels.map(normalize);
+			return Array.from(
+				document.querySelectorAll<HTMLElement>(
+					".mode-select-current-mode, [class*='mode-select-current-mode']",
+				),
+			).some((element) => {
+				const rect = element.getBoundingClientRect();
+				const style = window.getComputedStyle(element);
+				if (
+					rect.width <= 1 ||
+					rect.height <= 1 ||
+					style.display === "none" ||
+					style.visibility === "hidden"
+				) {
+					return false;
+				}
+				const text = normalize(element.innerText || element.textContent || "");
+				return wanted.some(
+					(label) => text === label || text.startsWith(`${label} `),
+				);
+			});
+		},
+		[...QWEN_WEB_SEARCH_LABELS],
+	);
+}
+
+async function clickQwenMenuItem(
+	page: Page,
+	labels: readonly string[],
+): Promise<void> {
+	const clicked = await page.evaluate(
+		(targetLabels) => {
+			const normalize = (value: string) =>
+				value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
+			const wanted = targetLabels.map(normalize);
+			const visible = (element: HTMLElement) => {
+				const rect = element.getBoundingClientRect();
+				const style = window.getComputedStyle(element);
+				return (
+					rect.width > 1 &&
+					rect.height > 1 &&
+					style.display !== "none" &&
+					style.visibility !== "hidden"
+				);
+			};
+			const selector = [
+				"[role='menuitem']",
+				".ant-dropdown-menu-item",
+				".ant-dropdown-menu-submenu-title",
+				"[class*='menu-item']",
+				"[class*='submenu-title']",
+			].join(",");
+			const target = Array.from(
+				document.querySelectorAll<HTMLElement>(selector),
+			)
+				.filter(visible)
+				.find((element) => {
+					const values = [
+						normalize(element.innerText || element.textContent || ""),
+						normalize(element.getAttribute("aria-label") || ""),
+						normalize(element.getAttribute("title") || ""),
+					];
+					return wanted.some((label) =>
+						values.some(
+							(value) => value === label || value.startsWith(`${label} `),
+						),
+					);
+				});
+			if (!target) return false;
+			for (const eventType of [
+				"pointerover",
+				"pointerenter",
+				"mouseover",
+				"mouseenter",
+				"mousemove",
+			]) {
+				const EventConstructor =
+					eventType.startsWith("pointer") &&
+					typeof window.PointerEvent !== "undefined"
+						? window.PointerEvent
+						: window.MouseEvent;
+				target.dispatchEvent(
+					new EventConstructor(eventType, {
+						bubbles: !eventType.endsWith("enter"),
+						cancelable: true,
+						view: window,
+					}),
+				);
+			}
+			target.click();
+			return true;
+		},
+		[...labels],
+	);
+	if (!clicked) {
+		throw new Error(`Qwen menu item not found: ${labels.join(" / ")}`);
+	}
+	await page.waitForTimeout(450);
+}
+
+async function ensureQwenWebSearchSelected(
+	page: Page,
+	enabled: boolean,
+): Promise<void> {
+	const selected = await isQwenWebSearchSelected(page);
+	if (selected === enabled) return;
+	if (!enabled) {
+		throw new Error(
+			"Qwen Web Search remains selected in a non-search cohort; start a fresh conversation before collecting",
+		);
+	}
+
+	const opened = await page.evaluate(() => {
+		const plusIcon = Array.from(document.querySelectorAll("use")).find(
+			(element) => {
+				const href =
+					element.getAttribute("href") ?? element.getAttribute("xlink:href");
+				return (
+					href === "#icon-line-plus-01" &&
+					Boolean(element.closest(".mode-select"))
+				);
+			},
+		);
+		const trigger = plusIcon?.closest(
+			".ant-dropdown-trigger,button,[role='button']",
+		);
+		if (!(trigger instanceof HTMLElement)) return false;
+		trigger.click();
+		return true;
+	}, undefined);
+	if (!opened) throw new Error("Qwen + menu could not be opened");
+	await page.waitForTimeout(450);
+
+	await clickQwenMenuItem(page, ["More", "更多"]);
+	await clickQwenMenuItem(page, QWEN_WEB_SEARCH_LABELS);
+	await page.keyboard.press("Escape").catch(() => null);
+
+	if (!(await isQwenWebSearchSelected(page))) {
+		throw new Error(
+			"Qwen Web Search selection could not be verified in the composer",
+		);
+	}
+}
+
 async function applyQwenMode(
 	page: Page,
 	mode: ProviderMode,
 ): Promise<ProviderMode> {
-	const toolsEnabled =
-		mode === "default" ||
+	const searchEnabled =
 		mode === "web_search" ||
 		mode === "reasoning_web_search" ||
 		mode === "auto_search";
@@ -738,11 +893,17 @@ async function applyQwenMode(
 		if (!wanted.includes(verified)) {
 			throw new Error(`Qwen mode did not change to ${labels[0]}`);
 		}
-		await setQwenToolsEnabled(page, toolsEnabled);
-		if (toolsEnabled && actualMode === "reasoning")
+		if (searchEnabled) {
+			await setQwenToolsEnabled(page, true);
+			await ensureQwenWebSearchSelected(page, true);
+		} else {
+			await ensureQwenWebSearchSelected(page, false);
+			await setQwenToolsEnabled(page, false);
+		}
+		if (searchEnabled && actualMode === "reasoning")
 			return "reasoning_web_search";
-		if (toolsEnabled && actualMode === "fast") return "web_search";
-		if (toolsEnabled) return "auto_search";
+		if (searchEnabled && actualMode === "fast") return "web_search";
+		if (searchEnabled) return "auto_search";
 		return actualMode;
 	}
 
@@ -753,10 +914,17 @@ async function applyQwenMode(
 	} else {
 		await clickControl(page, labels);
 	}
-	await setQwenToolsEnabled(page, toolsEnabled);
-	if (toolsEnabled && actualMode === "reasoning") return "reasoning_web_search";
-	if (toolsEnabled && actualMode === "fast") return "web_search";
-	if (toolsEnabled) return "auto_search";
+	if (searchEnabled) {
+		await setQwenToolsEnabled(page, true);
+		await ensureQwenWebSearchSelected(page, true);
+	} else {
+		await ensureQwenWebSearchSelected(page, false);
+		await setQwenToolsEnabled(page, false);
+	}
+	if (searchEnabled && actualMode === "reasoning")
+		return "reasoning_web_search";
+	if (searchEnabled && actualMode === "fast") return "web_search";
+	if (searchEnabled) return "auto_search";
 	return actualMode;
 }
 

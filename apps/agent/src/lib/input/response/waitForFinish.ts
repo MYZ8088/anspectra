@@ -114,6 +114,7 @@ export async function waitForAssistantToFinish(
 
 			if (
 				seenResponse &&
+				!currentResponseState.provisional &&
 				!hasVisibleIndicator &&
 				stableFor >= stableResponseMs
 			) {
@@ -129,7 +130,11 @@ export async function waitForAssistantToFinish(
 				noOutputWarningEmitted = true;
 			}
 
-			if (seenResponse && stableFor >= forceExitStableMs) {
+			if (
+				seenResponse &&
+				!currentResponseState.provisional &&
+				stableFor >= forceExitStableMs
+			) {
 				logger.warn(
 					`${hasVisibleIndicator ? "Generation indicator still visible and " : ""}generation state stable for ${Math.round(forceExitStableMs / 1000)}s — forcing exit`,
 				);

@@ -1,7 +1,7 @@
 import {
+	GEO_WEB_PROVIDERS,
 	dispatchDueDetectionSchedules,
 	dispatchScheduledGeoRuns,
-	GEO_WEB_PROVIDERS,
 	getQueueName,
 	redis,
 	waitForRedis,
@@ -11,7 +11,10 @@ import { logger } from "@aloom/utils";
 import { Worker } from "bullmq";
 import { env } from "./env.js";
 import { focusProviderSession } from "./lib/browser/providerSessionManager.js";
-import { runWithProviderExecutionGate } from "./worker/executionGate.js";
+import {
+	providerConcurrencyDecision,
+	runWithProviderExecutionGate,
+} from "./worker/executionGate.js";
 import { handleJob, stopActiveProviderRun } from "./worker/jobHandler.js";
 
 // Exported so index.ts can call worker.close() during graceful shutdown.
@@ -74,6 +77,14 @@ async function startWorkers() {
 		port: env.REDIS_PORT,
 		password: env.REDIS_PASSWORD,
 	};
+	logger.log(
+		`[agent] provider scheduling: per_provider=1, requested_global=${providerConcurrencyDecision.requested}, effective_global=${providerConcurrencyDecision.effective}`,
+	);
+	if (providerConcurrencyDecision.resourceLimited) {
+		logger.warn(
+			`[agent] provider concurrency reduced to ${providerConcurrencyDecision.effective}: ${providerConcurrencyDecision.reasons.join("; ")}`,
+		);
+	}
 
 	workers = GEO_WEB_PROVIDERS.map((provider) => {
 		const queueName = getQueueName(provider);
@@ -105,7 +116,7 @@ async function startWorkers() {
 		});
 
 		logger.log(
-			`[agent] provider worker started → queue: ${queueName} (concurrency=1, global_limit=2)`,
+			`[agent] provider worker started → queue: ${queueName} (concurrency=1)`,
 		);
 		return worker;
 	});

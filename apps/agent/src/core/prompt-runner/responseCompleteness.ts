@@ -1,3 +1,5 @@
+import { isProvisionalResponse } from "../../lib/input/response/provisionalResponse.js";
+
 const ENGLISH_COUNTS: Record<string, number> = {
 	one: 1,
 	two: 2,
@@ -25,7 +27,9 @@ const CHINESE_COUNTS: Record<string, number> = {
 };
 
 function requestedPointCount(prompt: string): number | null {
-	const chinese = prompt.match(/([一二三四五六七八九十]|\d{1,2})\s*(?:点|条|项|个要点)/u);
+	const chinese = prompt.match(
+		/([一二三四五六七八九十]|\d{1,2})\s*(?:点|条|项|个要点)/u,
+	);
 	if (chinese?.[1]) {
 		return CHINESE_COUNTS[chinese[1]] ?? Number(chinese[1]);
 	}
@@ -45,6 +49,9 @@ export function getIncompleteResponseReason(
 		.split(/\r?\n/)
 		.map((line) => line.trim())
 		.filter(Boolean);
+	if (isProvisionalResponse(trimmed)) {
+		return "plan_only";
+	}
 	if (lines.length === 1 && /^#{1,6}\s+\S/.test(lines[0] ?? "")) {
 		return "heading_only";
 	}

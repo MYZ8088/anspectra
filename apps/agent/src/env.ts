@@ -49,6 +49,12 @@ const AgentEnvSchema = z.object({
 	REDIS_HOST: z.string().trim().default("redis"),
 	REDIS_PORT: asNumber(6379).default(6379),
 	REDIS_PASSWORD: z.string().default(""),
+	COLLECTOR_PROVIDER_CONCURRENCY: asNumber(4).pipe(
+		z.number().int().min(1).max(4),
+	),
+	COLLECTOR_ANALYSIS_CONCURRENCY: asNumber(2).pipe(
+		z.number().int().min(1).max(8),
+	),
 });
 
 export const env = AgentEnvSchema.parse({

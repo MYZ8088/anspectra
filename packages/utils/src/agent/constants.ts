@@ -99,6 +99,8 @@ export const PROVIDER_SUBMIT_BTN_SELECTORS = {
 		'button:has-text("发送")',
 	],
 	doubao: [
+		"button#flow-end-msg-send",
+		'.send-btn-wrapper button[data-dbx-name="button"]',
 		'button[aria-label*="Send" i]',
 		'button[aria-label*="发送" i]',
 		'button:has-text("Send")',

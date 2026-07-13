@@ -203,6 +203,7 @@ describe("buildDetectionSlices", () => {
 		});
 		expect(slices.overall[0]?.planned).toBe(4);
 		expect(slices.overall[0]?.completed).toBe(2);
+		expect(slices.overall[0]?.failed).toBe(1);
 		expect(slices.overall[0]?.mentionRate).toEqual({
 			numerator: 1,
 			denominator: 4,
@@ -250,6 +251,25 @@ describe("buildDetectionSlices", () => {
 			{ kind: "analysis", code: "invalid_structured_output", count: 1 },
 			{ kind: "collection", code: "response_timeout", count: 1 },
 		]);
+	});
+
+	it("does not report queued or human-waiting checkpoints as failures", () => {
+		const rows = [
+			sample({ id: "queued", status: "queued", analysisStatus: "pending" }),
+			sample({
+				id: "waiting",
+				status: "waiting_human",
+				analysisStatus: "pending",
+			}),
+		];
+		const slices = buildDetectionSlices({
+			rows: rows as never,
+			tier: "quick",
+			requiredProviders: ["doubao"],
+		});
+
+		expect(slices.overall[0]?.failed).toBe(0);
+		expect(buildDetectionFailureBreakdown(rows as never)).toEqual([]);
 	});
 
 	it("describes rates against the planned sample denominator", () => {

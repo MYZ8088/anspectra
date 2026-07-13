@@ -1,8 +1,10 @@
 import { logger } from "@aloom/utils";
 import { env } from "./env.js";
 import { closeAllProviderSessions } from "./lib/browser/providerSessionManager.js";
+import { startPromptSampleOutboxReplay } from "./worker/sampleOutbox.js";
 
 let stopRuntime: () => Promise<void> = async () => {};
+let stopOutboxReplay: () => void = () => {};
 
 async function startRuntime() {
 	if (env.COLLECTOR_API_URL || env.COLLECTOR_DEVICE_TOKEN) {
@@ -21,7 +23,9 @@ async function startRuntime() {
 
 	const workerModule = await import("./worker.js");
 	const { redis } = await import("@aloom/services");
+	stopOutboxReplay = startPromptSampleOutboxReplay();
 	stopRuntime = async () => {
+		stopOutboxReplay();
 		if (workerModule.workers.length > 0) {
 			await Promise.all(workerModule.workers.map((worker) => worker.close()));
 		}

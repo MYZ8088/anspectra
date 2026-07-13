@@ -36,7 +36,17 @@ async function modeFixturePage(provider: string): Promise<{
 		},
 	});
 	dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
-		const hidden = dom.window.getComputedStyle(this).display === "none";
+		const hidden = Array.from(
+			(function* (element: HTMLElement | null) {
+				let current = element;
+				while (current) {
+					yield current;
+					current = current.parentElement;
+				}
+			})(this),
+		).some(
+			(element) => dom.window.getComputedStyle(element).display === "none",
+		);
 		return {
 			x: 0,
 			y: 0,
@@ -107,7 +117,7 @@ describe("official Web provider mode adapters", () => {
 			"Tool > Search",
 		);
 		expect(getProviderModeLabel("qwen", "reasoning_web_search")).toBe(
-			"Thinking + Tools",
+			"Thinking + Web Search",
 		);
 	});
 
@@ -115,7 +125,7 @@ describe("official Web provider mode adapters", () => {
 		expect(expectedOfficialWebMode("deepseek", "default")).toBe("fast");
 		expect(expectedOfficialWebMode("doubao", "default")).toBe("fast");
 		expect(expectedOfficialWebMode("hunyuan", "default")).toBe("default");
-		expect(expectedOfficialWebMode("qwen", "default")).toBe("auto_search");
+		expect(expectedOfficialWebMode("qwen", "default")).toBe("auto");
 	});
 
 	it.each([
@@ -131,7 +141,7 @@ describe("official Web provider mode adapters", () => {
 		["hunyuan", "reasoning", "reasoning"],
 		["hunyuan", "auto_search", "auto_search"],
 		["hunyuan", "reasoning_web_search", "reasoning_web_search"],
-		["qwen", "default", "auto_search"],
+		["qwen", "default", "auto"],
 		["qwen", "auto", "auto"],
 		["qwen", "fast", "fast"],
 		["qwen", "reasoning", "reasoning"],
@@ -150,8 +160,19 @@ describe("official Web provider mode adapters", () => {
 						mode: requested,
 					}),
 				).resolves.toBe(expected);
-				const controls = await readProviderModeControls(fixture.page);
-				expect(controls.length).toBeGreaterThan(0);
+				if (provider === "qwen") {
+					const currentMode = await fixture.page.evaluate(
+						() =>
+							document
+								.querySelector(".qwen-select-thinking-label-text")
+								?.textContent?.trim() ?? "",
+						undefined,
+					);
+					expect(currentMode.length).toBeGreaterThan(0);
+				} else {
+					const controls = await readProviderModeControls(fixture.page);
+					expect(controls.length).toBeGreaterThan(0);
+				}
 			} finally {
 				fixture.close();
 			}
@@ -195,7 +216,7 @@ describe("official Web provider mode adapters", () => {
 		}
 	});
 
-	it("turns Qwen Tools off when moving from a search cohort to Fast", async () => {
+	it("selects Qwen Web Search through + then More and verifies the composer marker", async () => {
 		const fixture = await modeFixturePage("qwen");
 		try {
 			await expect(
@@ -205,6 +226,32 @@ describe("official Web provider mode adapters", () => {
 					mode: "web_search",
 				}),
 			).resolves.toBe("web_search");
+			const selected = await fixture.page.evaluate(() => {
+				const marker = document.querySelector<HTMLElement>(
+					".mode-select-current-mode",
+				);
+				return {
+					text: marker?.textContent?.trim(),
+					visible: marker?.style.display !== "none",
+					toolsEnabled:
+						document
+							.querySelector("[data-menu-id$='-tools'] [role='switch']")
+							?.getAttribute("aria-checked") === "true",
+				};
+			}, undefined);
+			expect(selected).toEqual({
+				text: "Web Search",
+				visible: true,
+				toolsEnabled: true,
+			});
+		} finally {
+			fixture.close();
+		}
+	});
+
+	it("does not mistake Qwen's general Tools switch for Web Search", async () => {
+		const fixture = await modeFixturePage("qwen");
+		try {
 			await expect(
 				applyOfficialWebMode({
 					page: fixture.page,
@@ -220,6 +267,13 @@ describe("official Web provider mode adapters", () => {
 				);
 			}, undefined);
 			expect(toolsEnabled).toBe(false);
+			const selectedSearch = await fixture.page.evaluate(() => {
+				const marker = document.querySelector<HTMLElement>(
+					".mode-select-current-mode",
+				);
+				return marker?.style.display !== "none";
+			}, undefined);
+			expect(selectedSearch).toBe(false);
 		} finally {
 			fixture.close();
 		}

@@ -10,9 +10,16 @@
   <div role="option">Thinking</div>
   <div role="option">Fast</div>
 </div>
-<span class="ant-dropdown-trigger"><span role="img"><svg><use href="#icon-line-plus-01"></use></svg></span></span>
+<div class="mode-select">
+  <span class="ant-dropdown-trigger"><span role="img"><svg><use href="#icon-line-plus-01"></use></svg></span></span>
+  <div class="mode-select-current-mode" style="display:none">Web Search</div>
+</div>
 <ul data-tools-menu style="display:none">
+  <li role="menuitem" data-menu-id="fixture-more">More</li>
   <li role="menuitem" data-menu-id="fixture-tools">Tools <div role="switch" aria-checked="true"></div></li>
+</ul>
+<ul data-more-menu style="display:none">
+  <li role="menuitem" data-menu-id="fixture-web-search">Web Search</li>
 </ul>
 <script>
 document.querySelector('.ant-select-selector').addEventListener('click', () => {
@@ -24,6 +31,14 @@ for (const option of document.querySelectorAll('[role="option"]')) option.addEve
 });
 document.querySelector('.ant-dropdown-trigger').addEventListener('click', () => {
   document.querySelector('[data-tools-menu]').style.display = 'block';
+});
+document.querySelector('[data-menu-id="fixture-more"]').addEventListener('click', () => {
+  document.querySelector('[data-more-menu]').style.display = 'block';
+});
+document.querySelector('[data-menu-id="fixture-web-search"]').addEventListener('click', () => {
+  document.querySelector('.mode-select-current-mode').style.display = 'block';
+  document.querySelector('[data-tools-menu]').style.display = 'none';
+  document.querySelector('[data-more-menu]').style.display = 'none';
 });
 document.querySelector('[role="switch"]').addEventListener('click', (event) => {
   event.currentTarget.setAttribute('aria-checked', event.currentTarget.getAttribute('aria-checked') === 'true' ? 'false' : 'true');

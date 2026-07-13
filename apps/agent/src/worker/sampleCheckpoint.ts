@@ -1,13 +1,7 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { toErrorMessage } from "@aloom/errors";
-import {
-	getAgentAuthRootDir,
-	storePromptResponses,
-} from "@aloom/services";
+import { storePromptResponses } from "@aloom/services";
 import type { AskPromptResult, ModelResult, Provider } from "@aloom/types";
 import { PROVIDER_LIST } from "@aloom/types";
+import { writePromptSampleToOutbox } from "./sampleOutbox.js";
 
 function buildSingleSampleResult(
 	provider: Provider,
@@ -41,25 +35,7 @@ export async function persistSampleCheckpoint(args: {
 		});
 		return { destination: "clickhouse", sampleId };
 	} catch (error) {
-		const storageRoot = path.dirname(getAgentAuthRootDir());
-		const outboxDir = path.join(storageRoot, "outbox", "prompt-samples");
-		await mkdir(outboxDir, { recursive: true });
-		const filePath = path.join(
-			outboxDir,
-			`${args.jobGroupId}-${args.provider}-${args.sample.promptId}-${randomUUID()}.json`,
-		);
-		await writeFile(
-			filePath,
-			JSON.stringify(
-				{
-					...args,
-					storageError: toErrorMessage(error),
-					queuedAt: new Date().toISOString(),
-				},
-				null,
-				2,
-			),
-		);
+		await writePromptSampleToOutbox(args, error);
 		return { destination: "outbox" };
 	}
 }

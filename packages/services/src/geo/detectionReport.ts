@@ -42,6 +42,12 @@ type RawAnswerRow = {
 	sources: unknown;
 };
 
+const TERMINAL_COLLECTION_FAILURE_STATUSES = new Set([
+	"failed",
+	"not_attempted",
+	"cancelled",
+]);
+
 function percentage(numerator: number, denominator: number): number {
 	return denominator > 0
 		? Math.round((numerator / denominator) * 10_000) / 100
@@ -142,7 +148,9 @@ function aggregateSlice(args: {
 		planned: args.rows.length,
 		completed: scorecard.completedSamples,
 		analysed: scorecard.analysedSamples,
-		failed: args.rows.filter((row) => row.status !== "completed").length,
+		failed: args.rows.filter((row) =>
+			TERMINAL_COLLECTION_FAILURE_STATUSES.has(row.status),
+		).length,
 		completionRate: scorecard.completionRate,
 		analysisRate: scorecard.analysisRate,
 		confidence: scorecard.confidence,
@@ -252,7 +260,7 @@ export function buildDetectionFailureBreakdown(
 ): DetectionReport["failures"] {
 	const grouped = new Map<string, DetectionReport["failures"][number]>();
 	for (const row of rows) {
-		if (row.status !== "completed") {
+		if (TERMINAL_COLLECTION_FAILURE_STATUSES.has(row.status)) {
 			const code = row.errorCode ?? row.status;
 			const key = `collection:${code}`;
 			const current = grouped.get(key) ?? {

@@ -31,6 +31,7 @@ const allowlistedTechnicalFiles = [
 	/^apps\/agent\/src\/core\/prompt-runner\/responseCompleteness\.ts$/u,
 	/^apps\/agent\/src\/inspect-provider-modes\.ts$/u,
 	/^apps\/agent\/src\/lib\/browser\/domOps\.ts$/u,
+	/^apps\/agent\/src\/lib\/input\/response\/provisionalResponse\.ts$/u,
 	/^apps\/agent\/src\/run-test\.ts$/u,
 	/^packages\/services\/src\/geo\/presets\//u,
 	/^packages\/services\/src\/geo\/(?:promptEngine|promptLibrary|diagnostics|siteAudit)\.ts$/u,

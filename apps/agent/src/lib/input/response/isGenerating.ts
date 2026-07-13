@@ -4,12 +4,11 @@ import {
 	PROVIDER_RESPONSE_GENERATION_SELECTORS,
 } from "@aloom/utils";
 import type { Page } from "playwright";
+import { isProvisionalResponse } from "./provisionalResponse.js";
 
 const STRICT_RESPONSE_STATE_SELECTORS: Partial<Record<Provider, string[]>> = {
 	deepseek: [".ds-markdown:not(.ds-think-content *)"],
-	doubao: [
-		'[data-message-id]:not([class*="justify-end"]) .md-box-root',
-	],
+	doubao: ['[data-message-id]:not([class*="justify-end"]) .md-box-root'],
 	hunyuan: ["#chat-content .hyc-common-markdown", ".hyc-common-markdown"],
 	qwen: [
 		".qwen-chat-message-assistant .response-message-content.phase-answer",
@@ -71,41 +70,50 @@ export async function hasVisibleGenerationIndicator(
 export async function getResponseStateSignature(
 	page: Page,
 	provider: Provider,
-): Promise<{ signature: string; textLength: number }> {
-	return await page.evaluate((selectors) => {
-		const visible = (element: Element | null): element is HTMLElement => {
-			if (!(element instanceof HTMLElement)) return false;
-			const style = window.getComputedStyle(element);
-			return (
-				element.offsetParent !== null &&
-				style.visibility !== "hidden" &&
-				style.display !== "none"
-			);
-		};
+): Promise<{ signature: string; textLength: number; provisional: boolean }> {
+	const state = await page.evaluate(
+		(selectors) => {
+			const visible = (element: Element | null): element is HTMLElement => {
+				if (!(element instanceof HTMLElement)) return false;
+				const style = window.getComputedStyle(element);
+				return (
+					element.offsetParent !== null &&
+					style.visibility !== "hidden" &&
+					style.display !== "none"
+				);
+			};
 
-		let latest: HTMLElement | null = null;
-		for (const selector of selectors || []) {
-			const candidates = Array.from(document.querySelectorAll(selector)).filter(
-				(el): el is HTMLElement =>
-					visible(el) && (el.innerText || "").trim().length >= 20,
-			);
-			if (candidates.length > 0) {
-				latest = candidates.at(-1) ?? null;
-				break;
+			let latest: HTMLElement | null = null;
+			for (const selector of selectors || []) {
+				const candidates = Array.from(
+					document.querySelectorAll(selector),
+				).filter(
+					(el): el is HTMLElement =>
+						visible(el) && (el.innerText || "").trim().length >= 20,
+				);
+				if (candidates.length > 0) {
+					latest = candidates.at(-1) ?? null;
+					break;
+				}
 			}
-		}
-		if (!latest) {
-			return { signature: "", textLength: 0 };
-		}
+			if (!latest) {
+				return { signature: "", textLength: 0, text: "" };
+			}
 
-		const text = (latest.innerText || "").replace(/\s+/g, " ").trim();
-		return {
-			signature: `${text.length}:${latest.innerHTML.length}:${latest.childElementCount}:${text.slice(-120)}`,
-			textLength: text.length,
-		};
-	},
+			const text = (latest.innerText || "").replace(/\s+/g, " ").trim();
+			return {
+				signature: `${text.length}:${latest.innerHTML.length}:${latest.childElementCount}:${text.slice(-120)}`,
+				textLength: text.length,
+				text,
+			};
+		},
 		STRICT_RESPONSE_STATE_SELECTORS[provider] ??
 			PROVIDER_MODEL_RESPONSE_SELECTORS[provider] ??
 			[],
 	);
+	return {
+		signature: state.signature,
+		textLength: state.textLength,
+		provisional: isProvisionalResponse(state.text),
+	};
 }

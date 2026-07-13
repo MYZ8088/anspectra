@@ -11,6 +11,24 @@ describe("response completeness", () => {
 		).toBe("heading_only");
 	});
 
+	it("rejects a Qwen search plan captured before the final answer", () => {
+		expect(
+			getIncompleteResponseReason(
+				"我将使用网页搜索来查找 PostHog 官方网站及其产品定位信息。",
+				"请使用网页搜索查找 PostHog 官方网站。",
+			),
+		).toBe("plan_only");
+	});
+
+	it("rejects a Qwen search-step transition before the final answer", () => {
+		expect(
+			getIncompleteResponseReason(
+				"根据搜索结果，我来访问 PostHog 官方网站获取更准确的产品定位信息。",
+				"请使用网页搜索查找 PostHog 官方网站。",
+			),
+		).toBe("plan_only");
+	});
+
 	it("rejects a three-point answer captured after only two points", () => {
 		expect(
 			getIncompleteResponseReason(

@@ -55,6 +55,7 @@ describe("Doubao generation state", () => {
 		await expect(getResponseStateSignature(page, "doubao")).resolves.toEqual({
 			signature: "",
 			textLength: 0,
+			provisional: false,
 		});
 	});
 
@@ -83,5 +84,30 @@ describe("Doubao generation state", () => {
 		await expect(
 			hasVisibleGenerationIndicator(completedPage, "doubao"),
 		).resolves.toBe(false);
+	});
+
+	it("marks a Qwen search plan as provisional instead of a final answer", async () => {
+		const page = pageFor(`
+			<article class="qwen-chat-message-assistant">
+				<div class="response-message-content phase-answer custom-qwen-markdown">
+					我将使用网页搜索来查找 PostHog 官方网站及其产品定位信息。
+				</div>
+			</article>
+		`);
+		const state = await getResponseStateSignature(page, "qwen");
+		expect(state.textLength).toBeGreaterThan(20);
+		expect(state.provisional).toBe(true);
+	});
+
+	it("keeps waiting while Qwen announces the next search step", async () => {
+		const page = pageFor(`
+			<article class="qwen-chat-message-assistant">
+				<div class="response-message-content phase-answer custom-qwen-markdown">
+					根据搜索结果，我来访问 PostHog 官方网站获取更准确的产品定位信息。
+				</div>
+			</article>
+		`);
+		const state = await getResponseStateSignature(page, "qwen");
+		expect(state.provisional).toBe(true);
 	});
 });

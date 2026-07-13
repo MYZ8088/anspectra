@@ -44,7 +44,7 @@ Aloom 明确区分两层评分：
 | 稳定性 | 10% | 相同模式、相同提示词的多轮回答一致性。 |
 | 治理完整性 | 10% | 采集、分析和必需检测维度的完成情况。 |
 
-无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重是 Aloom 自己的版本化产品模型，参考了 Yao GEO Skills 的监测质量门和 OneGlanse 的单回答分析方法，并不宣称是任一上游项目发布的通用官方权重。
+无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重由 Aloom 独立设计和版本化，只参考了 Yao GEO Skills 与 OneGlanse 的部分测量思路，既不是从任一项目直接复制，也不宣称是上游发布的官方模型。
 
 每个平台报告均包含独立总分、六维明细、单回答表现分、采集与分析完成率、出现率、推荐率、绝对排名、情感、可见信源曝光、目标份额、竞品份额、模式 cohort、失败分类、实际提示词、原始回答、引用和对话证据。
 
@@ -90,7 +90,7 @@ Aloom 会分别保存请求模式和页面验证后的实际模式。联网与�
 | 豆包 | 快速、专家 | GEO 文本基线不包含办公 Agent 模式。 |
 | DeepSeek | 快速、专家、DeepThink、快速 + Search | Search 只能与 Instant/快速模式组合；系统会拒绝 DeepThink + Search。 |
 | 元宝 | 默认、深度思考、Search、深度思考 + Search | 联网必须从 `Tool > Search` 显式选择。 |
-| 千问 | Auto、Fast、Thinking 及各自的联网组合 | 系统会打开输入区工具菜单，读取并验证 `Tools` 开关；不能只根据模型模式推断联网状态。 |
+| 千问 | Auto、Fast、Thinking 及各自的联网组合 | 联网必须通过 `+ > More > Web search` 选择；系统会验证输入框中的独立搜索标记，不能把通用 `Tools` 开关当作联网凭据。 |
 
 如果平台 UI 发生变化或开关状态无法验证，样本会以具体的模式错误失败，不会被错误标记为联网成功。
 
@@ -140,7 +140,7 @@ pnpm local
 
 打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。持久 profile 保存在 `.aloom-storage/` 中，该目录已排除在 Git 之外。
 
-如果从 AnswerLoom 或 OneGlanse 的现有安装迁移，请在首次执行 `pnpm local` 前运行一次 `pnpm brand:migrate-runtime`。该命令会复制旧 Docker volume 和本机浏览器状态、核验 volume 大小、保留旧 volume，并备份不完整的目标 volume。
+如果安装来自项目的早期命名版本，请在首次执行 `pnpm local` 前运行一次 `pnpm brand:migrate-runtime`。该命令会复制旧 Docker volume 和本机浏览器状态、核验 volume 大小、保留旧 volume，并备份不完整的目标 volume。
 
 常用命令：
 
@@ -155,7 +155,8 @@ pnpm build            # 执行语言、隐私检查与生产构建
 ### 可靠性规则
 
 - 只有全部预期 Prompt hash 都建立 checkpoint 来源后，正式 series 才能启动。
-- 每个平台并发固定为 1，并通过每日上限和随机冷却避免突发采样。
+- 每个平台并发固定为 1；所选平台默认并行运行，全局上限由 `COLLECTOR_PROVIDER_CONCURRENCY` 控制（默认 `4`），低资源机器自动降为 `2`。
+- 结构化分析使用独立的后台有限并发通道，由 `COLLECTOR_ANALYSIS_CONCURRENCY` 控制（默认 `2`），不会阻塞官方 Web 采集。
 - 浏览器重启后继续使用同一个持久身份和 profile。
 - Prompt 回显、登录页、验证页、平台错误页和空回答会被拒绝。
 - 采集状态与分析状态分开保存。
@@ -168,10 +169,10 @@ pnpm build            # 执行语言、隐私检查与生产构建
 Aloom 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
 
 - 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、冻结提示词 manifest、模式分 cohort、样本 checkpoint 和完整报告。
-- 提示词分类、意图挖掘、Web 采样质量门和分析方法借鉴自 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 固定提交 `136eb92c90946ea56ec63f912d5025bcbc884f39`，Copyright 2026 Yao，MIT License。模板已在项目中版本化，运行时不依赖 Skill、Codex、OpenCLI 或远程仓库。
+- Aloom 仅借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 固定提交 `136eb92c90946ea56ec63f912d5025bcbc884f39` 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Aloom 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
 - Aloom 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
 
-完整声明见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+完整声明见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
 
 ### 当前限制
 

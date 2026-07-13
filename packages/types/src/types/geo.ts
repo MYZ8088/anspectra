@@ -269,13 +269,15 @@ export function getProviderModeLabel(
 		}
 	}
 	if (provider === "qwen") {
-		if (mode === "default") return "Provider default (Auto + Tools)";
-		if (mode === "auto") return "Auto (Tools off)";
-		if (mode === "fast") return "Fast (Tools off)";
-		if (mode === "reasoning") return "Thinking (Tools off)";
-		if (mode === "web_search") return "Fast + Tools";
-		if (mode === "reasoning_web_search") return "Thinking + Tools";
-		if (mode === "auto_search") return "Auto + Tools";
+		if (mode === "default") return "Provider default (Auto, Web Search off)";
+		if (mode === "auto") return "Auto (Web Search off)";
+		if (mode === "fast") return "Fast (Web Search off)";
+		if (mode === "reasoning") return "Thinking (Web Search off)";
+		if (mode === "web_search") return "Fast + Web Search";
+		if (mode === "reasoning_web_search") {
+			return "Thinking + Web Search";
+		}
+		if (mode === "auto_search") return "Auto + Web Search";
 	}
 	return PROVIDER_MODE_LABELS[mode];
 }

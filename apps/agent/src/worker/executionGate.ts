@@ -1,30 +1,23 @@
 import type { Provider } from "@aloom/types";
 import { logger } from "@aloom/utils";
+import { env } from "../env.js";
+import { createConcurrencyGate } from "./concurrency.js";
+import {
+	readCollectorResourceSnapshot,
+	resolveProviderConcurrency,
+} from "./resourceCapacity.js";
 
 // Bounded random jitter applied before each provider starts so that concurrent
 // jobs do not all spin up browsers simultaneously and spike CPU/memory.
 const STARTUP_JITTER_MAX_MS = 3_000;
 
-const slotWaiters: Array<() => void> = [];
-let activeJobCount = 0;
-
-async function acquireGlobalSlot(): Promise<void> {
-	if (activeJobCount < 2) {
-		activeJobCount += 1;
-		return;
-	}
-
-	await new Promise<void>((resolve) => {
-		slotWaiters.push(resolve);
-	});
-	activeJobCount += 1;
-}
-
-function releaseGlobalSlot(): void {
-	activeJobCount = Math.max(0, activeJobCount - 1);
-	const next = slotWaiters.shift();
-	next?.();
-}
+export const providerConcurrencyDecision = resolveProviderConcurrency(
+	env.COLLECTOR_PROVIDER_CONCURRENCY,
+	readCollectorResourceSnapshot(),
+);
+const providerExecutionGate = createConcurrencyGate(
+	providerConcurrencyDecision.effective,
+);
 
 export async function runWithProviderExecutionGate<T>(
 	provider: Provider,
@@ -35,13 +28,10 @@ export async function runWithProviderExecutionGate<T>(
 		await new Promise<void>((resolve) => setTimeout(resolve, jitter));
 	}
 
-	await acquireGlobalSlot();
-
-	logger.log(`[${provider}] execution started`);
-
-	try {
-		return await task();
-	} finally {
-		releaseGlobalSlot();
-	}
+	return providerExecutionGate.run(async () => {
+		logger.log(
+			`[${provider}] execution started (${providerExecutionGate.activeCount}/${providerExecutionGate.limit} provider slots active)`,
+		);
+		return task();
+	});
 }

@@ -44,7 +44,7 @@ Aloom reports two explicit score levels:
 | Stability | 10% | Agreement across repeated, mode-matched samples. |
 | Governance | 10% | Collection, analysis, and required-dimension completeness. |
 
-An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's versioned product weights, informed by the measurement gates in Yao GEO Skills and the answer analysis inherited from OneGlanse; they are not presented as an official universal weighting published by either upstream project.
+An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's independently versioned product weights. Selected measurement ideas were informed by Yao GEO Skills and OneGlanse, but the score is neither copied from nor presented as an official model from either project.
 
 Every provider report includes its own weighted score, layer breakdown, Answer Performance Score, completion, analysis rate, mention, recommendation, absolute rank, sentiment, visible-source exposure, target share, competitor share, mode cohorts, failures, prompts, raw answers, citations, and conversation evidence.
 
@@ -90,7 +90,7 @@ Aloom records requested and verified modes separately. Search-enabled cohorts ar
 | Doubao | Fast, Expert | Office-agent modes are excluded from GEO text baselines. |
 | DeepSeek | Fast, Expert, DeepThink, Fast + Search | Search is only valid with Instant/Fast. DeepThink + Search is rejected. |
 | Yuanbao | Default, Deep Thinking, Search, Deep Thinking + Search | Search must be explicitly selected from `Tool > Search`. |
-| Qwen | Auto, Fast, Thinking, plus search-enabled variants | Aloom explicitly reads and verifies the input `Tools` switch; model mode alone never implies search. |
+| Qwen | Auto, Fast, Thinking, plus search-enabled variants | Search is selected through `+ > More > Web search`; Aloom verifies the separate composer marker and never treats the general `Tools` switch as proof of search. |
 
 If a platform changes or a switch cannot be verified, the sample fails with a mode-specific error instead of being mislabeled.
 
@@ -140,7 +140,7 @@ pnpm local
 
 Open `http://localhost:3000`, then connect each provider under `Providers`. Persistent profiles are stored under `.aloom-storage/` and are excluded from Git.
 
-For an existing AnswerLoom or OneGlanse installation, run `pnpm brand:migrate-runtime` once before `pnpm local`. The migration copies legacy Docker volumes and local browser state into Aloom names, verifies volume sizes, keeps the legacy volumes, and backs up incomplete target volumes.
+For an installation created under an earlier project name, run `pnpm brand:migrate-runtime` once before `pnpm local`. The migration copies legacy Docker volumes and local browser state into Aloom names, verifies volume sizes, keeps the legacy volumes, and backs up incomplete target volumes.
 
 Useful commands:
 
@@ -155,7 +155,8 @@ pnpm build            # language/privacy gates plus production builds
 ### Reliability rules
 
 - A formal series cannot start until every expected prompt hash has a checkpoint source.
-- Each provider has concurrency one; daily limits and randomized cooldowns prevent burst sampling.
+- Each provider has concurrency one. Selected providers run in parallel up to `COLLECTOR_PROVIDER_CONCURRENCY` (default `4`), with an automatic reduction to `2` on low-resource machines.
+- Structured analysis runs in a separate bounded background lane controlled by `COLLECTOR_ANALYSIS_CONCURRENCY` (default `2`) and never blocks official-Web collection.
 - Browser restarts reuse the same persistent identity and profile.
 - Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
 - Collection and analysis statuses are stored independently.
@@ -168,10 +169,10 @@ pnpm build            # language/privacy gates plus production builds
 Aloom is an independent project, not an official OneGlanse or Yao GEO Skills release.
 
 - Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Aloom substantially reworks that foundation into a detection-only product with persistent local collectors, frozen prompt manifests, mode-aware sampling, and report-level checkpoints.
-- The prompt taxonomy, intent-mining approach, Web sampling quality gates, and analysis methodology are adapted from [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) at commit `136eb92c90946ea56ec63f912d5025bcbc884f39`, copyright 2026 Yao, under the MIT License. Aloom vendors versioned templates and does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
+- Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) at commit `136eb92c90946ea56ec63f912d5025bcbc884f39`, copyright 2026 Yao, under the MIT License. Aloom is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
 - Aloom itself is licensed under Apache-2.0 and is copyright 2026 MYZ8088.
 
-See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the complete notices.
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the complete notices.
 
 ### Current limits
 
