@@ -209,6 +209,13 @@ describe("buildDetectionSlices", () => {
 			value: 25,
 		});
 		expect(slices.provider).toHaveLength(4);
+		expect(
+			slices.provider.every(
+				(row) =>
+					row.weightedScore.modelVersion === "aloom-geo-score-v1" &&
+					typeof row.answerPerformanceScore === "number",
+			),
+		).toBe(true);
 		expect(slices.product[0]?.planned).toBe(4);
 		expect(slices.intent_stage.map((row) => row.key)).toEqual(
 			expect.arrayContaining([
@@ -267,7 +274,7 @@ describe("buildDetectionSlices", () => {
 			competitors: [],
 		});
 
-		expect(summary[1]).toContain("Across all planned samples");
-		expect(summary[1]).toContain("50%");
+		expect(summary[2]).toContain("Across all planned samples");
+		expect(summary[2]).toContain("50%");
 	});
 });

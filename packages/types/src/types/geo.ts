@@ -71,6 +71,33 @@ export type DetectionMetricRate = {
 	value: number;
 };
 
+export const DETECTION_SCORE_LAYER_LIST = [
+	"visibility",
+	"evidence",
+	"factuality",
+	"competition",
+	"stability",
+	"governance",
+] as const;
+export type DetectionScoreLayerKey =
+	(typeof DETECTION_SCORE_LAYER_LIST)[number];
+
+export type DetectionWeightedLayer = {
+	key: DetectionScoreLayerKey;
+	label: string;
+	score: number | null;
+	weight: number;
+	contribution: number | null;
+};
+
+export type DetectionWeightedScore = {
+	modelVersion: "aloom-geo-score-v1";
+	overall: number;
+	coverage: number;
+	provisional: boolean;
+	layers: DetectionWeightedLayer[];
+};
+
 export type DetectionSliceMetrics = {
 	key: string;
 	label: string;
@@ -90,6 +117,8 @@ export type DetectionSliceMetrics = {
 	stability: number | null;
 	targetShare: number;
 	competitorShare: number;
+	answerPerformanceScore: number;
+	weightedScore: DetectionWeightedScore;
 };
 
 export type DetectionReport = {

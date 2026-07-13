@@ -1,6 +1,10 @@
 import { clickhouse, db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
-import type { BrandAnalysisResult } from "@aloom/types";
+import type {
+	BrandAnalysisResult,
+	DetectionScoreLayerKey,
+	DetectionWeightedScore,
+} from "@aloom/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 
@@ -31,6 +35,66 @@ type AggregateInput = {
 	requiredProviders: string[];
 	samples: ScorecardSample[];
 };
+
+export const ALOOM_GEO_SCORE_WEIGHTS: Record<DetectionScoreLayerKey, number> = {
+	visibility: 25,
+	evidence: 20,
+	factuality: 15,
+	competition: 20,
+	stability: 10,
+	governance: 10,
+};
+
+const SCORE_LAYER_LABELS: Record<DetectionScoreLayerKey, string> = {
+	visibility: "Visibility",
+	evidence: "Evidence",
+	factuality: "Factuality",
+	competition: "Competition",
+	stability: "Stability",
+	governance: "Governance",
+};
+
+function round(value: number): number {
+	return Math.round(value * 100) / 100;
+}
+
+export function calculateWeightedDetectionScore(
+	scores: Record<DetectionScoreLayerKey, number | null>,
+	provisional: boolean,
+): DetectionWeightedScore {
+	const availableWeight = Object.entries(scores).reduce(
+		(total, [key, score]) =>
+			total +
+			(score === null
+				? 0
+				: ALOOM_GEO_SCORE_WEIGHTS[key as DetectionScoreLayerKey]),
+		0,
+	);
+	const layers = (
+		Object.keys(ALOOM_GEO_SCORE_WEIGHTS) as DetectionScoreLayerKey[]
+	).map((key) => {
+		const score = scores[key];
+		return {
+			key,
+			label: SCORE_LAYER_LABELS[key],
+			score,
+			weight: ALOOM_GEO_SCORE_WEIGHTS[key],
+			contribution:
+				score === null || availableWeight === 0
+					? null
+					: round((score * ALOOM_GEO_SCORE_WEIGHTS[key]) / availableWeight),
+		};
+	});
+	return {
+		modelVersion: "aloom-geo-score-v1",
+		overall: round(
+			layers.reduce((total, layer) => total + (layer.contribution ?? 0), 0),
+		),
+		coverage: availableWeight,
+		provisional: provisional || availableWeight < 100,
+		layers,
+	};
+}
 
 function percentage(numerator: number, denominator: number): number {
 	return denominator > 0
@@ -181,6 +245,74 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 	const targetShares = analysed.map(
 		(sample) => sample.analysis?.scorecard.competition.targetShare ?? 0,
 	);
+	const layers = {
+		visibility: {
+			score: percentage(mentioned.length, denominator),
+			numerator: mentioned.length,
+			denominator,
+		},
+		factuality: {
+			score:
+				reviewedClaims > 0 ? percentage(accurateClaims, reviewedClaims) : null,
+			numerator: accurateClaims,
+			denominator: reviewedClaims,
+		},
+		evidence: {
+			score:
+				supportedClaims + unsupportedClaims > 0
+					? Math.round(
+							(percentage(exposed.length, denominator) +
+								percentage(
+									supportedClaims,
+									supportedClaims + unsupportedClaims,
+								)) /
+								2,
+						)
+					: percentage(exposed.length, denominator),
+			numerator: supportedClaims,
+			denominator: supportedClaims + unsupportedClaims,
+			visibleSamples: exposed.length,
+		},
+		stability: {
+			score:
+				comparablePairs > 0
+					? percentage(consistentPairs, comparablePairs)
+					: null,
+			numerator: consistentPairs,
+			denominator: comparablePairs,
+		},
+		competition: {
+			score:
+				denominator > 0
+					? Math.round(
+							targetShares.reduce((total, value) => total + value, 0) /
+								denominator,
+						)
+					: 0,
+			numerator: mentioned.length,
+			denominator,
+		},
+		governanceAttribution: {
+			score: governanceScore,
+			numerator: analysed.length,
+			denominator,
+		},
+	};
+	const weightedScore = calculateWeightedDetectionScore(
+		{
+			visibility: layers.visibility.score,
+			evidence: layers.evidence.score,
+			factuality: layers.factuality.score,
+			competition: layers.competition.score,
+			stability: layers.stability.score,
+			governance: layers.governanceAttribution.score,
+		},
+		!complete,
+	);
+	const answerScoreTotal = analysed.reduce(
+		(total, sample) => total + (sample.analysis?.geoScore.overall ?? 0),
+		0,
+	);
 
 	return {
 		complete,
@@ -197,6 +329,8 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 			locales: missingLocales,
 		},
 		metrics: {
+			averageAnswerGeoScore:
+				denominator > 0 ? round(answerScoreTotal / denominator) : 0,
 			mentionRate: {
 				numerator: mentioned.length,
 				denominator,
@@ -228,61 +362,8 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 				value: percentage(exposed.length, denominator),
 			},
 		},
-		layers: {
-			visibility: {
-				score: percentage(mentioned.length, denominator),
-				numerator: mentioned.length,
-				denominator,
-			},
-			factuality: {
-				score:
-					reviewedClaims > 0
-						? percentage(accurateClaims, reviewedClaims)
-						: null,
-				numerator: accurateClaims,
-				denominator: reviewedClaims,
-			},
-			evidence: {
-				score:
-					supportedClaims + unsupportedClaims > 0
-						? Math.round(
-								(percentage(exposed.length, denominator) +
-									percentage(
-										supportedClaims,
-										supportedClaims + unsupportedClaims,
-									)) /
-									2,
-							)
-						: percentage(exposed.length, denominator),
-				numerator: supportedClaims,
-				denominator: supportedClaims + unsupportedClaims,
-				visibleSamples: exposed.length,
-			},
-			stability: {
-				score:
-					comparablePairs > 0
-						? percentage(consistentPairs, comparablePairs)
-						: null,
-				numerator: consistentPairs,
-				denominator: comparablePairs,
-			},
-			competition: {
-				score:
-					denominator > 0
-						? Math.round(
-								targetShares.reduce((total, value) => total + value, 0) /
-									denominator,
-							)
-						: 0,
-				numerator: mentioned.length,
-				denominator,
-			},
-			governanceAttribution: {
-				score: governanceScore,
-				numerator: analysed.length,
-				denominator,
-			},
-		},
+		layers,
+		weightedScore,
 		providerBreakdown: input.requiredProviders.map((provider) => {
 			const rows = input.samples.filter(
 				(sample) => sample.provider === provider,
@@ -304,7 +385,10 @@ export function calculateBaselineScorecard(input: AggregateInput) {
 	};
 }
 
-export async function loadAnalysisMap(workspaceId: string, sampleIds: string[]) {
+export async function loadAnalysisMap(
+	workspaceId: string,
+	sampleIds: string[],
+) {
 	if (sampleIds.length === 0) return new Map<string, BrandAnalysisResult>();
 	const result = await clickhouse.query({
 		query: `

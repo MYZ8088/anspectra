@@ -155,6 +155,8 @@ function aggregateSlice(args: {
 		stability: scorecard.layers.stability.score,
 		targetShare: averageShare(args.rows, "targetShare"),
 		competitorShare: averageShare(args.rows, "competitorShare"),
+		answerPerformanceScore: scorecard.metrics.averageAnswerGeoScore,
+		weightedScore: scorecard.weightedScore,
 	};
 }
 
@@ -222,7 +224,10 @@ export function buildDetectionSlices(args: {
 		}),
 	];
 	for (const [sliceKey, selector] of Object.entries(selectors) as Array<
-		[Exclude<DetectionSliceKey, "overall">, (row: ReportSample) => string | null]
+		[
+			Exclude<DetectionSliceKey, "overall">,
+			(row: ReportSample) => string | null,
+		]
 	>) {
 		result[sliceKey] = [...groupRows(args.rows, selector).entries()]
 			.map(([key, rows]) =>
@@ -230,13 +235,11 @@ export function buildDetectionSlices(args: {
 					key,
 					label:
 						sliceKey === "prompt"
-							? rows[0]?.prompt?.prompt ?? key
+							? (rows[0]?.prompt?.prompt ?? key)
 							: key.replaceAll("_", " "),
 					rows,
 					tier: args.tier,
-					requiredProviders: [
-						...new Set(rows.map((row) => row.provider)),
-					],
+					requiredProviders: [...new Set(rows.map((row) => row.provider))],
 				}),
 			)
 			.sort((left, right) => left.label.localeCompare(right.label));
@@ -273,7 +276,8 @@ export function buildDetectionFailureBreakdown(
 		}
 	}
 	return [...grouped.values()].sort(
-		(left, right) => right.count - left.count || left.code.localeCompare(right.code),
+		(left, right) =>
+			right.count - left.count || left.code.localeCompare(right.code),
 	);
 }
 
@@ -281,7 +285,11 @@ export function buildDetectionExecutiveSummary(args: {
 	rows: ReportSample[];
 	plannedSamples: number;
 	slices: Record<DetectionSliceKey, DetectionSliceMetrics[]>;
-	competitors: Array<{ name: string; mentions: number; recommendations: number }>;
+	competitors: Array<{
+		name: string;
+		mentions: number;
+		recommendations: number;
+	}>;
 }): string[] {
 	const overall = args.slices.overall[0];
 	if (!overall) return ["No planned samples are available for this series."];
@@ -291,6 +299,7 @@ export function buildDetectionExecutiveSummary(args: {
 	const topCompetitor = args.competitors[0];
 	return [
 		`${overall.completed} of ${args.plannedSamples} planned samples were collected (${overall.completionRate}%).`,
+		`The Aloom GEO Score is ${overall.weightedScore.overall}/100 with ${overall.weightedScore.coverage}% of scoring dimensions currently assessable${overall.weightedScore.provisional ? "; treat it as provisional" : ""}.`,
 		`Across all planned samples, the target appeared in ${overall.mentionRate.value}% and was recommended in ${overall.recommendationRate.value}%.`,
 		bestProvider
 			? `${bestProvider.label} had the highest measured mention rate at ${bestProvider.mentionRate.value}%.`
@@ -322,7 +331,9 @@ export async function getDetectionReport(args: {
 		),
 	});
 	if (!promptSet || promptSet.purpose !== "baseline") {
-		throw new ValidationError("Diagnostic and legacy runs are excluded from reports");
+		throw new ValidationError(
+			"Diagnostic and legacy runs are excluded from reports",
+		);
 	}
 	const runs = await db.query.collectionRuns.findMany({
 		where: eq(schema.collectionRuns.seriesId, series.id),
@@ -441,12 +452,7 @@ export async function getDetectionReport(args: {
 		seriesId: series.id,
 		promptSetId: promptSet.id,
 		seriesStatus: series.status,
-		provisional:
-			rows.length === 0 ||
-			percentage(
-				rows.filter((row) => row.status === "completed").length,
-				Math.max(series.plannedSamples, rows.length),
-			) < 90,
+		provisional: slices.overall[0]?.weightedScore.provisional ?? true,
 		suiteKey,
 		samplingDepth,
 		createdAt: series.createdAt,
@@ -490,8 +496,10 @@ export async function getDetectionReport(args: {
 			decisionStage: row.prompt?.decisionStage ?? null,
 			locale: row.prompt?.locale ?? "unknown",
 			brandExposure: row.prompt?.brandExposure ?? null,
-			requestedMode: row.requestedMode as DetectionReport["samples"][number]["requestedMode"],
-			actualMode: row.actualMode as DetectionReport["samples"][number]["actualMode"],
+			requestedMode:
+				row.requestedMode as DetectionReport["samples"][number]["requestedMode"],
+			actualMode:
+				row.actualMode as DetectionReport["samples"][number]["actualMode"],
 			response: row.response,
 			responseLength: row.response?.length ?? 0,
 			sources: row.sources,
@@ -512,7 +520,10 @@ function stableString(value: unknown): string {
 			Object.fromEntries(
 				Object.entries(value as Record<string, unknown>)
 					.sort(([left], [right]) => left.localeCompare(right))
-					.map(([key, item]) => [key, Array.isArray(item) ? [...item].sort() : item]),
+					.map(([key, item]) => [
+						key,
+						Array.isArray(item) ? [...item].sort() : item,
+					]),
 			),
 		);
 	}

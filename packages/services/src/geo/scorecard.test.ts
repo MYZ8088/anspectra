@@ -1,29 +1,72 @@
 import type { BrandAnalysisResult } from "@aloom/types";
 import { describe, expect, it, vi } from "vitest";
-import { calculateBaselineScorecard } from "./scorecard.js";
+import {
+	ALOOM_GEO_SCORE_WEIGHTS,
+	calculateBaselineScorecard,
+	calculateWeightedDetectionScore,
+} from "./scorecard.js";
 
 vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
 
-function analysis(mentioned: boolean, recommended = false): BrandAnalysisResult {
+function analysis(
+	mentioned: boolean,
+	recommended = false,
+): BrandAnalysisResult {
 	return {
 		geoScore: { overall: mentioned ? 60 : 0 },
 		presence: { mentioned, visibility: mentioned ? 60 : 0 },
 		position: { rankPosition: mentioned ? 2 : null },
 		sentiment: { score: mentioned ? 70 : 0 },
 		recommendation: {
-			type: recommended ? "strong_alternative" : mentioned ? "mentioned_only" : "not_mentioned",
+			type: recommended
+				? "strong_alternative"
+				: mentioned
+					? "mentioned_only"
+					: "not_mentioned",
 		},
 		competitors: [],
-		perception: { coreClaims: [], differentiators: [], bestKnownFor: null, pricingPerception: "not_mentioned" },
+		perception: {
+			coreClaims: [],
+			differentiators: [],
+			bestKnownFor: null,
+			pricingPerception: "not_mentioned",
+		},
 		risks: { items: [] },
 		scorecard: {
-			visibility: { score: mentioned ? 60 : 0, numerator: mentioned ? 1 : 0, denominator: 1 },
-			factuality: { score: 100, reviewedClaims: 1, accurateClaims: 1, errors: [] },
-			evidence: { score: 100, visibleCitations: 1, supportedClaims: 1, unsupportedClaims: 0 },
-			stability: { score: null, comparableSamples: 1, consistentSamples: 1, note: "Requires repeated samples" },
-			competition: { score: mentioned ? 60 : 0, targetShare: mentioned ? 60 : 0, competitorShare: mentioned ? 40 : 100 },
-			governanceAttribution: { score: 25, confidence: "low", caveats: ["Single sample"] },
+			visibility: {
+				score: mentioned ? 60 : 0,
+				numerator: mentioned ? 1 : 0,
+				denominator: 1,
+			},
+			factuality: {
+				score: 100,
+				reviewedClaims: 1,
+				accurateClaims: 1,
+				errors: [],
+			},
+			evidence: {
+				score: 100,
+				visibleCitations: 1,
+				supportedClaims: 1,
+				unsupportedClaims: 0,
+			},
+			stability: {
+				score: null,
+				comparableSamples: 1,
+				consistentSamples: 1,
+				note: "Requires repeated samples",
+			},
+			competition: {
+				score: mentioned ? 60 : 0,
+				targetShare: mentioned ? 60 : 0,
+				competitorShare: mentioned ? 40 : 100,
+			},
+			governanceAttribution: {
+				score: 25,
+				confidence: "low",
+				caveats: ["Single sample"],
+			},
 		},
 	};
 }
@@ -35,12 +78,79 @@ describe("calculateBaselineScorecard", () => {
 			tier: "standard",
 			requiredProviders: ["doubao", "deepseek"],
 			samples: [
-				{ id: "1", provider: "doubao", status: "completed", analysisStatus: "completed", sourceExposure: "exposed", analyticsSampleId: "a", prompt: { id: "p1", prompt: "Q", promptHash: "h", intent: "recommendation", decisionStage: "evaluation", locale: "zh-CN", brandExposure: "blind" }, analysis: analysis(true, true) },
-				{ id: "2", provider: "deepseek", status: "failed", analysisStatus: "not_applicable", sourceExposure: null, analyticsSampleId: null, prompt: { id: "p1", prompt: "Q", promptHash: "h", intent: "recommendation", decisionStage: "evaluation", locale: "zh-CN", brandExposure: "blind" }, analysis: null },
+				{
+					id: "1",
+					provider: "doubao",
+					status: "completed",
+					analysisStatus: "completed",
+					sourceExposure: "exposed",
+					analyticsSampleId: "a",
+					prompt: {
+						id: "p1",
+						prompt: "Q",
+						promptHash: "h",
+						intent: "recommendation",
+						decisionStage: "evaluation",
+						locale: "zh-CN",
+						brandExposure: "blind",
+					},
+					analysis: analysis(true, true),
+				},
+				{
+					id: "2",
+					provider: "deepseek",
+					status: "failed",
+					analysisStatus: "not_applicable",
+					sourceExposure: null,
+					analyticsSampleId: null,
+					prompt: {
+						id: "p1",
+						prompt: "Q",
+						promptHash: "h",
+						intent: "recommendation",
+						decisionStage: "evaluation",
+						locale: "zh-CN",
+						brandExposure: "blind",
+					},
+					analysis: null,
+				},
 			],
 		});
-		expect(result.metrics.mentionRate).toEqual({ numerator: 1, denominator: 4, value: 25 });
+		expect(result.metrics.mentionRate).toEqual({
+			numerator: 1,
+			denominator: 4,
+			value: 25,
+		});
 		expect(result.complete).toBe(false);
 		expect(result.missing.providers).toContain("deepseek");
+		expect(result.metrics.averageAnswerGeoScore).toBe(15);
+		expect(result.weightedScore.provisional).toBe(true);
+	});
+
+	it("publishes a transparent 100-point model without zeroing unavailable layers", () => {
+		expect(
+			Object.values(ALOOM_GEO_SCORE_WEIGHTS).reduce(
+				(total, weight) => total + weight,
+				0,
+			),
+		).toBe(100);
+		const result = calculateWeightedDetectionScore(
+			{
+				visibility: 80,
+				evidence: 60,
+				factuality: null,
+				competition: 50,
+				stability: null,
+				governance: 100,
+			},
+			false,
+		);
+
+		expect(result.coverage).toBe(75);
+		expect(result.overall).toBe(69.33);
+		expect(result.provisional).toBe(true);
+		expect(
+			result.layers.find((layer) => layer.key === "factuality"),
+		).toMatchObject({ score: null, contribution: null, weight: 15 });
 	});
 });

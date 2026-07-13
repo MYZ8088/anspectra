@@ -3,7 +3,11 @@
 import { formPrimaryButtonClassName } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { type ProviderMode, getProviderModeLabel } from "@aloom/types";
+import {
+	type DetectionWeightedScore,
+	type ProviderMode,
+	getProviderModeLabel,
+} from "@aloom/types";
 import {
 	Button,
 	Dialog,
@@ -45,6 +49,38 @@ function Metric(props: { label: string; value: string; detail?: string }) {
 			{props.detail ? (
 				<p className="mt-1 truncate text-xs text-stone-500">{props.detail}</p>
 			) : null}
+		</div>
+	);
+}
+
+function ScoreLayers(props: {
+	score: DetectionWeightedScore;
+	compact?: boolean;
+}) {
+	return (
+		<div
+			className={
+				props.compact ? "space-y-2" : "grid gap-x-6 gap-y-3 sm:grid-cols-2"
+			}
+		>
+			{props.score.layers.map((layer) => (
+				<div key={layer.key}>
+					<div className="flex items-center justify-between gap-3 text-xs">
+						<span className="text-stone-600 dark:text-stone-300">
+							{layer.label} · {layer.weight}%
+						</span>
+						<span className="font-medium tabular-nums">
+							{layer.score === null ? "Not assessed" : `${layer.score}/100`}
+						</span>
+					</div>
+					<div className="mt-1.5 h-1.5 overflow-hidden rounded bg-stone-100 dark:bg-neutral-900">
+						<div
+							className="h-full bg-cyan-600"
+							style={{ width: `${layer.score ?? 0}%` }}
+						/>
+					</div>
+				</div>
+			))}
 		</div>
 	);
 }
@@ -235,8 +271,8 @@ export default function Dashboard() {
 
 				{report.data.provisional ? (
 					<div className="flex items-center gap-2 border-l-2 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
-						<AlertTriangle className="size-4" /> Provisional report: fewer than
-						90% of planned samples are complete.
+						<AlertTriangle className="size-4" /> Provisional report: collection
+						is incomplete or some scoring dimensions are not yet assessable.
 					</div>
 				) : null}
 
@@ -287,6 +323,31 @@ export default function Dashboard() {
 					</div>
 				</section>
 
+				{overall ? (
+					<section className="grid gap-6 border-b border-stone-200 pb-6 lg:grid-cols-[260px_minmax(0,1fr)] dark:border-neutral-800">
+						<div>
+							<p className="text-xs font-semibold uppercase text-stone-500">
+								Aloom GEO Score v1
+							</p>
+							<div className="mt-2 flex items-end gap-2">
+								<span className="text-5xl font-semibold tabular-nums">
+									{overall.weightedScore.overall}
+								</span>
+								<span className="pb-1 text-sm text-stone-500">/ 100</span>
+							</div>
+							<p className="mt-2 text-xs leading-5 text-stone-500">
+								{overall.weightedScore.coverage}% scoring coverage ·{" "}
+								{overall.weightedScore.provisional ? "provisional" : "complete"}
+							</p>
+							<p className="mt-3 text-xs leading-5 text-stone-500">
+								The weighted series score is separate from the per-answer GEO
+								score ({overall.answerPerformanceScore}/100 average).
+							</p>
+						</div>
+						<ScoreLayers score={overall.weightedScore} />
+					</section>
+				) : null}
+
 				<section className="grid overflow-hidden rounded-md border border-stone-200 sm:grid-cols-3 xl:grid-cols-6 dark:border-neutral-800">
 					<Metric
 						label="Completion"
@@ -319,6 +380,100 @@ export default function Dashboard() {
 						value={metricValue(overall?.stability ?? null)}
 						detail={`${report.data.samplingDepth} sampling`}
 					/>
+				</section>
+
+				<section>
+					<div className="flex flex-wrap items-end justify-between gap-3">
+						<div>
+							<h2 className="text-base font-semibold">AI provider reports</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Each official Web provider is scored from its own planned
+								samples.
+							</p>
+						</div>
+						<p className="text-xs text-stone-500">
+							Failed collection and analysis attempts remain in the denominator.
+						</p>
+					</div>
+					<div className="mt-4 grid gap-4 xl:grid-cols-2">
+						{providerRows.map((row) => (
+							<article
+								key={row.key}
+								className="rounded-md border border-stone-200 p-5 dark:border-neutral-800"
+							>
+								<header className="flex items-start justify-between gap-4 border-b border-stone-200 pb-4 dark:border-neutral-800">
+									<div>
+										<h3 className="font-semibold">
+											{PROVIDER_LABELS[row.key] ?? row.label}
+										</h3>
+										<p className="mt-1 text-xs text-stone-500">
+											{row.completed}/{row.planned} collected · {row.analysed}{" "}
+											analysed
+										</p>
+									</div>
+									<div className="text-right">
+										<p className="text-3xl font-semibold tabular-nums">
+											{row.weightedScore.overall}
+										</p>
+										<p className="text-xs text-stone-500">
+											GEO score · {row.weightedScore.coverage}% coverage
+										</p>
+									</div>
+								</header>
+								<dl className="grid grid-cols-2 gap-x-4 gap-y-3 py-4 text-xs sm:grid-cols-4">
+									<div>
+										<dt className="text-stone-500">Mention</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.mentionRate.value}%
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Recommendation</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.recommendationRate.value}%
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Average rank</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.averageRank ?? "—"}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Answer score</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.answerPerformanceScore}/100
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Sentiment</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.averageSentiment ?? "—"}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Source exposure</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.sourceExposureRate.value}%
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Target share</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.targetShare}%
+										</dd>
+									</div>
+									<div>
+										<dt className="text-stone-500">Competitor share</dt>
+										<dd className="mt-1 font-medium tabular-nums">
+											{row.competitorShare}%
+										</dd>
+									</div>
+								</dl>
+								<ScoreLayers score={row.weightedScore} compact />
+							</article>
+						))}
+					</div>
 				</section>
 
 				<section className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
@@ -371,7 +526,9 @@ export default function Dashboard() {
 						</div>
 					</div>
 					<div>
-						<h2 className="text-base font-semibold">Provider comparison</h2>
+						<h2 className="text-base font-semibold">
+							Mention rate by provider
+						</h2>
 						<div className="mt-4 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
 							{providerRows.map((row) => (
 								<div key={row.key} className="py-3">
@@ -455,6 +612,7 @@ export default function Dashboard() {
 								<tr>
 									<th className="px-3 py-3">Provider / mode</th>
 									<th className="px-3 py-3">Complete</th>
+									<th className="px-3 py-3">GEO score</th>
 									<th className="px-3 py-3">Mention</th>
 									<th className="px-3 py-3">Recommendation</th>
 								</tr>
@@ -473,6 +631,9 @@ export default function Dashboard() {
 											</td>
 											<td className="px-3 py-3 tabular-nums">
 												{row.completed}/{row.planned}
+											</td>
+											<td className="px-3 py-3 tabular-nums">
+												{row.weightedScore.overall}/100
 											</td>
 											<td className="px-3 py-3 tabular-nums">
 												{row.mentionRate.value}%

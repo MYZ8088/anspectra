@@ -28,6 +28,26 @@ Aloom is a self-hosted GEO detection and recurring monitoring tool. It uses fixe
 
 Every failed, blocked, or unattempted checkpoint remains in the report denominator. `not_exposed` means that the provider page did not expose extractable links; it does not mean that the answer had no underlying sources.
 
+### Scoring model
+
+Aloom reports two explicit score levels:
+
+- **Answer Performance Score**: the mean of each analysed answer's visibility, rank, sentiment, and recommendation scores, weighted 25% each. Missing or failed planned samples contribute zero to the series mean.
+- **Aloom GEO Score v1**: a series-level score that combines six independent measurement layers and is calculated separately for the overall series and for each provider.
+
+| Series layer | Weight | What it measures |
+| --- | ---: | --- |
+| Visibility | 25% | Measured brand appearance across all planned samples. |
+| Evidence | 20% | Visible source exposure and claim support. |
+| Factuality | 15% | Accuracy against the confirmed fact ledger. |
+| Competition | 20% | The target's observed share against extracted competitors. |
+| Stability | 10% | Agreement across repeated, mode-matched samples. |
+| Governance | 10% | Collection, analysis, and required-dimension completeness. |
+
+An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's versioned product weights, informed by the measurement gates in Yao GEO Skills and the answer analysis inherited from OneGlanse; they are not presented as an official universal weighting published by either upstream project.
+
+Every provider report includes its own weighted score, layer breakdown, Answer Performance Score, completion, analysis rate, mention, recommendation, absolute rank, sentiment, visible-source exposure, target share, competitor share, mode cohorts, failures, prompts, raw answers, citations, and conversation evidence.
+
 ### Detection workflow
 
 1. Scan the official product website.

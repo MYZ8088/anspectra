@@ -37,13 +37,13 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
     <text x="0" y="28" fill="#17191F" font-size="25" font-weight="700">Detection report</text>
     <text x="0" y="57" fill="#697180" font-size="15">Full Matrix / Quick / 4 providers</text>
     <rect x="0" y="81" width="680" height="112" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
-    <text x="22" y="111" fill="#697180" font-size="13">COLLECTION COMPLETION</text>
-    <text x="22" y="157" fill="#17191F" font-size="35" font-weight="700">94.4%</text>
+    <text x="22" y="111" fill="#697180" font-size="13">ALOOM GEO SCORE V1</text>
+    <text x="22" y="157" fill="#17191F" font-size="35" font-weight="700">72.4 / 100</text>
     <rect x="175" y="133" width="472" height="12" rx="6" fill="#E5E8ED"/>
-    <rect x="175" y="133" width="445" height="12" rx="6" fill="#0AAED6"/>
-    <text x="175" y="168" fill="#697180" font-size="13">204 collected / 216 planned</text>
+    <rect x="175" y="133" width="402" height="12" rx="6" fill="#0AAED6"/>
+    <text x="175" y="168" fill="#697180" font-size="13">85% scoring coverage / 204 of 216 collected</text>
 
-    <text x="0" y="235" fill="#17191F" font-size="17" font-weight="700">Provider coverage</text>
+    <text x="0" y="235" fill="#17191F" font-size="17" font-weight="700">Provider scorecards</text>
     <g transform="translate(0 254)">
       <rect width="680" height="142" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
       <g fill="#555E6D" font-size="14">
@@ -63,8 +63,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
         <rect x="125" y="109" width="395" height="10" rx="5"/>
       </g>
       <g fill="#17191F" font-size="13" font-weight="700" text-anchor="end">
-        <text x="655" y="29">94%</text><text x="655" y="59">98%</text>
-        <text x="655" y="89">88%</text><text x="655" y="119">100%</text>
+        <text x="655" y="29">74.0</text><text x="655" y="59">78.2</text>
+        <text x="655" y="89">65.7</text><text x="655" y="119">71.8</text>
       </g>
     </g>
 

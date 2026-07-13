@@ -2,7 +2,7 @@
   <rect width="1200" height="630" fill="#F7F8FA"/>
   <rect width="430" height="630" fill="#17191F"/>
   <rect x="0" width="8" height="630" fill="#0AAED6"/>
-  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNjAiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAzNjAgOTYiIGZpbGw9Im5vbmUiPgogIDx0aXRsZT5BbG9vbTwvdGl0bGU+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAwKSBzY2FsZSguNzUpIj4KICAgIDxwYXRoIGZpbGw9IiNGN0Y4RkEiIGQ9Ik0xOCAxMTIgNTggMTZoMjB2NzRoMzZ2MjJINjZWMzBMMzUgMTEySDE4WiIvPgogICAgPHBhdGggZmlsbD0iIzIwQkNFMyIgZD0ibTQ3IDg1IDktMTggOSAxOEg0N1oiLz4KICA8L2c+CiAgPHRleHQgeD0iMTAyIiB5PSI2MiIgZmlsbD0iI0Y3RjhGQSIgZm9udC1mYW1pbHk9IkdlaXN0LCBJbnRlciwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIwIj5BbG9vbTwvdGV4dD4KPC9zdmc+Cg==" x="34" y="36" width="350" height="80"/>
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzNjAiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCAzNjAgOTYiIGZpbGw9Im5vbmUiPgogIDx0aXRsZT5BbG9vbTwvdGl0bGU+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAwKSBzY2FsZSguNzUpIj4KICAgIDxwYXRoIGZpbGw9IiNGN0Y4RkEiIGQ9Ik0xOCAxMDQgNTcgMjNoMjB2NjNoMzR2MThINjdWMzdoLTNsLTMwIDY3SDE4WiIvPgogICAgPHBhdGggZmlsbD0iIzE4QkNFOCIgZD0ibTQ3IDkxIDE1LTMydjMySDQ3WiIvPgogIDwvZz4KICA8dGV4dCB4PSIxMDIiIHk9IjYyIiBmaWxsPSIjRjdGOEZBIiBmb250LWZhbWlseT0iR2Vpc3QsIEludGVyLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjAiPkFsb29tPC90ZXh0Pgo8L3N2Zz4K" x="34" y="36" width="350" height="80"/>
   <text x="42" y="214" fill="#F7F8FA" font-family="Arial, sans-serif" font-size="55" font-weight="700" letter-spacing="0">
     <tspan x="42" dy="0">Measure what</tspan>
     <tspan x="42" dy="64">AI answers.</tspan>
@@ -17,13 +17,13 @@
     <text x="0" y="28" fill="#17191F" font-size="25" font-weight="700">Detection report</text>
     <text x="0" y="57" fill="#697180" font-size="15">Full Matrix / Quick / 4 providers</text>
     <rect x="0" y="81" width="680" height="112" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
-    <text x="22" y="111" fill="#697180" font-size="13">COLLECTION COMPLETION</text>
-    <text x="22" y="157" fill="#17191F" font-size="35" font-weight="700">94.4%</text>
+    <text x="22" y="111" fill="#697180" font-size="13">ALOOM GEO SCORE V1</text>
+    <text x="22" y="157" fill="#17191F" font-size="35" font-weight="700">72.4 / 100</text>
     <rect x="175" y="133" width="472" height="12" rx="6" fill="#E5E8ED"/>
-    <rect x="175" y="133" width="445" height="12" rx="6" fill="#0AAED6"/>
-    <text x="175" y="168" fill="#697180" font-size="13">204 collected / 216 planned</text>
+    <rect x="175" y="133" width="402" height="12" rx="6" fill="#0AAED6"/>
+    <text x="175" y="168" fill="#697180" font-size="13">85% scoring coverage / 204 of 216 collected</text>
 
-    <text x="0" y="235" fill="#17191F" font-size="17" font-weight="700">Provider coverage</text>
+    <text x="0" y="235" fill="#17191F" font-size="17" font-weight="700">Provider scorecards</text>
     <g transform="translate(0 254)">
       <rect width="680" height="142" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
       <g fill="#555E6D" font-size="14">
@@ -43,8 +43,8 @@
         <rect x="125" y="109" width="395" height="10" rx="5"/>
       </g>
       <g fill="#17191F" font-size="13" font-weight="700" text-anchor="end">
-        <text x="655" y="29">94%</text><text x="655" y="59">98%</text>
-        <text x="655" y="89">88%</text><text x="655" y="119">100%</text>
+        <text x="655" y="29">74.0</text><text x="655" y="59">78.2</text>
+        <text x="655" y="89">65.7</text><text x="655" y="119">71.8</text>
       </g>
     </g>
 
