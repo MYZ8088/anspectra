@@ -14,7 +14,7 @@
 
 Aloom 是一个可自托管的 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
 
-![Aloom 检测面板](docs/images/aloom-detection.png)
+![Aloom 中文检测报告](docs/images/aloom-detection.zh-CN.png)
 
 ### 检测指标
 

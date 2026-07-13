@@ -2,39 +2,39 @@
   <rect width="1200" height="630" fill="#F7F8FA"/>
   <rect width="408" height="630" fill="#17191F"/>
   <rect width="8" height="630" fill="#00AEE6"/>
-  <g font-family="Inter, Arial, sans-serif" letter-spacing="0">
-    <text x="42" y="208" fill="#F7F8FA" font-size="51" font-weight="700">
-      <tspan x="42" dy="0">Measure what</tspan>
-      <tspan x="42" dy="64">AI answers.</tspan>
+  <g font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, Arial, sans-serif" letter-spacing="0">
+    <text x="42" y="208" fill="#F7F8FA" font-size="52" font-weight="700">
+      <tspan x="42" dy="0">看清 AI</tspan>
+      <tspan x="42" dy="64">如何回答。</tspan>
     </text>
     <text x="43" y="358" fill="#C9CED8" font-size="22">
-      <tspan x="43" dy="0">Official Web detection</tspan>
-      <tspan x="43" dy="38">Fixed prompt suites</tspan>
-      <tspan x="43" dy="38">Comparable monitoring</tspan>
+      <tspan x="43" dy="0">官方 Web 检测</tspan>
+      <tspan x="43" dy="38">固定提示词套件</tspan>
+      <tspan x="43" dy="38">可比周期监测</tspan>
     </text>
-    <text x="43" y="568" fill="#8F98A8" font-size="16">Doubao / DeepSeek / Yuanbao / Qwen</text>
+    <text x="43" y="568" fill="#8F98A8" font-size="16">豆包 / DeepSeek / 元宝 / 千问</text>
   </g>
 
-  <g transform="translate(448 44)" font-family="Inter, Arial, sans-serif" letter-spacing="0">
-    <text x="0" y="28" fill="#17191F" font-size="27" font-weight="700">Detection report</text>
-    <text x="0" y="59" fill="#697180" font-size="15">Full Matrix / Quick Scan / 4 providers</text>
+  <g transform="translate(448 44)" font-family="PingFang SC, Noto Sans CJK SC, Microsoft YaHei, Arial, sans-serif" letter-spacing="0">
+    <text x="0" y="28" fill="#17191F" font-size="27" font-weight="700">GEO 检测报告</text>
+    <text x="0" y="59" fill="#697180" font-size="15">完整矩阵 / 快速扫描 / 4 个平台</text>
 
     <rect x="0" y="84" width="704" height="132" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
-    <text x="24" y="119" fill="#697180" font-size="13">ALOOM GEO SCORE V1</text>
+    <text x="24" y="119" fill="#697180" font-size="13">ALOOM GEO 评分 V1</text>
     <text x="24" y="174" fill="#17191F" font-size="38" font-weight="700">72.4</text>
     <text x="119" y="174" fill="#697180" font-size="16">/ 100</text>
     <rect x="224" y="143" width="432" height="12" rx="6" fill="#E5E8ED"/>
     <rect x="224" y="143" width="367" height="12" rx="6" fill="#00AEE6"/>
-    <text x="224" y="181" fill="#697180" font-size="13">85% scoring coverage  ·  204 of 216 samples collected</text>
+    <text x="224" y="181" fill="#697180" font-size="13">85% 评分覆盖率  ·  计划 216 个，已采集 204 个</text>
 
-    <text x="0" y="258" fill="#17191F" font-size="18" font-weight="700">Provider scorecards</text>
+    <text x="0" y="258" fill="#17191F" font-size="18" font-weight="700">平台评分卡</text>
     <g transform="translate(0 276)">
       <rect width="704" height="158" rx="6" fill="#FFFFFF" stroke="#D8DCE3"/>
       <g fill="#555E6D" font-size="14">
-        <text x="20" y="35">Doubao</text>
+        <text x="20" y="35">豆包</text>
         <text x="20" y="70">DeepSeek</text>
-        <text x="20" y="105">Yuanbao</text>
-        <text x="20" y="140">Qwen</text>
+        <text x="20" y="105">元宝</text>
+        <text x="20" y="140">千问</text>
       </g>
       <g fill="#E5E8ED">
         <rect x="126" y="24" width="430" height="10" rx="5"/>
@@ -56,7 +56,7 @@
       </g>
     </g>
 
-    <text x="0" y="478" fill="#17191F" font-size="18" font-weight="700">Intent × decision stage</text>
+    <text x="0" y="478" fill="#17191F" font-size="18" font-weight="700">意图 × 决策阶段</text>
     <g transform="translate(0 496)">
       <g fill="#DDF5FA">
         <rect x="0" y="0" width="94" height="34" rx="4"/><rect x="102" y="0" width="94" height="34" rx="4"/>
