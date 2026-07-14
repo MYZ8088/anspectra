@@ -222,6 +222,10 @@ export const geoRouter = createTRPCRouter({
 		.input(
 			z.object({
 				promptSetId: z.string().uuid(),
+				expectedLocales: z
+					.array(z.enum(["zh-CN", "en-US"]))
+					.min(1)
+					.optional(),
 				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
 				providerModes: z
 					.object({
@@ -238,6 +242,7 @@ export const geoRouter = createTRPCRouter({
 				workspaceId: ctx.workspaceId,
 				userId: ctx.user.id,
 				promptSetId: input.promptSetId,
+				expectedLocales: input.expectedLocales,
 				providers: input.providers,
 				providerModes: input.providerModes,
 				requiredPurpose: "baseline",

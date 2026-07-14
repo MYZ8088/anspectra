@@ -62,10 +62,44 @@ function compactDate(value: Date | string | null | undefined) {
 	return value ? new Date(value).toLocaleString() : "Not started";
 }
 
+function purposeLabel(purpose: string | null | undefined) {
+	if (purpose === "baseline") return "Formal detection";
+	if (purpose === "diagnostic") return "Provider diagnostic";
+	if (purpose === "smoke") return "Legacy smoke test";
+	if (purpose === "retest") return "Scheduled retest";
+	return "Legacy collection";
+}
+
+function promptSetLocales(
+	promptSet: {
+		manifest: unknown;
+		locales: string[];
+	} | null,
+): string[] {
+	if (!promptSet) return [];
+	const manifest = (promptSet.manifest ?? {}) as { locales?: string[] };
+	return [
+		...new Set(
+			(manifest.locales?.length ? manifest.locales : promptSet.locales).filter(
+				Boolean,
+			),
+		),
+	].sort();
+}
+
+function localeLabel(locales: readonly string[]) {
+	if (locales.length === 0) return "Unknown language";
+	return locales
+		.map((locale) => (locale === "zh-CN" ? "Chinese" : "English"))
+		.join(" + ");
+}
+
 export default function RunsPage() {
-	const workspaceId = useSafeSearchParams().get("workspace") ?? "";
+	const searchParams = useSafeSearchParams();
+	const workspaceId = searchParams.get("workspace") ?? "";
+	const requestedSeriesId = searchParams.get("series") ?? "";
 	const utils = api.useUtils();
-	const [seriesId, setSeriesId] = useState("");
+	const [seriesId, setSeriesId] = useState(requestedSeriesId);
 	const [providerFilter, setProviderFilter] = useState("all");
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -76,7 +110,11 @@ export default function RunsPage() {
 		{ enabled: !!workspaceId, refetchInterval: 5000 },
 	);
 	useEffect(() => {
-		if (!seriesId && runs.data?.[0]?.id) setSeriesId(runs.data[0].id);
+		if (!runs.data?.length) return;
+		if (seriesId && runs.data.some((series) => series.id === seriesId)) return;
+		setSelected(new Set());
+		setExpanded(new Set());
+		setSeriesId(runs.data[0]?.id ?? "");
 	}, [runs.data, seriesId]);
 	const detail = api.geo.runDetail.useQuery(
 		{ workspaceId, seriesId },
@@ -123,6 +161,10 @@ export default function RunsPage() {
 			return true;
 		});
 	}, [detail.data?.samples, providerFilter, statusFilter]);
+	const selectedSeries = useMemo(
+		() => runs.data?.find((series) => series.id === seriesId) ?? null,
+		[runs.data, seriesId],
+	);
 	const retryableIds = useMemo(
 		() =>
 			samples
@@ -247,9 +289,11 @@ export default function RunsPage() {
 
 			<div className="flex flex-col gap-3 border-b border-stone-200 pb-5 dark:border-neutral-800 lg:flex-row lg:items-end lg:justify-between">
 				<div>
-					<h2 className="text-lg font-semibold">Baseline series</h2>
+					<h2 className="text-lg font-semibold">Collection series</h2>
 					<p className="mt-1 text-sm text-stone-500">
-						{runs.data?.length ?? 0} versioned collection series
+						{selectedSeries
+							? `${purposeLabel(selectedSeries.purpose)} · ${selectedSeries.promptSet?.name ?? "Deleted prompt set"} · ${localeLabel(promptSetLocales(selectedSeries.promptSet))}`
+							: `${runs.data?.length ?? 0} versioned collection series`}
 					</p>
 				</div>
 				<Select
@@ -257,6 +301,7 @@ export default function RunsPage() {
 					onValueChange={(value) => {
 						setSeriesId(value);
 						setSelected(new Set());
+						setExpanded(new Set());
 					}}
 				>
 					<SelectTrigger className="w-full lg:w-[430px]">
@@ -265,7 +310,9 @@ export default function RunsPage() {
 					<SelectContent>
 						{runs.data?.map((series) => (
 							<SelectItem key={series.id} value={series.id}>
-								{compactDate(series.createdAt)} · {series.tier} ·{" "}
+								{compactDate(series.createdAt)} · {purposeLabel(series.purpose)}
+								{" · "}
+								{localeLabel(promptSetLocales(series.promptSet))} ·{" "}
 								{series.status.replaceAll("_", " ")}
 							</SelectItem>
 						))}
@@ -371,7 +418,8 @@ export default function RunsPage() {
 							<div>
 								<h3 className="text-sm font-semibold">Prompt checkpoints</h3>
 								<p className="mt-1 text-xs text-stone-500">
-									Collection and analysis retain independent states.
+									Select terminal collection failures to retry only those
+									checkpoints. Completed samples are never repeated.
 								</p>
 							</div>
 							<div className="flex flex-wrap gap-2">
@@ -404,6 +452,7 @@ export default function RunsPage() {
 											"completed",
 											"failed",
 											"not_attempted",
+											"cancelled",
 										].map((status) => (
 											<SelectItem key={status} value={status}>
 												{status.replaceAll("_", " ")}
@@ -427,7 +476,7 @@ export default function RunsPage() {
 									) : (
 										<RotateCw className="size-4" />
 									)}{" "}
-									Retry {selected.size || "selected"}
+									Retry collection · {selected.size || "selected"}
 								</Button>
 							</div>
 						</div>
@@ -458,7 +507,7 @@ export default function RunsPage() {
 										<th className="w-[9%] px-3 py-3 font-medium">Phase</th>
 										<th className="w-[10%] px-3 py-3 font-medium">Analysis</th>
 										<th className="w-[14%] px-3 py-3 font-medium">Failure</th>
-										<th className="w-12 px-3 py-3" />
+										<th className="w-24 px-3 py-3" />
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
@@ -521,19 +570,38 @@ export default function RunsPage() {
 													</p>
 												</td>
 												<td className="px-3 py-4 align-top">
-													<Button
-														variant="ghost"
-														size="icon"
-														title="Attempt details"
-														disabled={sample.attempts.length === 0}
-														onClick={() => toggleExpanded(sample.id)}
-													>
-														{isExpanded ? (
-															<ChevronDown className="size-4" />
-														) : (
-															<ChevronRight className="size-4" />
-														)}
-													</Button>
+													<div className="flex items-center gap-1">
+														{retryable ? (
+															<Button
+																variant="ghost"
+																size="icon"
+																title="Retry only this failed prompt collection"
+																disabled={retry.isPending}
+																onClick={() =>
+																	retry.mutate({
+																		workspaceId,
+																		seriesId,
+																		checkpointIds: [sample.id],
+																	})
+																}
+															>
+																<RotateCw className="size-4" />
+															</Button>
+														) : null}
+														<Button
+															variant="ghost"
+															size="icon"
+															title="Attempt details"
+															disabled={sample.attempts.length === 0}
+															onClick={() => toggleExpanded(sample.id)}
+														>
+															{isExpanded ? (
+																<ChevronDown className="size-4" />
+															) : (
+																<ChevronRight className="size-4" />
+															)}
+														</Button>
+													</div>
 												</td>
 											</tr>,
 											isExpanded ? (

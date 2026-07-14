@@ -15,6 +15,7 @@ import {
 	focusProviderSession,
 	releaseProviderHumanHold,
 } from "../lib/browser/providerSessionManager.js";
+import { offsetPromptAttempt } from "../worker/attemptIndex.js";
 
 type CollectorTask = {
 	taskId: string;
@@ -26,6 +27,7 @@ type CollectorTask = {
 	minPromptDelayMs: number;
 	maxPromptDelayMs: number;
 	providerMode: ProviderMode;
+	attemptIndexOffsets?: Record<string, number>;
 };
 
 const WEB_PROVIDERS: Provider[] = ["doubao", "deepseek", "hunyuan", "qwen"];
@@ -90,12 +92,16 @@ async function executeTask(task: CollectorTask): Promise<void> {
 			task.provider,
 			{
 				onAttemptUpdate: async (update) => {
+					const indexedUpdate = offsetPromptAttempt(
+						update,
+						task.attemptIndexOffsets,
+					);
 					await request("attempt", {
+						...indexedUpdate,
 						runId: task.runId,
 						provider: task.provider,
-						requestedMode: update.requestedMode ?? task.providerMode,
-						actualMode: update.actualMode,
-						...update,
+						requestedMode: indexedUpdate.requestedMode ?? task.providerMode,
+						actualMode: indexedUpdate.actualMode,
 					});
 				},
 				onSampleComplete: async (sample: AskPromptResult) => {

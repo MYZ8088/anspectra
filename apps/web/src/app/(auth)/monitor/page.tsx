@@ -54,6 +54,7 @@ const PROVIDERS = [
 	["qwen", "Qwen"],
 ] as const;
 type GeoProvider = (typeof PROVIDERS)[number][0];
+type PromptLocale = "zh-CN" | "en-US";
 
 const SAMPLING_DEPTH_LABELS: Record<SamplingDepth, string> = {
 	single: "Single",
@@ -91,6 +92,28 @@ function splitList(value: string): string[] {
 				.filter(Boolean),
 		),
 	];
+}
+
+function normalizedLocales(locales: readonly string[]): string[] {
+	return [...new Set(locales)].sort();
+}
+
+function localeSelectionMatches(
+	selected: readonly string[],
+	frozen: readonly string[],
+): boolean {
+	const left = normalizedLocales(selected);
+	const right = normalizedLocales(frozen);
+	return (
+		left.length === right.length &&
+		left.every((locale, index) => locale === right[index])
+	);
+}
+
+function localeListLabel(locales: readonly string[]): string {
+	return normalizedLocales(locales)
+		.map((locale) => (locale === "zh-CN" ? "Chinese" : "English"))
+		.join(" + ");
 }
 
 function Field(props: {
@@ -193,7 +216,7 @@ export default function NewDetectionPage() {
 	const [teamSize, setTeamSize] = useState("");
 	const [implementationPeriod, setImplementationPeriod] = useState("");
 	const [evidenceRequirement, setEvidenceRequirement] = useState("");
-	const [locales, setLocales] = useState<Array<"zh-CN" | "en-US">>(["zh-CN"]);
+	const [locales, setLocales] = useState<PromptLocale[]>(["zh-CN"]);
 	const [suiteKey, setSuiteKey] = useState<SelectableSuite>("quick_scan");
 	const [samplingDepth, setSamplingDepth] = useState<SamplingDepth>("single");
 	const [providers, setProviders] = useState<GeoProvider[]>(
@@ -217,6 +240,7 @@ export default function NewDetectionPage() {
 	const [audienceFilter, setAudienceFilter] = useState<string[]>([]);
 	const [regionFilter, setRegionFilter] = useState<string[]>([]);
 	const [promptSearch, setPromptSearch] = useState("");
+	const [newlyCreatedSetId, setNewlyCreatedSetId] = useState("");
 
 	useEffect(() => {
 		const profile = profileQuery.data;
@@ -308,9 +332,12 @@ export default function NewDetectionPage() {
 		onError: (error) => toast.error(error.message),
 	});
 	const createSet = api.geo.createDetectionSet.useMutation({
-		onSuccess: async () => {
+		onSuccess: async (result) => {
+			setNewlyCreatedSetId(result.promptSet.id);
 			await utils.geo.promptSets.invalidate();
-			toast.success("Frozen detection set created");
+			toast.success(
+				`Frozen ${localeListLabel(result.manifest.locales)} detection set created`,
+			);
 		},
 		onError: (error) => toast.error(error.message),
 	});
@@ -868,6 +895,10 @@ export default function NewDetectionPage() {
 
 				<section className="space-y-4">
 					<h2 className="text-lg font-semibold">3. Run detection</h2>
+					<p className="text-sm text-stone-500">
+						A run always uses the languages frozen into its prompt set. Changing
+						the selection above does not rewrite an existing set.
+					</p>
 					<div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
 						{(setsQuery.data ?? [])
 							.filter((set) => set.purpose === "baseline")
@@ -876,14 +907,38 @@ export default function NewDetectionPage() {
 									suiteKey?: string;
 									samplingDepth?: string;
 									expectedPromptHashes?: string[];
+									locales?: string[];
 								};
+								const frozenLocales = manifest.locales ?? [
+									...new Set(set.prompts.map((prompt) => prompt.locale)),
+								];
+								const languageMatches = localeSelectionMatches(
+									locales,
+									frozenLocales,
+								);
 								return (
 									<div
 										key={set.id}
-										className="flex flex-wrap items-center justify-between gap-4 py-4"
+										className={cn(
+											"flex flex-wrap items-center justify-between gap-4 py-4",
+											set.id === newlyCreatedSetId &&
+												"border-l-2 border-cyan-600 pl-3",
+										)}
 									>
 										<div className="min-w-0">
-											<p className="truncate font-medium">{set.name}</p>
+											<div className="flex flex-wrap items-center gap-2">
+												<p className="truncate font-medium">{set.name}</p>
+												<span
+													className={cn(
+														"border px-2 py-0.5 text-[11px] font-medium",
+														languageMatches
+															? "border-cyan-200 text-cyan-800 dark:border-cyan-900 dark:text-cyan-300"
+															: "border-amber-200 text-amber-800 dark:border-amber-900 dark:text-amber-300",
+													)}
+												>
+													{localeListLabel(frozenLocales)}
+												</span>
+											</div>
 											<p className="mt-1 text-xs text-stone-500">
 												{manifest.suiteKey?.replaceAll("_", " ") ??
 													"legacy preset"}{" "}
@@ -891,14 +946,25 @@ export default function NewDetectionPage() {
 												{set.prompts.length} prompts ·{" "}
 												{manifest.expectedPromptHashes?.length ?? 0} hashes
 											</p>
+											{!languageMatches ? (
+												<p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+													Select {localeListLabel(frozenLocales)} above or
+													create a new set for {localeListLabel(locales)}.
+												</p>
+											) : null}
 										</div>
 										<Button
 											className={formPrimaryButtonClassName}
-											disabled={start.isPending || providers.length === 0}
+											disabled={
+												start.isPending ||
+												providers.length === 0 ||
+												!languageMatches
+											}
 											onClick={() =>
 												start.mutate({
 													workspaceId,
 													promptSetId: set.id,
+													expectedLocales: locales,
 													providers: providers as Array<
 														"doubao" | "deepseek" | "hunyuan" | "qwen"
 													>,
@@ -916,7 +982,7 @@ export default function NewDetectionPage() {
 											) : (
 												<Play className="size-4" />
 											)}{" "}
-											Run
+											{languageMatches ? "Run" : "Language mismatch"}
 										</Button>
 									</div>
 								);

@@ -30,6 +30,8 @@ type ProviderJobPayload = {
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
 	providerMode?: ProviderMode;
+	attemptIndexOffsets?: Record<string, number>;
+	queueJobIdSuffix?: string;
 };
 
 export type SubmitAgentJobResult =
@@ -55,7 +57,10 @@ async function enqueueProviderJob(payload: ProviderJobPayload): Promise<void> {
 	const queue = getProviderQueue(payload.provider);
 	try {
 		await queue.waitUntilReady();
-		const jobId = buildProviderJobId(payload.jobGroupId, payload.provider);
+		const baseJobId = buildProviderJobId(payload.jobGroupId, payload.provider);
+		const jobId = payload.queueJobIdSuffix
+			? `${baseJobId}__${payload.queueJobIdSuffix}`
+			: baseJobId;
 		const existing = await queue.getJob(jobId);
 		if (existing) {
 			return;
@@ -91,6 +96,8 @@ export async function enqueueProviderJobs(args: {
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
 	providerModes?: Partial<Record<Provider, ProviderMode>>;
+	attemptIndexOffsets?: Record<string, number>;
+	queueJobIdSuffix?: string;
 }): Promise<Provider[]> {
 	const {
 		jobGroupId,
@@ -104,6 +111,8 @@ export async function enqueueProviderJobs(args: {
 		minPromptDelayMs,
 		maxPromptDelayMs,
 		providerModes,
+		attemptIndexOffsets,
+		queueJobIdSuffix,
 	} = args;
 	const allowedProviders = [...new Set(providers)];
 	const providerJobs = buildProviderJobs().filter(({ provider }) =>
@@ -122,8 +131,10 @@ export async function enqueueProviderJobs(args: {
 				initialCompletedCount,
 				totalPromptCount,
 				minPromptDelayMs,
-					maxPromptDelayMs,
-					providerMode: providerModes?.[provider] ?? "default",
+				maxPromptDelayMs,
+				providerMode: providerModes?.[provider] ?? "default",
+				attemptIndexOffsets,
+				queueJobIdSuffix,
 			});
 			return provider;
 		}),

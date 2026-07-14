@@ -3,9 +3,9 @@ import { db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	AskPromptResult,
+	PromptAttemptUpdate,
 	Provider,
 	ProviderMode,
-	PromptAttemptUpdate,
 } from "@aloom/types";
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { storePromptResponses } from "../prompt/storePromptResponses.js";
@@ -47,7 +47,7 @@ export async function pairCollectorNode(args: {
 		GEO_WEB_PROVIDERS.map((provider) => ({
 			workspaceId: args.workspaceId,
 			collectorNodeId: collector.id,
-				provider,
+			provider,
 			profileKey: `${collector.id}:${provider}`,
 			status: "disconnected",
 		})),
@@ -178,13 +178,20 @@ export async function claimCollectorTask(deviceToken: string) {
 			userId: String(
 				((run.metadata ?? {}) as Record<string, unknown>).userId || "collector",
 			),
-				provider,
-				providerMode: (providerCheckpoints[0]?.requestedMode ??
-					"default") as ProviderMode,
-				prompts: prompts.map((prompt) => ({
+			provider,
+			providerMode: (providerCheckpoints[0]?.requestedMode ??
+				"default") as ProviderMode,
+			prompts: prompts.map((prompt) => ({
 				id: prompt.id,
 				prompt: prompt.prompt,
 			})),
+			attemptIndexOffsets: Object.fromEntries(
+				providerCheckpoints.flatMap((checkpoint) =>
+					checkpoint.promptId
+						? [[checkpoint.promptId, checkpoint.attemptCount] as const]
+						: [],
+				),
+			),
 			conversationIsolation: "fresh" as const,
 			minPromptDelayMs: 3 * 60_000,
 			maxPromptDelayMs: 8 * 60_000,

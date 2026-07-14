@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { clickhouse, db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
@@ -26,6 +27,7 @@ import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
+import { assertPromptSetLocales } from "./promptSetLocale.js";
 import { getNextRetestObservation } from "./runState.js";
 
 export const GEO_WEB_PROVIDERS = [
@@ -413,6 +415,7 @@ export async function startGeoCollectionRun(args: {
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
 	requiredPurpose?: "baseline" | "diagnostic" | "retest";
+	expectedLocales?: string[];
 }) {
 	const promptSet = await db.query.promptSets.findFirst({
 		where: and(
@@ -452,6 +455,7 @@ export async function startGeoCollectionRun(args: {
 			completePreset?: boolean;
 			customPromptCount?: number;
 			expectedPromptHashes?: string[];
+			locales?: string[];
 		};
 		if (
 			promptSet.packKey !== "yao-full-geo-v1" ||
@@ -466,6 +470,11 @@ export async function startGeoCollectionRun(args: {
 				"Formal detection requires a complete preset-only frozen set",
 			);
 		}
+		assertPromptSetLocales({
+			expectedLocales: args.expectedLocales,
+			manifestLocales: formalManifest.locales,
+			promptLocales: promptRows.map((prompt) => prompt.locale),
+		});
 	}
 
 	const requestedProviders = (
@@ -1477,8 +1486,26 @@ export async function listGeoRuns(workspaceId: string) {
 				where: inArray(schema.promptSets.id, promptSetIds),
 			})
 		: [];
+	const promptLocales = promptSetIds.length
+		? await db.query.monitorPrompts.findMany({
+				where: inArray(schema.monitorPrompts.promptSetId, promptSetIds),
+				columns: { promptSetId: true, locale: true },
+			})
+		: [];
 	const promptSetById = new Map(
-		promptSets.map((promptSet) => [promptSet.id, promptSet]),
+		promptSets.map((promptSet) => [
+			promptSet.id,
+			{
+				...promptSet,
+				locales: [
+					...new Set(
+						promptLocales
+							.filter((prompt) => prompt.promptSetId === promptSet.id)
+							.map((prompt) => prompt.locale),
+					),
+				].sort(),
+			},
+		]),
 	);
 	return series.map((item) => ({
 		...item,
@@ -1625,10 +1652,20 @@ export async function retryGeoSamples(args: {
 			.set({
 				status: "queued",
 				phase: "queued",
+				conversationId: null,
+				conversationUrl: null,
+				sourceExposure: null,
+				analyticsSampleId: null,
+				actualMode: null,
+				analysisStatus: "pending",
+				analysisErrorCode: null,
+				analysisErrorMessage: null,
 				failureCategory: null,
 				errorCode: null,
 				errorMessage: null,
 				retryable: null,
+				warningCode: null,
+				startedAt: null,
 				completedAt: null,
 				lastEventAt: new Date(),
 				updatedAt: new Date(),
@@ -1652,7 +1689,14 @@ export async function retryGeoSamples(args: {
 		}
 		const queue = getProviderQueue(provider);
 		const previous = await queue.getJob(buildProviderJobId(run.id, provider));
-		if (previous) await previous.remove().catch(() => null);
+		if (previous) {
+			const state = await previous.getState();
+			if (state === "completed" || state === "failed") {
+				await previous.remove().catch(() => null);
+			}
+		}
+		await waitForRedis();
+		await redis.del(buildProviderCancelKey(run.id, provider));
 		const completedCount = await db.query.sampleCheckpoints.findMany({
 			where: and(
 				eq(schema.sampleCheckpoints.runId, run.id),
@@ -1674,6 +1718,14 @@ export async function retryGeoSamples(args: {
 			providerModes: {
 				[provider]: (group[0]?.requestedMode ?? "default") as ProviderMode,
 			},
+			attemptIndexOffsets: Object.fromEntries(
+				group.flatMap((checkpoint) =>
+					checkpoint.promptId
+						? [[checkpoint.promptId, checkpoint.attemptCount] as const]
+						: [],
+				),
+			),
+			queueJobIdSuffix: `retry-${randomUUID()}`,
 			initialCompletedCount: completedCount.length,
 			totalPromptCount: completedCount.length + prompts.length,
 			minPromptDelayMs: 3 * 60_000,

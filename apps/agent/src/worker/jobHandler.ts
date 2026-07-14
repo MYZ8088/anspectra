@@ -35,6 +35,7 @@ import { PROVIDER_CONFIGS } from "../core/providers/index.js";
 import { releaseProviderHumanHold } from "../lib/browser/providerSessionManager.js";
 import { StopProviderRunError } from "../lib/browser/proxy/runner.js";
 import { runAnalysisInBackground } from "./analysis.js";
+import { offsetPromptAttempt } from "./attemptIndex.js";
 import { persistSampleCheckpoint } from "./sampleCheckpoint.js";
 
 type ProviderStatus =
@@ -59,6 +60,7 @@ type ProviderJobData = {
 	minPromptDelayMs?: number;
 	maxPromptDelayMs?: number;
 	providerMode?: ProviderMode;
+	attemptIndexOffsets?: Record<string, number>;
 };
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
@@ -158,6 +160,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		minPromptDelayMs,
 		maxPromptDelayMs,
 		providerMode = "default",
+		attemptIndexOffsets,
 	} = job.data;
 	const plog = createProviderLogger(provider);
 	releaseProviderHumanHold(provider);
@@ -309,12 +312,16 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					},
 					onAttemptUpdate: async (update) => {
 						if (!collectionRunId || stopController.signal.aborted) return;
+						const indexedUpdate = offsetPromptAttempt(
+							update,
+							attemptIndexOffsets,
+						);
 						await recordGeoSampleAttempt({
+							...indexedUpdate,
 							runId: collectionRunId,
 							provider,
-							requestedMode: update.requestedMode ?? providerMode,
-							actualMode: update.actualMode,
-							...update,
+							requestedMode: indexedUpdate.requestedMode ?? providerMode,
+							actualMode: indexedUpdate.actualMode,
 						});
 					},
 					onSampleComplete: async (sample) => {
