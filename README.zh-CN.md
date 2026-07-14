@@ -135,10 +135,10 @@ cp .env.example .env
 pnpm install
 pnpm camoufox:setup
 pnpm camoufox:doctor
-pnpm local
+pnpm local:background
 ```
 
-打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。持久 profile 保存在 `.aloom-storage/` 中，该目录已排除在 Git 之外。
+打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。后台运行进程不会随启动终端关闭而退出。持久 profile 保存在 `.aloom-storage/` 中，该目录已排除在 Git 之外。
 
 如果安装来自项目的早期命名版本，请在首次执行 `pnpm local` 前运行一次 `pnpm brand:migrate-runtime`。该命令会复制旧 Docker volume 和本机浏览器状态、核验 volume 大小、保留旧 volume，并备份不完整的目标 volume。
 
@@ -146,11 +146,17 @@ pnpm local
 
 ```bash
 pnpm camoufox:doctor  # 检查 Python、Camoufox、浏览器、GeoIP 和可执行文件
+pnpm local            # 在前台运行 Web 和采集器，用于开发调试
+pnpm local:background # 启动不依赖终端会话的本地运行进程
+pnpm local:status     # 检查运行进程和 Web 服务状态
+pnpm local:stop       # 平滑停止后台运行进程
 pnpm collector        # 只启动本机采集器
 pnpm test             # 运行单元测试和 fixture 测试
 pnpm typecheck        # 检查工作区 TypeScript 类型
 pnpm build            # 执行语言、隐私检查与生产构建
 ```
+
+后台日志保存在 `.aloom-storage/logs/local-daemon.log`。BullMQ 任务意外中断后会依据 PostgreSQL checkpoint 跳过已经终结的样本，只恢复未完成 Prompt。
 
 ### 可靠性规则
 

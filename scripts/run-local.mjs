@@ -63,13 +63,9 @@ async function main() {
 			env: localEnv,
 		},
 	);
-	const agentChild = spawnCommand(
-		"pnpm",
-		["--filter", "@aloom/agent", "dev"],
-		{
-			env: localEnv,
-		},
-	);
+	const agentChild = spawnCommand("pnpm", ["--filter", "@aloom/agent", "dev"], {
+		env: localEnv,
+	});
 
 	const stopPackageWatchers = packageWatchers.map((child) =>
 		attachTerminationHandler(child),
@@ -79,7 +75,9 @@ async function main() {
 
 	try {
 		await waitForHttp(localAppUrl);
-		openBrowser(localAppUrl);
+		if (process.env.ALOOM_OPEN_BROWSER !== "0") {
+			openBrowser(localAppUrl);
+		}
 	} catch (error) {
 		for (const stopWatcher of stopPackageWatchers) {
 			stopWatcher();
@@ -89,16 +87,24 @@ async function main() {
 		throw error;
 	}
 
-	await Promise.all([
-		...packageWatchers.map((child, index) =>
-			waitForChildExit(
-				child,
-				`Workspace package watch ${LOCAL_WATCH_PACKAGES[index]}`,
+	try {
+		await Promise.all([
+			...packageWatchers.map((child, index) =>
+				waitForChildExit(
+					child,
+					`Workspace package watch ${LOCAL_WATCH_PACKAGES[index]}`,
+				),
 			),
-		),
-		waitForChildExit(webChild, "Web dev"),
-		waitForChildExit(agentChild, "Agent dev"),
-	]);
+			waitForChildExit(webChild, "Web dev"),
+			waitForChildExit(agentChild, "Agent dev"),
+		]);
+	} finally {
+		for (const stopWatcher of stopPackageWatchers) {
+			stopWatcher();
+		}
+		stopWeb();
+		stopAgent();
+	}
 }
 
 main().catch((error) => {

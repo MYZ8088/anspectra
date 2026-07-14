@@ -135,10 +135,10 @@ cp .env.example .env
 pnpm install
 pnpm camoufox:setup
 pnpm camoufox:doctor
-pnpm local
+pnpm local:background
 ```
 
-Open `http://localhost:3000`, then connect each provider under `Providers`. Persistent profiles are stored under `.aloom-storage/` and are excluded from Git.
+Open `http://localhost:3000`, then connect each provider under `Providers`. The background runtime remains active after the launching terminal closes. Persistent profiles are stored under `.aloom-storage/` and are excluded from Git.
 
 For an installation created under an earlier project name, run `pnpm brand:migrate-runtime` once before `pnpm local`. The migration copies legacy Docker volumes and local browser state into Aloom names, verifies volume sizes, keeps the legacy volumes, and backs up incomplete target volumes.
 
@@ -146,11 +146,17 @@ Useful commands:
 
 ```bash
 pnpm camoufox:doctor  # verify Python, Camoufox, browser, GeoIP, and executable
+pnpm local            # run the Web app and collector in the foreground
+pnpm local:background # start a terminal-independent local runtime
+pnpm local:status     # check the runtime and Web endpoint
+pnpm local:stop       # gracefully stop the background runtime
 pnpm collector        # start only the local collector
 pnpm test             # unit and fixture tests
 pnpm typecheck        # workspace TypeScript checks
 pnpm build            # language/privacy gates plus production builds
 ```
+
+Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. Interrupted BullMQ jobs use PostgreSQL checkpoints to skip terminal samples and resume only unfinished prompts.
 
 ### Reliability rules
 

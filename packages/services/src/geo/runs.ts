@@ -1063,6 +1063,40 @@ export async function persistGeoSampleCheckpoint(args: {
 	await refreshCollectionSeries(run?.seriesId);
 }
 
+export async function getGeoProviderCheckpointState(args: {
+	collectionRunId: string;
+	provider: Provider;
+}) {
+	const checkpoints = await db.query.sampleCheckpoints.findMany({
+		where: and(
+			eq(schema.sampleCheckpoints.runId, args.collectionRunId),
+			eq(schema.sampleCheckpoints.provider, args.provider),
+		),
+		columns: {
+			promptId: true,
+			status: true,
+		},
+	});
+	const completed = checkpoints.filter(
+		(checkpoint) => checkpoint.status === "completed",
+	);
+	const runnableStatuses = new Set(["queued", "running", "retrying"]);
+	const runnable = checkpoints.filter((checkpoint) =>
+		runnableStatuses.has(checkpoint.status),
+	);
+	return {
+		totalCount: checkpoints.length,
+		completedCount: completed.length,
+		terminalCount: checkpoints.length - runnable.length,
+		completedPromptIds: completed.flatMap((checkpoint) =>
+			checkpoint.promptId ? [checkpoint.promptId] : [],
+		),
+		runnablePromptIds: runnable.flatMap((checkpoint) =>
+			checkpoint.promptId ? [checkpoint.promptId] : [],
+		),
+	};
+}
+
 export async function persistGeoHumanChallenge(args: {
 	collectionRunId?: string;
 	workspaceId: string;

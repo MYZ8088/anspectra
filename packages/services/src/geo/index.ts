@@ -40,6 +40,7 @@ export {
 	completeGeoAnalysis,
 	dispatchScheduledGeoRuns,
 	finalizeGeoProviderRun,
+	getGeoProviderCheckpointState,
 	getGeoOverview,
 	getGeoRunDetail,
 	listGeoRuns,

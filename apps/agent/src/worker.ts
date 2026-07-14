@@ -19,7 +19,9 @@ import { handleJob, stopActiveProviderRun } from "./worker/jobHandler.js";
 
 // Exported so index.ts can call worker.close() during graceful shutdown.
 export let workers: Worker[] = [];
-const WORKER_LOCK_DURATION_MS = 4 * 60 * 60 * 1000;
+// BullMQ renews live locks automatically. A shorter lock lets another local
+// collector recover promptly after an ungraceful process or machine shutdown.
+const WORKER_LOCK_DURATION_MS = 5 * 60 * 1000;
 const PROVIDER_STOP_CHANNEL = "aloom:agent:provider-stop";
 const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
 
@@ -95,7 +97,7 @@ async function startWorkers() {
 				connection,
 				concurrency: 1,
 				lockDuration: WORKER_LOCK_DURATION_MS,
-				stalledInterval: 60 * 1000,
+				stalledInterval: 30 * 1000,
 				maxStalledCount: 5,
 			},
 		);

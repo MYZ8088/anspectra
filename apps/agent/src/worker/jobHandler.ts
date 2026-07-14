@@ -8,6 +8,7 @@ import {
 	buildProviderCancelKey,
 	buildProviderJobId,
 	finalizeGeoProviderRun,
+	getGeoProviderCheckpointState,
 	hasRuntimeProviderAuth,
 	persistGeoSampleCheckpoint,
 	recordGeoSampleAttempt,
@@ -34,6 +35,7 @@ import { releaseProviderHumanHold } from "../lib/browser/providerSessionManager.
 import { StopProviderRunError } from "../lib/browser/proxy/runner.js";
 import { runAnalysisInBackground } from "./analysis.js";
 import { offsetPromptAttempt } from "./attemptIndex.js";
+import { resolveProviderJobResume } from "./jobResume.js";
 import { persistSampleCheckpoint } from "./sampleCheckpoint.js";
 
 type ProviderStatus =
@@ -137,11 +139,11 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		provider,
 		jobGroupId,
 		collectionRunId,
-		prompts,
+		prompts: requestedPrompts,
 		user_id,
 		workspace_id,
 		initialCompletedCount = 0,
-		totalPromptCount = prompts.length,
+		totalPromptCount: requestedTotalPromptCount = requestedPrompts.length,
 		minPromptDelayMs,
 		maxPromptDelayMs,
 		providerMode = "default",
@@ -158,15 +160,54 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		throw new ValidationError(`Unknown provider: ${provider}`, { provider });
 	}
 
-	if (!prompts || prompts.length === 0) {
+	if (!requestedPrompts || requestedPrompts.length === 0) {
 		throw new ValidationError("Agent job received no prompts", {
 			provider,
 			jobGroupId,
 		});
 	}
 
+	const checkpointState = collectionRunId
+		? await getGeoProviderCheckpointState({ collectionRunId, provider })
+		: null;
+	const { prompts, completedAtStart, totalPromptCount, filteredPromptCount } =
+		resolveProviderJobResume({
+			requestedPrompts,
+			requestedTotalPromptCount,
+			initialCompletedCount,
+			checkpointState,
+		});
+	if (prompts.length !== requestedPrompts.length) {
+		plog.log(
+			`resume checkpoint filtered ${filteredPromptCount} terminal prompt(s); ${prompts.length} remain`,
+		);
+	}
+
 	const progressKey = `job:${jobGroupId}:result`;
-	await ensureProgressSeed(progressKey, ownedProviders, prompts.length);
+	await ensureProgressSeed(progressKey, ownedProviders, totalPromptCount);
+	if (prompts.length === 0) {
+		const providerStatus =
+			completedAtStart >= totalPromptCount
+				? "completed"
+				: completedAtStart > 0
+					? "partial"
+					: "failed";
+		await updateProviderProgress({
+			jobGroupId,
+			provider,
+			status: providerStatus,
+			resultCount: completedAtStart,
+		});
+		await finalizeGeoProviderRun({
+			collectionRunId,
+			provider,
+			status: "completed",
+		});
+		plog.log(
+			"resume checkpoint has no unfinished prompts; skipping browser launch",
+		);
+		return true;
+	}
 	const hasAuth = await hasRuntimeProviderAuth(provider);
 	if (!hasAuth) {
 		plog.warn("skipped (no authenticated session)");
@@ -236,7 +277,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 	};
 	const label = PROVIDER_CONFIGS[provider].label;
 	const providerResults = buildEmptyResults();
-	let persistedSampleCount = initialCompletedCount;
+	let persistedSampleCount = completedAtStart;
 	let clickhouseSampleCount = 0;
 	let activePromptId: string | undefined;
 	let terminalFailure: ReturnType<typeof describePromptFailure> | undefined;
