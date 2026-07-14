@@ -37,6 +37,15 @@ const PROVIDER_LABELS: Record<string, string> = {
 	qwen: "Qwen",
 };
 
+const STAGE_SHORT_LABELS: Record<string, string> = {
+	awareness: "Aware",
+	screening: "Screen",
+	evaluation: "Eval",
+	purchase: "Buy",
+	implementation: "Impl",
+	review: "Review",
+};
+
 function metricValue(value: number | null, suffix = "%") {
 	return value === null ? "—" : `${value}${suffix}`;
 }
@@ -476,20 +485,32 @@ export default function Dashboard() {
 					</div>
 				</section>
 
-				<section className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
+				<section className="space-y-7">
 					<div className="min-w-0">
 						<h2 className="text-base font-semibold">Intent × stage</h2>
-						<div className="mt-4 overflow-auto border-y border-stone-200 dark:border-neutral-800">
-							<table className="w-full min-w-[720px] text-center text-xs">
+						<div className="mt-4 overflow-hidden border-y border-stone-200 dark:border-neutral-800">
+							<table className="w-full table-fixed text-center text-[10px] sm:text-xs">
+								<colgroup>
+									<col className="w-[30%] sm:w-[24%] lg:w-[20%]" />
+									{stages.map((stage) => (
+										<col key={stage} />
+									))}
+								</colgroup>
 								<thead>
 									<tr>
-										<th className="px-3 py-3 text-left">Intent</th>
+										<th className="px-2 py-3 text-left sm:px-3">Intent</th>
 										{stages.map((stage) => (
 											<th
 												key={stage}
-												className="px-3 py-3 capitalize text-stone-500"
+												className="px-0.5 py-3 capitalize text-stone-500 sm:px-1"
+												title={stage.replaceAll("_", " ")}
 											>
-												{stage}
+												<span className="lg:hidden">
+													{STAGE_SHORT_LABELS[stage] ?? stage.slice(0, 5)}
+												</span>
+												<span className="hidden lg:inline">
+													{stage.replaceAll("_", " ")}
+												</span>
 											</th>
 										))}
 									</tr>
@@ -497,16 +518,19 @@ export default function Dashboard() {
 								<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
 									{intents.map((intent) => (
 										<tr key={intent}>
-											<th className="px-3 py-3 text-left font-medium capitalize">
+											<th className="break-words px-2 py-2 text-left font-medium capitalize leading-tight sm:px-3 sm:py-3">
 												{intent.replaceAll("_", " ")}
 											</th>
 											{stages.map((stage) => {
 												const cell = heatmap.get(`${intent}:${stage}`);
 												const value = cell?.mentionRate.value ?? null;
 												return (
-													<td key={stage} className="px-2 py-2">
+													<td
+														key={stage}
+														className="px-0.5 py-1.5 sm:px-1 sm:py-2"
+													>
 														<div
-															className="rounded p-2 tabular-nums"
+															className="rounded-sm px-0.5 py-2 tabular-nums"
 															style={{
 																backgroundColor:
 																	value === null
