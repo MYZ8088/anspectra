@@ -458,7 +458,9 @@ export async function startGeoCollectionRun(args: {
 			locales?: string[];
 		};
 		if (
-			promptSet.packKey !== "yao-full-geo-v1" ||
+			!["aloom-geo-detection-v1", "yao-full-geo-v1"].includes(
+				promptSet.packKey ?? "",
+			) ||
 			formalManifest.completePreset !== true ||
 			(formalManifest.customPromptCount ?? 0) !== 0 ||
 			!formalManifest.expectedPromptHashes?.length ||
@@ -467,7 +469,7 @@ export async function startGeoCollectionRun(args: {
 			)
 		) {
 			throw new ValidationError(
-				"Formal detection requires a complete preset-only frozen set",
+				"Formal detection requires a complete preset-only run configuration",
 			);
 		}
 		assertPromptSetLocales({

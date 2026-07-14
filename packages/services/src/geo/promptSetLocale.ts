@@ -35,7 +35,7 @@ export function assertPromptSetLocales(args: {
 		!sameLocales(manifestLocales, promptLocales)
 	) {
 		throw new ValidationError(
-			"The frozen prompt set language manifest does not match its prompts",
+			"The saved run language manifest does not match its prompts",
 		);
 	}
 	if (
@@ -43,7 +43,7 @@ export function assertPromptSetLocales(args: {
 		!sameLocales(expectedLocales, promptLocales)
 	) {
 		throw new ValidationError(
-			`Selected prompt languages (${expectedLocales.join(", ")}) do not match the frozen set (${promptLocales.join(", ")}). Create or choose a matching frozen set before running.`,
+			`Selected prompt languages (${expectedLocales.join(", ")}) do not match the saved run configuration (${promptLocales.join(", ")}).`,
 		);
 	}
 	return promptLocales;

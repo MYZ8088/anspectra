@@ -3,7 +3,7 @@
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
 import { Input } from "@aloom/ui";
-import { BookOpenText, Search, ShieldCheck } from "lucide-react";
+import { BookOpenText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const INTENT_LABELS: Record<string, string> = {
@@ -26,10 +26,6 @@ export default function PromptPacksPage() {
 	const catalog = api.geo.promptPacks.useQuery(
 		{ workspaceId },
 		{ enabled: Boolean(workspaceId), staleTime: Number.POSITIVE_INFINITY },
-	);
-	const sets = api.geo.promptSets.useQuery(
-		{ workspaceId },
-		{ enabled: Boolean(workspaceId) },
 	);
 	const entries = useMemo(() => {
 		const normalized = query.trim().toLocaleLowerCase();
@@ -57,8 +53,7 @@ export default function PromptPacksPage() {
 							{catalog.data?.name ?? "Aloom GEO Detection Pack"}
 						</h1>
 						<p className="mt-2 text-sm text-stone-500">
-							Version {catalog.data?.version ?? "1.1.0"} · fixed and read-only ·
-							Yao method licensed under MIT
+							Version {catalog.data?.version ?? "1.1.0"} · fixed and read-only
 						</p>
 					</div>
 					<BookOpenText className="size-6 text-stone-400" />
@@ -150,53 +145,6 @@ export default function PromptPacksPage() {
 								))}
 							</tbody>
 						</table>
-					</div>
-				</section>
-
-				<section className="space-y-4">
-					<div className="flex items-center gap-2">
-						<ShieldCheck className="size-4 text-stone-500" />
-						<h2 className="text-base font-semibold">
-							Workspace detection sets
-						</h2>
-					</div>
-					<div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
-						{(sets.data ?? [])
-							.filter((set) => set.purpose === "baseline")
-							.map((set) => {
-								const manifest = set.manifest as {
-									suiteKey?: string;
-									samplingDepth?: string;
-									expectedPromptHashes?: string[];
-									profileVersion?: number;
-								};
-								return (
-									<div
-										key={set.id}
-										className="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
-									>
-										<div>
-											<p className="font-medium">{set.name}</p>
-											<p className="mt-1 text-xs text-stone-500">
-												{manifest.suiteKey?.replaceAll("_", " ") ??
-													"legacy preset"}{" "}
-												· {manifest.samplingDepth ?? set.tier} · profile v
-												{manifest.profileVersion ?? "-"}
-											</p>
-										</div>
-										<p className="text-xs text-stone-500 md:text-right">
-											{set.prompts.length} prompts
-											<br />
-											{manifest.expectedPromptHashes?.length ?? 0} frozen hashes
-										</p>
-									</div>
-								);
-							})}
-						{!sets.data?.some((set) => set.purpose === "baseline") ? (
-							<p className="py-10 text-center text-sm text-stone-500">
-								No frozen detection sets.
-							</p>
-						) : null}
 					</div>
 				</section>
 			</div>

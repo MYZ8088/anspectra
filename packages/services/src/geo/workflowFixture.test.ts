@@ -60,7 +60,7 @@ function visibleAnalysis(): BrandAnalysisResult {
 	};
 }
 
-describe("Yao GEO full-cycle fixture", () => {
+describe("GEO detection full-cycle fixture", () => {
 	it("keeps the baseline, quality gate, and retest cohorts traceable", () => {
 		const plan = planMonitorPrompts(
 			{

@@ -5,11 +5,11 @@ Doubao, DeepSeek, Yuanbao, and Qwen.
 
 - It collects answers from official Web interfaces and never substitutes model API output.
 - It uses fixed, versioned prompt suites from 9 intents and 6 buyer stages.
-- Each prompt runs in a fresh conversation with a frozen provider mode.
+- Each prompt runs in a fresh conversation with the selected provider mode recorded for comparison.
 - Cookies and browser profiles remain on the user's local collector machine.
 - AIHubMix analyzes each captured answer independently after collection.
 - Reports retain failures in the denominator and separate collection from analysis.
 
 Product flow: scan the official site, confirm the product profile, preview all
 prompts and hashes, start a formal series, inspect hierarchical results, and
-schedule the same frozen set weekly or monthly.
+schedule the same versioned detection configuration weekly or monthly.

@@ -107,13 +107,13 @@ export default function SchedulePageClient({
 				<section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
 					<div className="space-y-5">
 						<label className="grid gap-1.5 text-sm">
-							<span className="font-medium">Frozen detection set</span>
+							<span className="font-medium">Detection configuration</span>
 							<select
 								value={promptSetId}
 								onChange={(event) => setPromptSetId(event.target.value)}
 								className="h-10 rounded-md border border-stone-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-950"
 							>
-								<option value="">Select a detection set</option>
+								<option value="">Select a previous run configuration</option>
 								{baselineSets.map((set) => (
 									<option key={set.id} value={set.id}>
 										{set.name} · {set.prompts.length} prompts

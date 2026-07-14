@@ -4,10 +4,10 @@ import type {
 	DetectionSuiteKey,
 	SamplingDepth,
 } from "@aloom/types";
-import enPackJson from "./presets/yao-full-v1.1.en-US.json" with {
+import enPackJson from "./presets/aloom-geo-detection-v1.1.en-US.json" with {
 	type: "json",
 };
-import zhPackJson from "./presets/yao-full-v1.1.zh-CN.json" with {
+import zhPackJson from "./presets/aloom-geo-detection-v1.1.zh-CN.json" with {
 	type: "json",
 };
 
@@ -35,7 +35,10 @@ export const GEO_DECISION_STAGES = [
 export type GeoPromptGroup = (typeof GEO_PROMPT_GROUPS)[number];
 export type GeoDecisionStage = (typeof GEO_DECISION_STAGES)[number];
 export type GeoDetectionTier = "quick" | "standard" | "deep";
-export type PromptOrigin = "yao_preset" | "user_custom" | "generated_expansion";
+export type PromptOrigin =
+	| "system_preset"
+	| "user_custom"
+	| "generated_expansion";
 export type BrandExposure = "blind" | "aided";
 
 export type BrandPromptProfile = {
@@ -148,7 +151,7 @@ export type MonitorPromptPlan = {
 	manifest: PromptCoverageManifest;
 };
 
-const YAO_PACK_SOURCE_COMMIT = "136eb92c90946ea56ec63f912d5025bcbc884f39";
+const REFERENCE_SOURCE_COMMIT = "136eb92c90946ea56ec63f912d5025bcbc884f39";
 
 export const DETECTION_SUITES: Record<
 	Exclude<DetectionSuiteKey, "filtered">,
@@ -162,28 +165,32 @@ export const DETECTION_SUITES: Record<
 > = {
 	quick_scan: {
 		label: "Quick Scan",
-		description: "A broad signal check across every intent at awareness and evaluation.",
+		description:
+			"A broad signal check across every intent at awareness and evaluation.",
 		intents: [...GEO_PROMPT_GROUPS],
 		stages: ["awareness", "evaluation"],
 		corePromptCount: 18,
 	},
 	discovery: {
 		label: "Discovery",
-		description: "How buyers discover, shortlist, and contextualize products in the category.",
+		description:
+			"How buyers discover, shortlist, and contextualize products in the category.",
 		intents: ["information", "recommendation", "scenario", "alternative"],
 		stages: ["awareness", "screening", "evaluation"],
 		corePromptCount: 12,
 	},
 	competitive_position: {
 		label: "Competitive Position",
-		description: "Recommendation, comparison, and alternative positioning near a buying decision.",
+		description:
+			"Recommendation, comparison, and alternative positioning near a buying decision.",
 		intents: ["recommendation", "comparison", "alternative"],
 		stages: ["screening", "evaluation", "purchase"],
 		corePromptCount: 9,
 	},
 	trust_risk: {
 		label: "Trust & Risk",
-		description: "Risk, pricing, and brand verification signals used during evaluation.",
+		description:
+			"Risk, pricing, and brand verification signals used during evaluation.",
 		intents: ["risk", "price", "brand_validation"],
 		stages: ["screening", "evaluation", "purchase"],
 		corePromptCount: 9,
@@ -207,7 +214,11 @@ export const DETECTION_SUITES: Record<
 export function samplingDepthToLegacyTier(
 	depth: SamplingDepth,
 ): GeoDetectionTier {
-	return depth === "single" ? "quick" : depth === "reliable" ? "standard" : "deep";
+	return depth === "single"
+		? "quick"
+		: depth === "reliable"
+			? "standard"
+			: "deep";
 }
 
 export function samplingDepthRoundCount(depth: SamplingDepth): number {
@@ -232,15 +243,19 @@ function asPresetPack(value: unknown): PresetPack {
 	if (
 		!pack ||
 		pack.entries?.length !== 54 ||
-		pack.sourceCommit !== YAO_PACK_SOURCE_COMMIT
+		pack.sourceCommit !== REFERENCE_SOURCE_COMMIT
 	) {
-		throw new Error("Yao Full GEO Pack is incomplete or has an unexpected source");
+		throw new Error(
+			"Aloom GEO Detection Pack is incomplete or has an unexpected source",
+		);
 	}
 	const cells = new Set(
 		pack.entries.map((entry) => `${entry.intent}:${entry.stage}`),
 	);
 	if (cells.size !== GEO_PROMPT_GROUPS.length * GEO_DECISION_STAGES.length) {
-		throw new Error("Yao Full GEO Pack must contain every intent-stage cell");
+		throw new Error(
+			"Aloom GEO Detection Pack must contain every intent-stage cell",
+		);
 	}
 	return pack;
 }
@@ -248,12 +263,16 @@ function asPresetPack(value: unknown): PresetPack {
 const zhPack = asPresetPack(zhPackJson);
 const enPack = asPresetPack(enPackJson);
 
-export function getYaoPresetPack(locale = "zh-CN"): PresetPack {
+export function getDetectionPresetPack(locale = "zh-CN"): PresetPack {
 	return locale.toLowerCase().startsWith("zh") ? zhPack : enPack;
 }
 
 function unique(values: Array<string | null | undefined>): string[] {
-	return [...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])];
+	return [
+		...new Set(
+			values.map((value) => value?.trim()).filter(Boolean) as string[],
+		),
+	];
 }
 
 function normalizedEntity(value: string): string {
@@ -279,7 +298,8 @@ function localizedDefaults(profile: BrandPromptProfile, locale: string) {
 	const zh = locale.toLowerCase().startsWith("zh");
 	return {
 		brand: profile.brandName,
-		category: profile.category || (zh ? "未填写品类" : "an unspecified category"),
+		category:
+			profile.category || (zh ? "未填写品类" : "an unspecified category"),
 		product: profile.products?.[0] || profile.brandName,
 		competitor:
 			profile.competitors?.[0] ||
@@ -291,7 +311,10 @@ function localizedDefaults(profile: BrandPromptProfile, locale: string) {
 			profile.regions?.[0] ||
 			profile.market ||
 			(zh ? "未填写地区" : "an unspecified region"),
-		market: profile.market || profile.regions?.[0] || (zh ? "未填写市场" : "an unspecified market"),
+		market:
+			profile.market ||
+			profile.regions?.[0] ||
+			(zh ? "未填写市场" : "an unspecified market"),
 		industry:
 			profile.industry ||
 			profile.category ||
@@ -310,20 +333,31 @@ function localizedDefaults(profile: BrandPromptProfile, locale: string) {
 	};
 }
 
-function renderTemplate(template: string, values: Record<string, string>): string {
+function renderTemplate(
+	template: string,
+	values: Record<string, string>,
+): string {
 	const rendered = template.replace(
 		/\{([a-zA-Z]+)\}/g,
 		(_, key: string) => values[key] ?? `{${key}}`,
 	);
 	if (/\{[a-zA-Z]+\}/.test(rendered)) {
-		throw new Error(`Prompt template contains unresolved variables: ${rendered}`);
+		throw new Error(
+			`Prompt template contains unresolved variables: ${rendered}`,
+		);
 	}
 	return rendered;
 }
 
-function hashPrompt(locale: string, templateVersion: string, prompt: string): string {
+function hashPrompt(
+	locale: string,
+	templateVersion: string,
+	prompt: string,
+): string {
 	return createHash("sha256")
-		.update(`${locale}\n${templateVersion}\n${prompt.trim().replace(/\s+/g, " ")}`)
+		.update(
+			`${locale}\n${templateVersion}\n${prompt.trim().replace(/\s+/g, " ")}`,
+		)
 		.digest("hex");
 }
 
@@ -373,7 +407,8 @@ function createPrompt(args: {
 		audience: args.audience,
 		region: args.region,
 	};
-	const prompt = args.promptOverride ?? renderTemplate(args.entry.prompt, values);
+	const prompt =
+		args.promptOverride ?? renderTemplate(args.entry.prompt, values);
 	const templateKey = `${args.pack.packKey}:${args.entry.key}${
 		args.origin === "generated_expansion" ? ":expansion" : ""
 	}`;
@@ -475,7 +510,10 @@ function addExpansionPrompts(args: {
 	const additions: GeneratedMonitorPrompt[] = [];
 	const defaults = localizedDefaults(args.profile, args.pack.locale);
 	const initialMissing = missingCoverage(args.prompts, args.profile);
-	const entry = (intent: GeoPromptGroup, stage: GeoDecisionStage): PresetEntry => {
+	const entry = (
+		intent: GeoPromptGroup,
+		stage: GeoDecisionStage,
+	): PresetEntry => {
 		const found = args.pack.entries.find(
 			(item) => item.intent === intent && item.stage === stage,
 		);
@@ -601,8 +639,12 @@ function buildManifest(args: {
 		expectedPromptHashes: args.prompts.map((prompt) => prompt.promptHash),
 		complete,
 		coverage: {
-			intents: unique(args.prompts.map((prompt) => prompt.promptGroup)) as GeoPromptGroup[],
-			stages: unique(args.prompts.map((prompt) => prompt.decisionStage)) as GeoDecisionStage[],
+			intents: unique(
+				args.prompts.map((prompt) => prompt.promptGroup),
+			) as GeoPromptGroup[],
+			stages: unique(
+				args.prompts.map((prompt) => prompt.decisionStage),
+			) as GeoDecisionStage[],
 			products: unique(
 				args.prompts.map((prompt) => prompt.dimensions.targetProduct),
 			),
@@ -640,15 +682,19 @@ function checkedFilterValues(
 		selected.map((value) => normalizedAvailable.get(normalizedEntity(value))),
 	);
 	if (resolved.length !== unique(selected).length) {
-		throw new Error(`${label} filters must reference confirmed brand profile values`);
+		throw new Error(
+			`${label} filters must reference confirmed brand profile values`,
+		);
 	}
 	return resolved;
 }
 
-function sameValues(left: readonly string[], right: readonly string[]): boolean {
+function sameValues(
+	left: readonly string[],
+	right: readonly string[],
+): boolean {
 	return (
-		left.length === right.length &&
-		left.every((value) => right.includes(value))
+		left.length === right.length && left.every((value) => right.includes(value))
 	);
 }
 
@@ -663,8 +709,6 @@ export function getDetectionPromptCatalog() {
 	return {
 		name: "Aloom GEO Detection Pack",
 		version: "1.1.0",
-		sourceCommit: YAO_PACK_SOURCE_COMMIT,
-		license: "MIT",
 		suites: listDetectionSuites(),
 		locales: [zhPack, enPack].map((pack) => ({
 			locale: pack.locale,
@@ -681,15 +725,15 @@ export function planDetectionPrompts(
 		filters?: DetectionDimensionFilter;
 	},
 ): MonitorPromptPlan {
-	const pack = getYaoPresetPack(profile.locale);
+	const pack = getDetectionPresetPack(profile.locale);
 	const suite = DETECTION_SUITES[options.suiteKey];
 	if (!suite) throw new Error(`Unknown detection suite: ${options.suiteKey}`);
 	const filters = options.filters ?? {};
 	const intents = filters.intents?.length
-		? unique(filters.intents) as GeoPromptGroup[]
+		? (unique(filters.intents) as GeoPromptGroup[])
 		: suite.intents;
 	const stages = filters.stages?.length
-		? unique(filters.stages) as GeoDecisionStage[]
+		? (unique(filters.stages) as GeoDecisionStage[])
 		: suite.stages;
 	const exposures = filters.brandExposures?.length
 		? unique(filters.brandExposures)
@@ -739,10 +783,12 @@ export function planDetectionPrompts(
 			entry,
 			profile: effectiveProfile,
 			pack,
-			origin: "yao_preset",
-			product: products[ordinal % Math.max(products.length, 1)] ?? defaults.product,
+			origin: "system_preset",
+			product:
+				products[ordinal % Math.max(products.length, 1)] ?? defaults.product,
 			competitor:
-				competitors[ordinal % Math.max(competitors.length, 1)] ?? defaults.competitor,
+				competitors[ordinal % Math.max(competitors.length, 1)] ??
+				defaults.competitor,
 			audience:
 				audiences[ordinal % Math.max(audiences.length, 1)] ?? defaults.audience,
 			region: regions[ordinal % Math.max(regions.length, 1)] ?? defaults.region,
@@ -801,7 +847,11 @@ export function planMonitorPrompts(
 	return planDetectionPrompts(profile, {
 		suiteKey: tier === "quick" ? "quick_scan" : "full_matrix",
 		samplingDepth:
-			tier === "quick" ? "single" : tier === "standard" ? "reliable" : "stability",
+			tier === "quick"
+				? "single"
+				: tier === "standard"
+					? "reliable"
+					: "stability",
 	});
 }
 

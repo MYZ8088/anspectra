@@ -2,7 +2,7 @@ export {
 	DETECTION_SUITES,
 	estimateSamplingMinimumDays,
 	getDetectionPromptCatalog,
-	getYaoPresetPack,
+	getDetectionPresetPack,
 	listDetectionSuites,
 	planDetectionPrompts,
 	samplingDepthRoundCount,

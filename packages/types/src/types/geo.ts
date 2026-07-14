@@ -202,6 +202,7 @@ export type DetectionSchedule = {
 };
 
 export const PROMPT_ORIGIN_LIST = [
+	"system_preset",
 	"yao_preset",
 	"user_custom",
 	"generated_expansion",

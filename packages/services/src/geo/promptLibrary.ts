@@ -26,7 +26,7 @@ import {
 	type GeneratedMonitorPrompt,
 	type GeoDetectionTier,
 	estimateSamplingMinimumDays,
-	getYaoPresetPack,
+	getDetectionPresetPack,
 	listDetectionSuites,
 	planDetectionPrompts,
 	samplingDepthRoundCount,
@@ -45,8 +45,8 @@ export type CustomPromptInput = {
 	tags?: string[];
 };
 
-const YAO_PACK_KEY = "yao-full-geo-v1";
-const YAO_PACK_VERSION = "1.1.0";
+const ALOOM_PACK_KEY = "aloom-geo-detection-v1";
+const ALOOM_PACK_VERSION = "1.1.0";
 const DEFAULT_PROVIDERS = ["doubao", "deepseek", "hunyuan", "qwen"];
 
 function normalizeLocale(locale?: string | null): "zh-CN" | "en-US" {
@@ -317,10 +317,10 @@ function toBrandPromptProfile(
 	};
 }
 
-export async function syncYaoPromptTemplates(locales = ["zh-CN", "en-US"]) {
+export async function syncSystemPromptTemplates(locales = ["zh-CN", "en-US"]) {
 	const values = [...new Set(locales.map(normalizeLocale))].flatMap(
 		(locale) => {
-			const pack = getYaoPresetPack(locale);
+			const pack = getDetectionPresetPack(locale);
 			return pack.entries.map((entry) => ({
 				id: templateId({
 					packKey: pack.packKey,
@@ -393,8 +393,8 @@ export async function previewDetection(args: {
 	const providerCount = args.providerCount ?? DEFAULT_PROVIDERS.length;
 	const profileCompleteness = getProfileCompleteness(profile);
 	return {
-		packKey: YAO_PACK_KEY,
-		packVersion: YAO_PACK_VERSION,
+		packKey: ALOOM_PACK_KEY,
+		packVersion: ALOOM_PACK_VERSION,
 		suiteKey: plans.some((plan) => plan.manifest.isFiltered)
 			? "filtered"
 			: args.suiteKey,
@@ -447,7 +447,7 @@ async function upsertGeneratedWorkspacePrompts(args: {
 	const values = args.prompts.map((prompt) => ({
 		workspaceId: args.workspaceId,
 		templateId:
-			prompt.origin === "yao_preset"
+			prompt.origin === "system_preset"
 				? `${prompt.templateKey.split(":")[0]}:${
 						prompt.templateVersion
 					}:${prompt.locale}:${prompt.templateKey.split(":").at(-1)}`
@@ -487,7 +487,7 @@ async function upsertGeneratedWorkspacePrompts(args: {
 				args.prompts.map((prompt) => prompt.promptHash),
 			),
 			inArray(schema.workspacePrompts.origin, [
-				"yao_preset",
+				"system_preset",
 				"generated_expansion",
 			]),
 		),
@@ -517,7 +517,7 @@ export async function createDetectionSet(args: {
 	if (!preview.complete) {
 		throw new ValidationError("The preset pack has unresolved coverage gaps");
 	}
-	await syncYaoPromptTemplates(preview.locales);
+	await syncSystemPromptTemplates(preview.locales);
 	const generated = preview.prompts;
 	const generatedRows = await upsertGeneratedWorkspacePrompts({
 		workspaceId: args.workspaceId,
@@ -538,7 +538,7 @@ export async function createDetectionSet(args: {
 	const manifest = {
 		packKey: preview.packKey,
 		packVersion: preview.packVersion,
-		sourceCommit: getYaoPresetPack(preview.locales[0]).sourceCommit,
+		sourceCommit: getDetectionPresetPack(preview.locales[0]).sourceCommit,
 		locales: preview.locales,
 		suiteKey: preview.suiteKey,
 		requestedSuiteKey: preview.requestedSuiteKey,
@@ -566,8 +566,9 @@ export async function createDetectionSet(args: {
 				name:
 					args.name ??
 					`${profile.brandName} ${
-						preview.suites.find((suite) => suite.key === preview.requestedSuiteKey)
-							?.label ?? "GEO Detection"
+						preview.suites.find(
+							(suite) => suite.key === preview.requestedSuiteKey,
+						)?.label ?? "GEO Detection"
 					} · ${preview.samplingDepth}`,
 				tier: legacyTier,
 				status: "active",
@@ -767,6 +768,7 @@ export async function migrateLegacyPrompts(workspaceId: string) {
 			and(
 				eq(schema.workspacePrompts.workspaceId, workspaceId),
 				inArray(schema.workspacePrompts.origin, [
+					"system_preset",
 					"yao_preset",
 					"generated_expansion",
 				]),
@@ -901,7 +903,7 @@ export async function listWorkspacePromptLibrary(workspaceId: string) {
 				),
 			),
 		];
-		await syncYaoPromptTemplates(locales);
+		await syncSystemPromptTemplates(locales);
 	}
 	return db.query.workspacePrompts.findMany({
 		where: eq(schema.workspacePrompts.workspaceId, workspaceId),
@@ -919,12 +921,12 @@ export async function listWorkspacePromptLibraryV2(workspaceId: string) {
 	const locales = profile?.locales?.length
 		? [...new Set(profile.locales.map(normalizeLocale))]
 		: ["zh-CN", "en-US"];
-	await syncYaoPromptTemplates(locales);
+	await syncSystemPromptTemplates(locales);
 	const [systemTemplates, rows] = await Promise.all([
 		db.query.promptTemplates.findMany({
 			where: and(
-				eq(schema.promptTemplates.packKey, YAO_PACK_KEY),
-				eq(schema.promptTemplates.version, YAO_PACK_VERSION),
+				eq(schema.promptTemplates.packKey, ALOOM_PACK_KEY),
+				eq(schema.promptTemplates.version, ALOOM_PACK_VERSION),
 				eq(schema.promptTemplates.active, true),
 			),
 			orderBy: [
@@ -935,17 +937,19 @@ export async function listWorkspacePromptLibraryV2(workspaceId: string) {
 		}),
 		listWorkspacePromptLibrary(workspaceId),
 	]);
-	const isUnversionedPreset = (row: (typeof rows)[number]) =>
-		(row.origin === "yao_preset" || row.origin === "generated_expansion") &&
-		row.profileVersion == null;
+	const isLegacyPreset = (row: (typeof rows)[number]) =>
+		row.origin === "yao_preset" ||
+		((row.origin === "system_preset" || row.origin === "generated_expansion") &&
+			row.profileVersion == null);
 	const workspacePrompts = rows.filter(
 		(row) =>
-			(row.origin === "yao_preset" || row.origin === "generated_expansion") &&
-			!isUnversionedPreset(row),
+			(row.origin === "system_preset" ||
+				row.origin === "generated_expansion") &&
+			!isLegacyPreset(row),
 	);
 	const customPrompts = rows.filter((row) => row.origin === "user_custom");
 	const legacyPrompts = rows.filter(
-		(row) => row.origin === "legacy" || isUnversionedPreset(row),
+		(row) => row.origin === "legacy" || isLegacyPreset(row),
 	);
 	return {
 		systemTemplates,
@@ -1104,7 +1108,7 @@ export function getPromptLibraryTaxonomy() {
 		intents: [...GEO_PROMPT_GROUPS],
 		decisionStages: [...GEO_DECISION_STAGES],
 		origins: [
-			"yao_preset",
+			"system_preset",
 			"user_custom",
 			"generated_expansion",
 			"legacy",

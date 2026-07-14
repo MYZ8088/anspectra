@@ -211,7 +211,7 @@ export async function createGeneratedPromptSet(args: {
 		workspaceId: args.workspaceId,
 		tier: args.tier,
 		locales: args.locale ? [args.locale] : (profile?.locales ?? ["zh-CN"]),
-		name: `${args.brandName} ${args.tier} Yao GEO baseline`,
+		name: `${args.brandName} ${args.tier} GEO baseline`,
 	});
 }
 

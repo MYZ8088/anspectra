@@ -126,7 +126,9 @@ export async function saveDetectionSchedule(args: {
 		completePreset?: boolean;
 	};
 	if (!manifest.completePreset || !manifest.expectedPromptHashes?.length) {
-		throw new ValidationError("Only complete frozen detection sets can be scheduled");
+		throw new ValidationError(
+			"Only complete detection configurations can be scheduled",
+		);
 	}
 	const providers = [...new Set(args.providers)].filter((provider) =>
 		GEO_WEB_PROVIDERS.includes(provider as never),

@@ -110,7 +110,7 @@ export default function SettingsPage() {
 						</div>
 						<dl className="mt-4 space-y-3 text-sm">
 							<div className="flex justify-between">
-								<dt className="text-stone-500">Frozen sets</dt>
+								<dt className="text-stone-500">Run configurations</dt>
 								<dd>
 									{
 										(sets.data ?? []).filter(

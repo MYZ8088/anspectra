@@ -58,7 +58,7 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 	{
 		title: "Multi-Provider Prompt Testing",
 		description:
-			"Run one frozen prompt set across Doubao, DeepSeek, Yuanbao, and Qwen.",
+			"Run one selected prompt suite across Doubao, DeepSeek, Yuanbao, and Qwen.",
 		icon: SearchCheck,
 	},
 	{

@@ -421,7 +421,7 @@ export async function createContentDraft(args: {
 				...draftRevision,
 				qualityReport,
 				model: generation.model,
-				templateVersion: "yao-12x8-content-refiner-v1",
+				templateVersion: "aloom-12x8-content-refiner-v1",
 				createdBy: args.createdBy ?? null,
 			})
 			.returning();

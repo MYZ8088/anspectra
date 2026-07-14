@@ -4,7 +4,7 @@ import {
 	GEO_PROMPT_GROUPS,
 	estimateSamplingMinimumDays,
 	generateMonitorPrompts,
-	getYaoPresetPack,
+	getDetectionPresetPack,
 	planDetectionPrompts,
 	planMonitorPrompts,
 	samplingDepthRoundCount,
@@ -18,7 +18,7 @@ const profile = {
 	locale: "zh-CN",
 };
 
-describe("Yao Full GEO Pack", () => {
+describe("Aloom GEO Detection Pack", () => {
 	it("keeps sampling depth independent while respecting temporal minimums", () => {
 		expect([
 			samplingDepthRoundCount("single"),
@@ -34,7 +34,8 @@ describe("Yao Full GEO Pack", () => {
 	it.each(["zh-CN", "en-US"])(
 		"ships all 54 intent-stage cells for %s",
 		(locale) => {
-			const pack = getYaoPresetPack(locale);
+			const pack = getDetectionPresetPack(locale);
+			expect(pack.packKey).toBe("aloom-geo-detection-v1");
 			expect(pack.version).toBe("1.1.0");
 			expect(pack.entries).toHaveLength(54);
 			expect(new Set(pack.entries.map((entry) => entry.key))).toHaveLength(54);
@@ -178,6 +179,14 @@ describe("Yao Full GEO Pack", () => {
 				{ suiteKey, samplingDepth: "single" },
 			);
 			expect(plan.manifest.corePromptCount).toBe(count);
+			expect(
+				plan.prompts.filter((prompt) => prompt.origin === "system_preset"),
+			).toHaveLength(count);
+			expect(
+				plan.prompts.every((prompt) =>
+					["system_preset", "generated_expansion"].includes(prompt.origin),
+				),
+			).toBe(true);
 			expect(plan.manifest.suiteKey).toBe(suiteKey);
 			expect(plan.manifest.isFiltered).toBe(false);
 		},

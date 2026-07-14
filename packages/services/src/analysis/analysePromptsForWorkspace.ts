@@ -173,7 +173,7 @@ export async function analysePromptsForWorkspace(args: {
 					model_provider: resp.model_provider,
 					analysis_json: analysisJson,
 					analysis_model: execution.model,
-					template_version: "yao-six-layer-analysis-v1",
+					template_version: "aloom-six-layer-analysis-v1",
 					raw_output: JSON.stringify({
 						rawOutputs: execution.rawOutputs,
 						attempts: execution.attempts,
@@ -207,7 +207,7 @@ export async function analysePromptsForWorkspace(args: {
 					model_provider: resp.model_provider,
 					analysis_json: "",
 					analysis_model: String(models.at(-1) ?? ""),
-					template_version: "yao-six-layer-analysis-v1",
+					template_version: "aloom-six-layer-analysis-v1",
 					raw_output: JSON.stringify({ rawOutputs, attempts }),
 					status: "failed",
 					error: errorMessage,
@@ -296,14 +296,14 @@ export async function analysePromptsForWorkspace(args: {
 	const remainingResult = scopedResponseIds
 		? null
 		: await clickhouse.query({
-		query: `
+			query: `
             SELECT count() as count
             FROM analytics.prompt_responses
             WHERE workspace_id = {workspaceId:String}
               AND is_analysed = false
         `,
-		query_params: { workspaceId },
-		format: "JSONEachRow",
+			query_params: { workspaceId },
+			format: "JSONEachRow",
 		});
 
 	const remainingData: Array<{ count: string }> = remainingResult

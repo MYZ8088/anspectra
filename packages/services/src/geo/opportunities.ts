@@ -378,7 +378,7 @@ export async function refreshWorkspaceOpportunities(
 		? await getBaselineScorecard({ workspaceId, seriesId })
 		: await getLatestFormalBaselineScorecard(workspaceId);
 	if (!scorecard) {
-		throw new ValidationError("Run a formal Yao baseline before diagnosis");
+		throw new ValidationError("Run a formal baseline before diagnosis");
 	}
 	const [answers, pages, profile, existing] = await Promise.all([
 		loadBaselineAnswers(workspaceId, scorecard.series.id),

@@ -312,7 +312,9 @@ export async function publishApprovedRevision(args: {
 		);
 
 	if (!baselineSeries.promptSetId) {
-		throw new ValidationError("The selected baseline has no frozen prompt set");
+		throw new ValidationError(
+			"The selected baseline has no saved prompt configuration",
+		);
 	}
 	const promptSet = await db.query.promptSets.findFirst({
 		where: and(
@@ -554,7 +556,9 @@ export async function createRetestExperiment(args: {
 		),
 	});
 	if (!intervention?.baselineSeriesId) {
-		throw new ValidationError("The intervention has no frozen baseline series");
+		throw new ValidationError(
+			"The intervention has no versioned baseline series",
+		);
 	}
 	const series = await db.query.collectionSeries.findFirst({
 		where: and(
@@ -563,7 +567,9 @@ export async function createRetestExperiment(args: {
 		),
 	});
 	if (!series?.promptSetId) {
-		throw new ValidationError("The frozen baseline prompt set is unavailable");
+		throw new ValidationError(
+			"The baseline prompt configuration is unavailable",
+		);
 	}
 	const [runs, prompts, asset] = await Promise.all([
 		db.query.collectionRuns.findMany({

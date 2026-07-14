@@ -44,7 +44,7 @@ Aloom 明确区分两层评分：
 | 稳定性 | 10% | 相同模式、相同提示词的多轮回答一致性。 |
 | 治理完整性 | 10% | 采集、分析和必需检测维度的完成情况。 |
 
-无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重由 Aloom 独立设计和版本化，只参考了 Yao GEO Skills 与 OneGlanse 的部分测量思路，既不是从任一项目直接复制，也不宣称是上游发布的官方模型。
+无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重由 Aloom 独立设计和版本化。
 
 每个平台报告均包含独立总分、六维明细、单回答表现分、采集与分析完成率、出现率、推荐率、绝对排名、情感、可见信源曝光、目标份额、竞品份额、模式 cohort、失败分类、实际提示词、原始回答、引用和对话证据。
 
@@ -53,10 +53,10 @@ Aloom 明确区分两层评分：
 1. 扫描产品官网。
 2. 确认品牌、品类、产品、受众、地区和竞品。
 3. 选择检测套件、语言、平台、官方 Web 模式和采样深度。
-4. 预览实际提示词、冻结 hash、全部 checkpoint 和预计周期。
-5. 每条提示词在独立的新对话中执行。
+4. 预览实际提示词、样本数量和预计周期，然后点击 **Run detection**。
+5. Aloom 自动记录本次配置，并在独立的新对话中执行每条提示词。
 6. 按平台、模式、语言、意图、阶段、品牌暴露方式、实体或单条提示词查看报告。
-7. 使用同一冻结提示词集创建周度或月度周期监测。
+7. 使用同一版本化检测配置创建周度或月度周期监测。
 
 正式检测不接受任意自定义提示词。历史 custom 与 legacy 提示词仍与原始样本关联，但不会进入新的正式检测和报告。
 
@@ -168,7 +168,7 @@ pnpm build            # 执行语言、隐私检查与生产构建
 
 Aloom 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
 
-- 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、冻结提示词 manifest、模式分 cohort、样本 checkpoint 和完整报告。
+- 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、版本化运行 manifest、模式分 cohort、样本 checkpoint 和完整报告。
 - Aloom 仅借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 固定提交 `136eb92c90946ea56ec63f912d5025bcbc884f39` 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Aloom 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
 - Aloom 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
 

@@ -221,12 +221,11 @@ export const geoRouter = createTRPCRouter({
 		.use(createRateLimiter("geo.startDetection", { limit: 4, windowSecs: 60 }))
 		.input(
 			z.object({
-				promptSetId: z.string().uuid(),
-				expectedLocales: z
-					.array(z.enum(["zh-CN", "en-US"]))
-					.min(1)
-					.optional(),
-				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).optional(),
+				suiteKey: suiteSchema,
+				samplingDepth: z.enum(SAMPLING_DEPTH_LIST),
+				locales: z.array(z.enum(["zh-CN", "en-US"])).min(1),
+				filters: detectionFilterSchema,
+				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).min(1),
 				providerModes: z
 					.object({
 						doubao: z.enum(PROVIDER_MODE_LIST).optional(),
@@ -237,17 +236,24 @@ export const geoRouter = createTRPCRouter({
 					.optional(),
 			}),
 		)
-		.mutation(({ ctx, input }) =>
-			startGeoCollectionRun({
+		.mutation(async ({ ctx, input }) => {
+			const promptSet = await createDetectionSet({
+				workspaceId: ctx.workspaceId,
+				suiteKey: input.suiteKey,
+				samplingDepth: input.samplingDepth,
+				locales: input.locales,
+				filters: input.filters,
+			});
+			return startGeoCollectionRun({
 				workspaceId: ctx.workspaceId,
 				userId: ctx.user.id,
-				promptSetId: input.promptSetId,
-				expectedLocales: input.expectedLocales,
+				promptSetId: promptSet.promptSet.id,
+				expectedLocales: promptSet.manifest.locales,
 				providers: input.providers,
 				providerModes: input.providerModes,
 				requiredPurpose: "baseline",
-			}),
-		),
+			});
+		}),
 	runs: authorizedWorkspaceProcedure.query(({ ctx }) =>
 		listGeoRuns(ctx.workspaceId),
 	),

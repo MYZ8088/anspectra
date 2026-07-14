@@ -1,7 +1,7 @@
 {
-  "packKey": "yao-full-geo-v1",
+  "packKey": "aloom-geo-detection-v1",
   "version": "1.1.0",
-  "locale": "zh-CN",
+  "locale": "en-US",
   "sourceCommit": "136eb92c90946ea56ec63f912d5025bcbc884f39",
   "license": "MIT",
   "entries": [
@@ -10,378 +10,378 @@
       "intent": "information",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "{category}是什么，通常解决哪些业务问题？"
+      "prompt": "What is {category}, and which business problems does it usually solve?"
     },
     {
       "key": "information-screening",
       "intent": "information",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "{brand}是什么，它和一般的{category}有什么区别？"
+      "prompt": "What is {brand}, and how is it different from a typical {category} product?"
     },
     {
       "key": "information-evaluation",
       "intent": "information",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "{brand}的{product}包含哪些核心能力、适用对象和使用边界？"
+      "prompt": "What core capabilities, suitable users, and usage boundaries does {brand}'s {product} have?"
     },
     {
       "key": "information-purchase",
       "intent": "information",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "采购{brand}前，需要核实哪些产品、合同、服务和公开证据信息？"
+      "prompt": "What product, contract, service, and public evidence should a buyer verify before purchasing {brand}?"
     },
     {
       "key": "information-implementation",
       "intent": "information",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "实施{brand}的{product}通常需要哪些数据、集成和团队准备？"
+      "prompt": "What data, integrations, and team preparation are normally required to implement {brand}'s {product}?"
     },
     {
       "key": "information-review",
       "intent": "information",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "已经使用{brand}后，应该用哪些指标判断{product}是否产生了价值？"
+      "prompt": "After adopting {brand}, which metrics show whether {product} is creating value?"
     },
     {
       "key": "recommendation-awareness",
       "intent": "recommendation",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "适合{audience}的{category}有哪些值得了解？ 请{evidenceRequirement}。"
+      "prompt": "Which {category} products are worth considering for {audience}? {evidenceRequirement}"
     },
     {
       "key": "recommendation-screening",
       "intent": "recommendation",
       "stage": "screening",
       "brandExposure": "blind",
-      "prompt": "请推荐适合{audience}、预算约为{budget}的{category}，并说明选择理由。 请{evidenceRequirement}。"
+      "prompt": "Recommend {category} products for {audience} with a budget of about {budget}, and explain the reasons. {evidenceRequirement}"
     },
     {
       "key": "recommendation-evaluation",
       "intent": "recommendation",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "在{region}的{industry}场景里，什么情况下应该把{brand}列入{category}候选？ 请{evidenceRequirement}。"
+      "prompt": "When should a {industry} team in {region} shortlist {brand} as a {category} option? {evidenceRequirement}"
     },
     {
       "key": "recommendation-purchase",
       "intent": "recommendation",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "准备在{implementationPeriod}内采购{category}，{brand}是否值得优先考虑，为什么？ 请{evidenceRequirement}。"
+      "prompt": "A team plans to purchase {category} within {implementationPeriod}. Should it prioritize {brand}, and why? {evidenceRequirement}"
     },
     {
       "key": "recommendation-implementation",
       "intent": "recommendation",
       "stage": "implementation",
       "brandExposure": "blind",
-      "prompt": "{teamSize}规模的团队优先选择哪些容易实施的{category}？ 请{evidenceRequirement}。"
+      "prompt": "Which {category} products are easiest to implement for a {teamSize} team? {evidenceRequirement}"
     },
     {
       "key": "recommendation-review",
       "intent": "recommendation",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "现有方案效果不理想时，应该继续使用{brand}还是重新选择其他{category}？ 请{evidenceRequirement}。"
+      "prompt": "If the current solution underperforms, should a team continue with {brand} or select another {category} product? {evidenceRequirement}"
     },
     {
       "key": "comparison-awareness",
       "intent": "comparison",
       "stage": "awareness",
       "brandExposure": "aided",
-      "prompt": "{brand}和{competitor}分别是什么类型的产品，核心差异在哪里？ 请{evidenceRequirement}。"
+      "prompt": "What types of products are {brand} and {competitor}, and what are their core differences? {evidenceRequirement}"
     },
     {
       "key": "comparison-screening",
       "intent": "comparison",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "{brand}和{competitor}分别适合哪些团队和业务场景？ 请{evidenceRequirement}。"
+      "prompt": "Which teams and business scenarios are the best fit for {brand} and {competitor}? {evidenceRequirement}"
     },
     {
       "key": "comparison-evaluation",
       "intent": "comparison",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "请从功能、成本、数据、集成和实施难度比较{brand}与{competitor}。 请{evidenceRequirement}。"
+      "prompt": "Compare {brand} and {competitor} on features, cost, data, integrations, and implementation difficulty. {evidenceRequirement}"
     },
     {
       "key": "comparison-purchase",
       "intent": "comparison",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "采购决策中，选择{brand}还是{competitor}应重点核验哪些证据？ 请{evidenceRequirement}。"
+      "prompt": "Which evidence should a buyer verify when choosing between {brand} and {competitor}? {evidenceRequirement}"
     },
     {
       "key": "comparison-implementation",
       "intent": "comparison",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "如果要在{implementationPeriod}内上线，{brand}和{competitor}哪个实施风险更可控？ 请{evidenceRequirement}。"
+      "prompt": "If a team must launch within {implementationPeriod}, which has more manageable implementation risk: {brand} or {competitor}? {evidenceRequirement}"
     },
     {
       "key": "comparison-review",
       "intent": "comparison",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "如何客观复盘{brand}与{competitor}的实际使用效果和长期成本？ 请{evidenceRequirement}。"
+      "prompt": "How should a team objectively review the real-world outcomes and long-term costs of {brand} versus {competitor}? {evidenceRequirement}"
     },
     {
       "key": "transaction-awareness",
       "intent": "transaction",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "首次了解{category}后，下一步应该申请演示、试用还是先做需求梳理？"
+      "prompt": "After first learning about {category}, should a buyer request a demo, start a trial, or map requirements first?"
     },
     {
       "key": "transaction-screening",
       "intent": "transaction",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "想试用{brand}的{product}，开始前应该准备哪些需求和数据？"
+      "prompt": "What requirements and data should a team prepare before trialing {brand}'s {product}?"
     },
     {
       "key": "transaction-evaluation",
       "intent": "transaction",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "如何设计一套对{brand}的{product}有效且公平的试用评估？"
+      "prompt": "How can a team design a valid and fair trial of {brand}'s {product}?"
     },
     {
       "key": "transaction-purchase",
       "intent": "transaction",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "决定采购{brand}前，询价、合同审核和安全评估应该按什么顺序进行？"
+      "prompt": "Before purchasing {brand}, in what order should a team handle pricing, contract review, and security assessment?"
     },
     {
       "key": "transaction-implementation",
       "intent": "transaction",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "从签约到上线{brand}，{teamSize}规模团队应该执行哪些步骤？"
+      "prompt": "Which steps should a {teamSize} team complete between signing and launching {brand}?"
     },
     {
       "key": "transaction-review",
       "intent": "transaction",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "续费、扩容或停止使用{brand}前，应该完成哪些复盘和数据导出动作？"
+      "prompt": "Before renewing, expanding, or leaving {brand}, which review and data-export actions should a team complete?"
     },
     {
       "key": "risk-awareness",
       "intent": "risk",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "选择{category}时最常见的风险、误区和失败原因是什么？ 请{evidenceRequirement}。"
+      "prompt": "What are the most common risks, misconceptions, and failure modes when choosing {category}? {evidenceRequirement}"
     },
     {
       "key": "risk-screening",
       "intent": "risk",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "{brand}有哪些缺点、限制或不适合的团队？ 请{evidenceRequirement}。"
+      "prompt": "What are the main limitations of {brand}, and which teams should not choose it? {evidenceRequirement}"
     },
     {
       "key": "risk-evaluation",
       "intent": "risk",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "评估{brand}时，数据安全、隐私、合规和供应商锁定有哪些风险？ 请{evidenceRequirement}。"
+      "prompt": "What data security, privacy, compliance, and vendor lock-in risks should a buyer assess for {brand}? {evidenceRequirement}"
     },
     {
       "key": "risk-purchase",
       "intent": "risk",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "采购{brand}前，合同、价格、服务边界和退出机制中有哪些风险需要核实？ 请{evidenceRequirement}。"
+      "prompt": "Which contract, pricing, service-boundary, and exit risks should a buyer verify before purchasing {brand}? {evidenceRequirement}"
     },
     {
       "key": "risk-implementation",
       "intent": "risk",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "实施{brand}的{product}时，哪些配置、迁移或组织问题最容易导致失败？ 请{evidenceRequirement}。"
+      "prompt": "Which configuration, migration, or organizational issues most often derail an implementation of {brand}'s {product}? {evidenceRequirement}"
     },
     {
       "key": "risk-review",
       "intent": "risk",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "使用{brand}后出现哪些信号时，团队应该纠偏、降级或考虑替换？ 请{evidenceRequirement}。"
+      "prompt": "Which signals indicate that a team should correct, downgrade, or replace its use of {brand}? {evidenceRequirement}"
     },
     {
       "key": "price-awareness",
       "intent": "price",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "{category}通常有哪些计费方式和成本构成？ 请{evidenceRequirement}。"
+      "prompt": "What pricing models and cost components are common for {category}? {evidenceRequirement}"
     },
     {
       "key": "price-screening",
       "intent": "price",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "{brand}的价格、套餐和免费使用边界大概是什么？请说明信息日期和来源。 请{evidenceRequirement}。"
+      "prompt": "What are {brand}'s approximate prices, plans, and free-use boundaries? Include the information date and sources. {evidenceRequirement}"
     },
     {
       "key": "price-evaluation",
       "intent": "price",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "评估{brand}总拥有成本时，除订阅费外还要计算哪些隐藏成本？ 请{evidenceRequirement}。"
+      "prompt": "Which hidden costs belong in a total-cost-of-ownership assessment of {brand}? {evidenceRequirement}"
     },
     {
       "key": "price-purchase",
       "intent": "price",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "预算约为{budget}时，采购{brand}应如何核对套餐、用量、席位和合同价格？ 请{evidenceRequirement}。"
+      "prompt": "With a budget of about {budget}, how should a buyer verify {brand}'s plans, usage limits, seats, and contract pricing? {evidenceRequirement}"
     },
     {
       "key": "price-implementation",
       "intent": "price",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "上线{brand}后，实施、培训、集成和维护成本通常如何变化？ 请{evidenceRequirement}。"
+      "prompt": "How do implementation, training, integration, and maintenance costs typically change after launching {brand}? {evidenceRequirement}"
     },
     {
       "key": "price-review",
       "intent": "price",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "如何复盘{brand}的实际投入产出，并判断续费或扩容是否合理？ 请{evidenceRequirement}。"
+      "prompt": "How should a team review the actual ROI of {brand} and decide whether renewal or expansion is justified? {evidenceRequirement}"
     },
     {
       "key": "alternative-awareness",
       "intent": "alternative",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "{category}除了主流商业产品，还有哪些开源、自托管或自建方案？ 请{evidenceRequirement}。"
+      "prompt": "Besides mainstream commercial products, what open-source, self-hosted, or in-house options exist for {category}? {evidenceRequirement}"
     },
     {
       "key": "alternative-screening",
       "intent": "alternative",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "除了{brand}，还有哪些适合{audience}的{category}？ 请{evidenceRequirement}。"
+      "prompt": "Besides {brand}, which {category} products suit {audience}? {evidenceRequirement}"
     },
     {
       "key": "alternative-evaluation",
       "intent": "alternative",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "{competitor}有哪些替代方案，{brand}在什么场景下更合适？ 请{evidenceRequirement}。"
+      "prompt": "What are the best alternatives to {competitor}, and when is {brand} a better fit? {evidenceRequirement}"
     },
     {
       "key": "alternative-purchase",
       "intent": "alternative",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "准备采购时，{brand}、{competitor}和自建方案应该如何做最终取舍？ 请{evidenceRequirement}。"
+      "prompt": "At final purchase, how should a team choose among {brand}, {competitor}, and an in-house solution? {evidenceRequirement}"
     },
     {
       "key": "alternative-implementation",
       "intent": "alternative",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "从{competitor}迁移到{brand}有哪些步骤、成本和兼容性风险？ 请{evidenceRequirement}。"
+      "prompt": "What steps, costs, and compatibility risks are involved in migrating from {competitor} to {brand}? {evidenceRequirement}"
     },
     {
       "key": "alternative-review",
       "intent": "alternative",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "当前使用{brand}但效果不佳时，应该评估哪些替代方案和退出条件？ 请{evidenceRequirement}。"
+      "prompt": "If {brand} underperforms, which alternatives and exit criteria should the current customer assess? {evidenceRequirement}"
     },
     {
       "key": "scenario-awareness",
       "intent": "scenario",
       "stage": "awareness",
       "brandExposure": "blind",
-      "prompt": "{region}的{industry}团队通常在哪些场景需要{category}？"
+      "prompt": "In which scenarios do {industry} teams in {region} typically need {category}?"
     },
     {
       "key": "scenario-screening",
       "intent": "scenario",
       "stage": "screening",
       "brandExposure": "blind",
-      "prompt": "{audience}应该如何根据团队规模、预算和数据要求选择{category}？"
+      "prompt": "How should {audience} choose {category} based on team size, budget, and data requirements?"
     },
     {
       "key": "scenario-evaluation",
       "intent": "scenario",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "{brand}是否适合{region}的{industry}团队？请说明适用条件和限制。"
+      "prompt": "Is {brand} suitable for a {industry} team in {region}? Explain the fit conditions and limitations."
     },
     {
       "key": "scenario-purchase",
       "intent": "scenario",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "{audience}采购{brand}时，应该如何设计符合自身场景的验收标准？"
+      "prompt": "How should {audience} define scenario-specific acceptance criteria when purchasing {brand}?"
     },
     {
       "key": "scenario-implementation",
       "intent": "scenario",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "{teamSize}规模的{industry}团队如何在{implementationPeriod}内落地{brand}？"
+      "prompt": "How can a {teamSize} {industry} team implement {brand} within {implementationPeriod}?"
     },
     {
       "key": "scenario-review",
       "intent": "scenario",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "{audience}使用{brand}后，应该怎样按业务场景复盘效果并调整配置？"
+      "prompt": "After adopting {brand}, how should {audience} review outcomes by scenario and adjust the configuration?"
     },
     {
       "key": "brand-validation-awareness",
       "intent": "brand_validation",
       "stage": "awareness",
       "brandExposure": "aided",
-      "prompt": "{brand}是什么品牌，主要产品、所属公司和公开资料有哪些？ 请{evidenceRequirement}。"
+      "prompt": "What is {brand}, what are its main products and parent company, and which public materials describe it? {evidenceRequirement}"
     },
     {
       "key": "brand-validation-screening",
       "intent": "brand_validation",
       "stage": "screening",
       "brandExposure": "aided",
-      "prompt": "{brand}是否可信，哪些官方和第三方来源可以验证它？ 请{evidenceRequirement}。"
+      "prompt": "Is {brand} credible, and which official and independent sources can verify it? {evidenceRequirement}"
     },
     {
       "key": "brand-validation-evaluation",
       "intent": "brand_validation",
       "stage": "evaluation",
       "brandExposure": "aided",
-      "prompt": "关于{brand}的产品能力、客户、价格和资质，哪些说法可以被可靠来源证实？ 请{evidenceRequirement}。"
+      "prompt": "Which claims about {brand}'s capabilities, customers, pricing, and credentials are supported by reliable sources? {evidenceRequirement}"
     },
     {
       "key": "brand-validation-purchase",
       "intent": "brand_validation",
       "stage": "purchase",
       "brandExposure": "aided",
-      "prompt": "采购{brand}前，应该核验公司主体、合同主体、产品边界和服务承诺中的哪些事实？ 请{evidenceRequirement}。"
+      "prompt": "Before purchasing {brand}, which facts about the company, contracting entity, product boundaries, and service commitments should a buyer verify? {evidenceRequirement}"
     },
     {
       "key": "brand-validation-implementation",
       "intent": "brand_validation",
       "stage": "implementation",
       "brandExposure": "aided",
-      "prompt": "实施{brand}时，官方文档、帮助中心和支持渠道是否足以验证关键操作？ 请{evidenceRequirement}。"
+      "prompt": "Are {brand}'s official documentation, help center, and support channels sufficient to verify critical implementation steps? {evidenceRequirement}"
     },
     {
       "key": "brand-validation-review",
       "intent": "brand_validation",
       "stage": "review",
       "brandExposure": "aided",
-      "prompt": "关于{brand}有哪些常见误解、过时信息或需要重新核验的说法？ 请{evidenceRequirement}。"
+      "prompt": "Which common claims about {brand} are misunderstood, outdated, or in need of renewed verification? {evidenceRequirement}"
     }
   ]
 }

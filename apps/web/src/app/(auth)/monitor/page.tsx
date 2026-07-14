@@ -94,28 +94,6 @@ function splitList(value: string): string[] {
 	];
 }
 
-function normalizedLocales(locales: readonly string[]): string[] {
-	return [...new Set(locales)].sort();
-}
-
-function localeSelectionMatches(
-	selected: readonly string[],
-	frozen: readonly string[],
-): boolean {
-	const left = normalizedLocales(selected);
-	const right = normalizedLocales(frozen);
-	return (
-		left.length === right.length &&
-		left.every((locale, index) => locale === right[index])
-	);
-}
-
-function localeListLabel(locales: readonly string[]): string {
-	return normalizedLocales(locales)
-		.map((locale) => (locale === "zh-CN" ? "Chinese" : "English"))
-		.join(" + ");
-}
-
 function Field(props: {
 	id: string;
 	label: string;
@@ -189,10 +167,6 @@ export default function NewDetectionPage() {
 		{ workspaceId },
 		{ enabled: Boolean(workspaceId), staleTime: Number.POSITIVE_INFINITY },
 	);
-	const setsQuery = api.geo.promptSets.useQuery(
-		{ workspaceId },
-		{ enabled: Boolean(workspaceId) },
-	);
 	const pagesQuery = api.geo.sitePages.useQuery(
 		{ workspaceId },
 		{ enabled: Boolean(workspaceId) },
@@ -240,8 +214,6 @@ export default function NewDetectionPage() {
 	const [audienceFilter, setAudienceFilter] = useState<string[]>([]);
 	const [regionFilter, setRegionFilter] = useState<string[]>([]);
 	const [promptSearch, setPromptSearch] = useState("");
-	const [newlyCreatedSetId, setNewlyCreatedSetId] = useState("");
-
 	useEffect(() => {
 		const profile = profileQuery.data;
 		if (!profile) return;
@@ -331,19 +303,9 @@ export default function NewDetectionPage() {
 		},
 		onError: (error) => toast.error(error.message),
 	});
-	const createSet = api.geo.createDetectionSet.useMutation({
-		onSuccess: async (result) => {
-			setNewlyCreatedSetId(result.promptSet.id);
-			await utils.geo.promptSets.invalidate();
-			toast.success(
-				`Frozen ${localeListLabel(result.manifest.locales)} detection set created`,
-			);
-		},
-		onError: (error) => toast.error(error.message),
-	});
 	const start = api.geo.startDetection.useMutation({
 		onSuccess: (result) => {
-			toast.success("Detection series created");
+			toast.success("Detection started");
 			router.push(`/runs?workspace=${workspaceId}&series=${result.seriesId}`);
 		},
 		onError: (error) => toast.error(error.message),
@@ -697,9 +659,8 @@ export default function NewDetectionPage() {
 							))}
 						</div>
 						<p className="mt-3 text-xs text-stone-500">
-							Modes are verified in each official Web UI and frozen into the
-							series signature. Search cohorts are not merged with default-mode
-							trends.
+							Modes are verified in each official Web UI and recorded with the
+							run. Search cohorts are not merged with default-mode trends.
 						</p>
 					</div>
 					<details className="rounded-md border border-stone-200 p-4 dark:border-neutral-800">
@@ -831,7 +792,7 @@ export default function NewDetectionPage() {
 							</div>
 						</div>
 						<aside className="self-start rounded-md border border-stone-200 p-4 dark:border-neutral-800">
-							<p className="font-medium">Frozen set preview</p>
+							<p className="font-medium">Detection plan</p>
 							<dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
 								<div>
 									<dt className="text-xs text-stone-500">Prompts</dt>
@@ -864,134 +825,46 @@ export default function NewDetectionPage() {
 									pass
 								</p>
 							) : null}
+							<p className="mt-4 text-xs leading-5 text-stone-500">
+								The prompts, providers, and modes shown here are saved with this
+								run for comparable reporting.
+							</p>
 							<Button
 								className={cn(formPrimaryButtonClassName, "mt-5 w-full")}
 								disabled={
 									!previewQuery.data?.complete ||
 									!previewQuery.data.profileCompleteness.complete ||
 									!previewQuery.data.profileCompleteness.confirmed ||
-									createSet.isPending
+									providers.length === 0 ||
+									start.isPending
 								}
 								onClick={() =>
-									createSet.mutate({
+									start.mutate({
 										workspaceId,
 										suiteKey,
 										samplingDepth,
 										locales,
 										filters: filterInput,
+										providers: providers as Array<
+											"doubao" | "deepseek" | "hunyuan" | "qwen"
+										>,
+										providerModes: Object.fromEntries(
+											providers.map((provider) => [
+												provider,
+												providerModes[provider],
+											]),
+										),
 									})
 								}
 							>
-								{createSet.isPending ? (
+								{start.isPending ? (
 									<Loader2 className="size-4 animate-spin" />
 								) : (
-									<Save className="size-4" />
+									<Play className="size-4" />
 								)}{" "}
-								Create frozen set
+								{start.isPending ? "Starting detection" : "Run detection"}
 							</Button>
 						</aside>
-					</div>
-				</section>
-
-				<section className="space-y-4">
-					<h2 className="text-lg font-semibold">3. Run detection</h2>
-					<p className="text-sm text-stone-500">
-						A run always uses the languages frozen into its prompt set. Changing
-						the selection above does not rewrite an existing set.
-					</p>
-					<div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
-						{(setsQuery.data ?? [])
-							.filter((set) => set.purpose === "baseline")
-							.map((set) => {
-								const manifest = set.manifest as {
-									suiteKey?: string;
-									samplingDepth?: string;
-									expectedPromptHashes?: string[];
-									locales?: string[];
-								};
-								const frozenLocales = manifest.locales ?? [
-									...new Set(set.prompts.map((prompt) => prompt.locale)),
-								];
-								const languageMatches = localeSelectionMatches(
-									locales,
-									frozenLocales,
-								);
-								return (
-									<div
-										key={set.id}
-										className={cn(
-											"flex flex-wrap items-center justify-between gap-4 py-4",
-											set.id === newlyCreatedSetId &&
-												"border-l-2 border-cyan-600 pl-3",
-										)}
-									>
-										<div className="min-w-0">
-											<div className="flex flex-wrap items-center gap-2">
-												<p className="truncate font-medium">{set.name}</p>
-												<span
-													className={cn(
-														"border px-2 py-0.5 text-[11px] font-medium",
-														languageMatches
-															? "border-cyan-200 text-cyan-800 dark:border-cyan-900 dark:text-cyan-300"
-															: "border-amber-200 text-amber-800 dark:border-amber-900 dark:text-amber-300",
-													)}
-												>
-													{localeListLabel(frozenLocales)}
-												</span>
-											</div>
-											<p className="mt-1 text-xs text-stone-500">
-												{manifest.suiteKey?.replaceAll("_", " ") ??
-													"legacy preset"}{" "}
-												· {manifest.samplingDepth ?? set.tier} ·{" "}
-												{set.prompts.length} prompts ·{" "}
-												{manifest.expectedPromptHashes?.length ?? 0} hashes
-											</p>
-											{!languageMatches ? (
-												<p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-													Select {localeListLabel(frozenLocales)} above or
-													create a new set for {localeListLabel(locales)}.
-												</p>
-											) : null}
-										</div>
-										<Button
-											className={formPrimaryButtonClassName}
-											disabled={
-												start.isPending ||
-												providers.length === 0 ||
-												!languageMatches
-											}
-											onClick={() =>
-												start.mutate({
-													workspaceId,
-													promptSetId: set.id,
-													expectedLocales: locales,
-													providers: providers as Array<
-														"doubao" | "deepseek" | "hunyuan" | "qwen"
-													>,
-													providerModes: Object.fromEntries(
-														providers.map((provider) => [
-															provider,
-															providerModes[provider],
-														]),
-													),
-												})
-											}
-										>
-											{start.isPending ? (
-												<Loader2 className="size-4 animate-spin" />
-											) : (
-												<Play className="size-4" />
-											)}{" "}
-											{languageMatches ? "Run" : "Language mismatch"}
-										</Button>
-									</div>
-								);
-							})}
-						{!setsQuery.data?.some((set) => set.purpose === "baseline") ? (
-							<p className="py-10 text-center text-sm text-stone-500">
-								No frozen detection sets yet.
-							</p>
-						) : null}
 					</div>
 				</section>
 			</div>

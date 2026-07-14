@@ -11,12 +11,13 @@ All notable Aloom changes are documented here.
 - Persistent task-bound Camoufox profiles for Doubao, DeepSeek, Yuanbao, and Qwen.
 - Official provider mode selection and verification.
 - Per-answer strict-Schema analysis with deterministic hierarchical reports.
-- Weekly and monthly frozen detection schedules.
+- Weekly and monthly versioned detection schedules.
 - Repository language and privacy build gates.
 
 ### Changed
 
 - Product scope is detection and recurring monitoring only.
+- New Detection now starts directly from the current suite, language, provider, and mode selection while recording a versioned run manifest automatically.
 - Aloom is licensed under Apache-2.0; upstream MIT notices remain intact.
 - Normal provider collection is headless and becomes visible only for explicit inspection or human verification.
 - Self-hosted deployments run the control and data planes; official Web sessions remain on a paired user computer.

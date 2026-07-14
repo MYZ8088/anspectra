@@ -12,7 +12,7 @@ describe("prompt set locale validation", () => {
 		]);
 	});
 
-	it("accepts a selection that matches the frozen prompts", () => {
+	it("accepts a selection that matches the saved prompts", () => {
 		expect(
 			assertPromptSetLocales({
 				expectedLocales: ["zh-CN", "en-US"],
@@ -29,7 +29,7 @@ describe("prompt set locale validation", () => {
 				manifestLocales: ["en-US"],
 				promptLocales: ["en-US"],
 			}),
-		).toThrow(/do not match the frozen set/i);
+		).toThrow(/do not match the saved run configuration/i);
 	});
 
 	it("rejects a stale language manifest", () => {

@@ -45,7 +45,6 @@ shown separately and remain in the denominator.
 
 ## Privacy and licensing
 
-Aloom is copyright 2026 MYZ8088 and licensed under Apache-2.0. Upstream
-OneGlanse code and the selected concepts informed by Yao GEO Skills retain
-their MIT notices in NOTICE. Aloom is not a complete implementation of the
-Yao Skill and has no runtime dependency on it.
+Aloom is copyright 2026 MYZ8088 and licensed under Apache-2.0. Project
+lineage and third-party acknowledgements are documented in the repository
+README and NOTICE.

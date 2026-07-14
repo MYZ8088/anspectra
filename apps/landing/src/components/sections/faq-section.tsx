@@ -44,7 +44,7 @@ const FAQ_ITEMS: FaqItem[] = [
 	{
 		question: "How do I get started with Aloom?",
 		answer:
-			"Clone the repository, configure .env, run pnpm camoufox:setup, then run pnpm local. Connect the four providers, confirm a product profile, preview a preset detection suite, and start a frozen series.",
+			"Clone the repository, configure .env, run pnpm camoufox:setup, then run pnpm local. Connect the providers, confirm a product profile, select a preset detection suite, and click Run detection.",
 	},
 ];
 

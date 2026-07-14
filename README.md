@@ -44,7 +44,7 @@ Aloom reports two explicit score levels:
 | Stability | 10% | Agreement across repeated, mode-matched samples. |
 | Governance | 10% | Collection, analysis, and required-dimension completeness. |
 
-An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's independently versioned product weights. Selected measurement ideas were informed by Yao GEO Skills and OneGlanse, but the score is neither copied from nor presented as an official model from either project.
+An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's independently versioned product weights.
 
 Every provider report includes its own weighted score, layer breakdown, Answer Performance Score, completion, analysis rate, mention, recommendation, absolute rank, sentiment, visible-source exposure, target share, competitor share, mode cohorts, failures, prompts, raw answers, citations, and conversation evidence.
 
@@ -53,10 +53,10 @@ Every provider report includes its own weighted score, layer breakdown, Answer P
 1. Scan the official product website.
 2. Confirm the brand, category, products, audiences, regions, and competitors.
 3. Select a detection suite, language, providers, official-Web modes, and sampling depth.
-4. Review every rendered prompt, frozen hash, expected checkpoint, and estimated duration.
-5. Run each prompt in a fresh official-Web conversation.
+4. Review every rendered prompt, sample count, and estimated duration, then click **Run detection**.
+5. Aloom records the selected configuration and runs each prompt in a fresh official-Web conversation.
 6. Inspect the report by provider, mode, locale, intent, stage, exposure, entity, or individual prompt.
-7. Schedule the same frozen prompt set weekly or monthly for comparable trends.
+7. Schedule the same versioned detection configuration weekly or monthly for comparable trends.
 
 Formal detection does not accept arbitrary custom prompts. Historical custom and legacy prompts remain linked to their original samples but are excluded from new formal series and reports.
 
@@ -168,7 +168,7 @@ pnpm build            # language/privacy gates plus production builds
 
 Aloom is an independent project, not an official OneGlanse or Yao GEO Skills release.
 
-- Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Aloom substantially reworks that foundation into a detection-only product with persistent local collectors, frozen prompt manifests, mode-aware sampling, and report-level checkpoints.
+- Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Aloom substantially reworks that foundation into a detection-only product with persistent local collectors, versioned run manifests, mode-aware sampling, and report-level checkpoints.
 - Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) at commit `136eb92c90946ea56ec63f912d5025bcbc884f39`, copyright 2026 Yao, under the MIT License. Aloom is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
 - Aloom itself is licensed under Apache-2.0 and is copyright 2026 MYZ8088.
 
