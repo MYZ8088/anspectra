@@ -219,7 +219,7 @@ export async function getPersistentLaunchOptions(args: {
 		return {
 			options: applyPersistentVisibility(
 				manifest.launchOptions,
-				args.visibility ?? "headful",
+				args.visibility ?? "headless",
 			),
 			geometry: normalized.geometry,
 		};
@@ -251,7 +251,7 @@ export async function getPersistentLaunchOptions(args: {
 	return {
 		options: applyPersistentVisibility(
 			normalized.launchOptions,
-			args.visibility ?? "headful",
+			args.visibility ?? "headless",
 		),
 		geometry: normalized.geometry,
 	};
@@ -441,7 +441,43 @@ async function getOrLaunchSession(
 	const existing = sessions.get(provider);
 	if (existing && !existing.closed) {
 		if (existing.heldPage && existing.heldTaskId === request.taskId) {
-			return existing;
+			if (existing.visibility === request.visibility) return existing;
+			if (existing.humanHold) {
+				throw new ExternalServiceError(
+					provider,
+					"Complete the visible human-verification handoff before resuming headless collection",
+				);
+			}
+
+			const pageUrl = existing.heldPage.url();
+			await closeSession(existing);
+			const resumed = await launchSession(provider, request);
+			resumed.activeTaskId = request.taskId;
+			const resumedPage = await claimTaskPage(resumed, request.taskId);
+			const canRestorePage = Boolean(pageUrl && pageUrl !== "about:blank");
+			const restored = canRestorePage
+				? await resumedPage
+						.goto(pageUrl, {
+							waitUntil: "domcontentloaded",
+							timeout: 60_000,
+						})
+						.then(() => true)
+						.catch(() => false)
+				: false;
+			resumed.activeTaskId = null;
+			if (restored) {
+				resumed.heldPage = resumedPage;
+				resumed.heldTaskId = request.taskId;
+				logger.log(
+					`[${provider}] human handoff completed; restored task ${request.taskId} in a headless session`,
+				);
+			} else {
+				await closeTaskPages(resumed, request.taskId);
+				logger.warn(
+					`[${provider}] human handoff page could not be restored; continuing task ${request.taskId} from the provider entry page`,
+				);
+			}
+			return resumed;
 		}
 		if (existing.visibility === request.visibility) return existing;
 		if (existing.leaseCount > 0 || existing.humanHold) {
@@ -525,6 +561,9 @@ export async function acquireProviderSession(
 		},
 		holdForHuman: async (heldPage) => {
 			if (session.visibility === "headless") {
+				logger.warn(
+					`[${provider}] human verification required for task ${taskId}; replacing the headless session with a visible handoff window`,
+				);
 				const pageUrl = heldPage.url();
 				await closeSession(session);
 				const humanSession = await launchSession(provider, {
@@ -574,9 +613,13 @@ export async function acquireProviderSession(
 	};
 }
 
-export function releaseProviderHumanHold(provider: Provider): void {
+export function releaseProviderHumanHold(
+	provider: Provider,
+	taskId: string,
+): void {
 	const session = sessions.get(provider);
 	if (!session || session.closed) return;
+	if (session.heldTaskId && session.heldTaskId !== taskId) return;
 	session.humanHold = false;
 	if (session.leaseCount === 0) {
 		session.idleTimer = setTimeout(() => {

@@ -3,7 +3,7 @@ set -eu
 
 mkdir -p /storage/profiles /tmp/aloom-profiles
 
-headless_mode="${CAMOUFOX_HEADLESS_MODE:-virtual}"
+headless_mode="${CAMOUFOX_HEADLESS_MODE:-headless}"
 
 case "$headless_mode" in
   virtual)

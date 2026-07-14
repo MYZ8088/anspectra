@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	acquireDirectoryLock,
+	buildLocalRuntimeEnv,
 	validateCamoufoxRuntimeSnapshot,
 } from "./runtime.mjs";
 
@@ -11,9 +12,9 @@ const temporaryDirectories = [];
 
 afterEach(async () => {
 	await Promise.all(
-		temporaryDirectories.splice(0).map((directory) =>
-			rm(directory, { recursive: true, force: true }),
-		),
+		temporaryDirectories
+			.splice(0)
+			.map((directory) => rm(directory, { recursive: true, force: true })),
 	);
 });
 
@@ -47,6 +48,20 @@ function healthySnapshot(overrides = {}) {
 }
 
 describe("Camoufox runtime provisioner", () => {
+	it("defaults local collection to native headless mode", () => {
+		const previous = process.env.CAMOUFOX_HEADLESS_MODE;
+		Reflect.deleteProperty(process.env, "CAMOUFOX_HEADLESS_MODE");
+		try {
+			expect(buildLocalRuntimeEnv("http://localhost:3000")).toMatchObject({
+				CAMOUFOX_HEADLESS_MODE: "headless",
+			});
+		} finally {
+			if (previous === undefined)
+				Reflect.deleteProperty(process.env, "CAMOUFOX_HEADLESS_MODE");
+			else process.env.CAMOUFOX_HEADLESS_MODE = previous;
+		}
+	});
+
 	it("accepts an idempotent healthy runtime", () => {
 		expect(validateCamoufoxRuntimeSnapshot(healthySnapshot())).toEqual([]);
 	});
@@ -56,10 +71,7 @@ describe("Camoufox runtime provisioner", () => {
 			validateCamoufoxRuntimeSnapshot(
 				healthySnapshot({ pythonExists: false, manifest: null }),
 			),
-		).toEqual([
-			"managed Python is missing",
-			"runtime manifest is missing",
-		]);
+		).toEqual(["managed Python is missing", "runtime manifest is missing"]);
 		expect(
 			validateCamoufoxRuntimeSnapshot(
 				healthySnapshot({ probe: null, probeError: "No module named pip" }),

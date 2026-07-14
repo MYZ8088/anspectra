@@ -10,7 +10,7 @@ const PYTHON_CANDIDATES = ["python3.12", "python3.11", "python3.10", "python3"];
 const PYTHON_PROBE_TIMEOUT_MS = 5_000;
 const CAMOUFOX_OPTIONS_TIMEOUT_MS = 30_000;
 const SYSTEM_FONTS_TIMEOUT_MS = 15_000;
-const DEFAULT_CAMOUFOX_HEADLESS_MODE = "virtual";
+const DEFAULT_CAMOUFOX_HEADLESS_MODE = "headless";
 
 const PYTHON_PROBE_SCRIPT = `
 import json
@@ -116,9 +116,7 @@ const CAMOUFOX_HUMANIZE = true;
 const CAMOUFOX_HUMANIZE_MAX_TIME_S = 1.5;
 
 function isLocalAppMode(): boolean {
-	return (
-		resolveAppMode(process.env.ALOOM_APP_MODE) === "local"
-	);
+	return resolveAppMode(process.env.ALOOM_APP_MODE) === "local";
 }
 
 function findManagedCamoufoxPython(): string | null {

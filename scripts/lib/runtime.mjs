@@ -307,11 +307,10 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 		CLICKHOUSE_URL: "http://localhost:8123",
 		REDIS_HOST: "localhost",
 		REDIS_PORT: redisPort,
-		CAMOUFOX_HEADLESS_MODE:
-			process.env.CAMOUFOX_HEADLESS_MODE || "headful",
+		CAMOUFOX_HEADLESS_MODE: process.env.CAMOUFOX_HEADLESS_MODE || "headless",
 		CAMOUFOX_LOCALE: localLocale,
 	};
-	delete localEnv.MOZ_HEADLESS;
+	Reflect.deleteProperty(localEnv, "MOZ_HEADLESS");
 
 	return localEnv;
 }

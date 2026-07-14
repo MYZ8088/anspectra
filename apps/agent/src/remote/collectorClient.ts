@@ -66,7 +66,8 @@ async function request<T>(
 
 async function executeTask(task: CollectorTask): Promise<void> {
 	const plog = createProviderLogger(task.provider);
-	releaseProviderHumanHold(task.provider);
+	const browserTaskId = `remote-collection:${task.taskId}:${task.provider}`;
+	releaseProviderHumanHold(task.provider, browserTaskId);
 	const promptRunAt = new Date().toISOString();
 	const payload: PromptPayload = {
 		user_id: task.userId,
@@ -85,7 +86,7 @@ async function executeTask(task: CollectorTask): Promise<void> {
 			PROVIDER_CONFIGS[task.provider].label,
 			() =>
 				createAgent(task.provider, {
-					taskId: `remote-collection:${task.taskId}:${task.provider}`,
+					taskId: browserTaskId,
 					visibility: "headless",
 				}),
 			payload,
@@ -186,12 +187,6 @@ export function startRemoteCollector(): { stop: () => void } {
 					commandResult.command.provider
 				) {
 					await focusProviderSession(commandResult.command.provider);
-				}
-				if (
-					commandResult.command?.type === "resume_verification" &&
-					commandResult.command.provider
-				) {
-					releaseProviderHumanHold(commandResult.command.provider);
 				}
 				const { task } = await request<{ task: CollectorTask | null }>("claim");
 				if (task) await executeTask(task);

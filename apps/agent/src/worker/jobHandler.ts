@@ -163,7 +163,8 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		attemptIndexOffsets,
 	} = job.data;
 	const plog = createProviderLogger(provider);
-	releaseProviderHumanHold(provider);
+	const browserTaskId = `collection:${collectionRunId ?? jobGroupId}:${provider}`;
+	releaseProviderHumanHold(provider, browserTaskId);
 	const ownedProviders = normalizeRunProviders(provider, runProviders);
 
 	if (!PROVIDER_LIST.includes(provider)) {
@@ -282,7 +283,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				label,
 				() =>
 					createAgent(provider, {
-						taskId: `collection:${collectionRunId ?? jobGroupId}:${provider}`,
+						taskId: browserTaskId,
 						visibility: "headless",
 					}),
 				payload,
