@@ -16,10 +16,7 @@ import { exponentialBackoff, logger } from "@aloom/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
-import {
-	executePrompt,
-	recoverSubmittedPrompt,
-} from "./executePrompt.js";
+import { executePrompt, recoverSubmittedPrompt } from "./executePrompt.js";
 import { describePromptFailure } from "./failureDetails.js";
 
 const MAX_RETRIES = 3;
@@ -91,9 +88,7 @@ export async function executePromptWithRetry(
 	onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>,
 ): Promise<{ result: AskPromptResult; proxyNowProven: boolean }> {
 	const config = PROVIDER_CONFIGS[provider];
-	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(env.ALOOM_APP_MODE),
-	);
+	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ALOOM_APP_MODE));
 	const maxAttempts = useProxy ? MAX_RETRIES : 2;
 	let lastError: unknown = null;
 	let recoverSubmitted = false;
@@ -174,7 +169,7 @@ export async function executePromptWithRetry(
 			}).catch(() => {});
 			if (failureType === "human_challenge") {
 				logger.warn(
-					`human verification required for prompt ${promptIndex + 1} — pausing without retry`,
+					`human verification blocked prompt ${promptIndex + 1} — recording a terminal failure and continuing with the next prompt`,
 				);
 				throw err;
 			}

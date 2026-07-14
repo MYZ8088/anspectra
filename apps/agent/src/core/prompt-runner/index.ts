@@ -16,12 +16,12 @@ import { logger } from "@aloom/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { captureProviderDiagnostics } from "../../lib/browser/providerDiagnostics.js";
-import { PROVIDER_CONFIGS } from "../providers/index.js";
 import { hasMatchingSubmittedPrompt } from "../providers/_shared/freshConversation.js";
 import { expectedOfficialWebMode } from "../providers/_shared/providerModes.js";
+import { PROVIDER_CONFIGS } from "../providers/index.js";
 import { recoverSubmittedPrompt } from "./executePrompt.js";
-import { executePromptWithRetry } from "./retryPolicy.js";
 import { describePromptFailure } from "./failureDetails.js";
+import { executePromptWithRetry } from "./retryPolicy.js";
 
 /**
  * Loops over all prompts in the payload and runs each through the retry policy.
@@ -58,9 +58,7 @@ export async function runPrompts(
 	}
 	const results: AskPromptResult[] = [];
 	let lastTerminalError: unknown = null;
-	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(env.ALOOM_APP_MODE),
-	);
+	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ALOOM_APP_MODE));
 	let proxyProven = !useProxy;
 	let persistentAuthCaptured = false;
 
@@ -136,10 +134,10 @@ export async function runPrompts(
 				phase: "completed",
 				pageUrl: page.url(),
 				conversationId: recoveredResult.conversationId ?? undefined,
-					diagnostics: { resumedAfterHumanChallenge: true },
-					requestedMode,
-					actualMode: expectedOfficialWebMode(provider, requestedMode),
-				}).catch(() => {});
+				diagnostics: { resumedAfterHumanChallenge: true },
+				requestedMode,
+				actualMode: expectedOfficialWebMode(provider, requestedMode),
+			}).catch(() => {});
 			continue;
 		}
 
@@ -160,15 +158,15 @@ export async function runPrompts(
 							`[${provider}] authenticated page is usable, but its local session snapshot could not be refreshed: ${toErrorMessage(authCaptureError)}`,
 						);
 					}
-					}
-					if (config.applyMode) {
-						actualMode = await config.applyMode(page, requestedMode);
-					} else if (requestedMode !== "default") {
-						throw new Error(
-							`${provider} cannot apply official Web mode "${requestedMode}"`,
-						);
-					}
-				} catch (err) {
+				}
+				if (config.applyMode) {
+					actualMode = await config.applyMode(page, requestedMode);
+				} else if (requestedMode !== "default") {
+					throw new Error(
+						`${provider} cannot apply official Web mode "${requestedMode}"`,
+					);
+				}
+			} catch (err) {
 				const details = describePromptFailure(err);
 				await captureProviderDiagnostics({
 					page,
@@ -189,13 +187,12 @@ export async function runPrompts(
 							: details.code,
 					failureMessage: toErrorMessage(err),
 					retryable: false,
-						pageUrl: page.url(),
-						requestedMode,
-					}).catch(() => {});
-				if (classifyError(err) === "human_challenge") throw err;
+					pageUrl: page.url(),
+					requestedMode,
+				}).catch(() => {});
 				lastTerminalError = err;
 				logger.error(
-					`prompt ${i + 1}/${promptsArray.length} could not start a fresh conversation: ${toErrorMessage(err)}`,
+					`prompt ${i + 1}/${promptsArray.length} could not start a fresh conversation; recorded as a terminal sample failure and continuing: ${toErrorMessage(err)}`,
 				);
 				continue;
 			}
@@ -230,11 +227,11 @@ export async function runPrompts(
 			await captureProviderDiagnostics({
 				page,
 				provider,
-				phase: classifyError(err) === "human_challenge" ? "challenge" : "prompt",
+				phase:
+					classifyError(err) === "human_challenge" ? "challenge" : "prompt",
 				promptId: promptEntry.id,
 				error: toErrorMessage(err),
 			}).catch(() => null);
-			if (classifyError(err) === "human_challenge") throw err;
 			if (describePromptFailure(err).category === "browser_session") throw err;
 			lastTerminalError = err;
 			logger.error(
@@ -249,10 +246,10 @@ export async function runPrompts(
 			result.conversationUrl = identity.conversationUrl;
 			result.conversationIsolation = "fresh";
 		}
-			result.sourceExposure =
-				result.sources.length > 0 ? "exposed" : "not_exposed";
-			result.requestedMode = requestedMode;
-			result.actualMode = actualMode;
+		result.sourceExposure =
+			result.sources.length > 0 ? "exposed" : "not_exposed";
+		result.requestedMode = requestedMode;
+		result.actualMode = actualMode;
 
 		results.push(result);
 		await onSampleComplete?.(result);
@@ -268,11 +265,15 @@ export async function runPrompts(
 		}
 	}
 	if (results.length === 0 && lastTerminalError) {
-		throw lastTerminalError;
+		logger.error(
+			`0/${promptsArray.length} prompts completed; every prompt has its own terminal failure record`,
+		);
+	} else if (results.length < promptsArray.length) {
+		logger.warn(
+			`${results.length}/${promptsArray.length} prompts completed; failed prompts remain in the report denominator`,
+		);
+	} else {
+		logger.success(`all ${results.length} prompts completed`);
 	}
-
-	logger.success(
-		`all ${results.length}/${promptsArray.length} prompts completed`,
-	);
 	return results;
 }

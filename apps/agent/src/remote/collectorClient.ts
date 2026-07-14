@@ -129,17 +129,14 @@ async function executeTask(task: CollectorTask): Promise<void> {
 		});
 	} catch (error) {
 		if (error instanceof HumanChallengeError) {
-			const promptId = task.prompts[completed]?.id;
-			await request("event", {
+			await request("complete", {
 				runId: task.runId,
 				provider: task.provider,
-				promptId,
-				kind: error.challengeKind,
-				pageUrl: error.pageUrl,
-				message: error.message,
+				status: completed > 0 ? "partial" : "failed",
+				errorMessage: toErrorMessage(error),
 			});
 			plog.warn(
-				"waiting for user verification; completed samples remain checkpointed",
+				"provider setup was blocked by human verification; recorded as a terminal failure without waiting",
 			);
 			return;
 		}

@@ -1,3 +1,4 @@
+import { HumanChallengeError } from "@aloom/errors";
 import type { AskPromptResult, PromptPayload } from "@aloom/types";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -149,5 +150,41 @@ describe("persistent provider retry checkpoints", () => {
 
 		expect(persisted).toEqual(["prompt-1"]);
 		expect(result.map((value) => value.promptId)).toEqual(["prompt-1"]);
+	});
+
+	it("does not open a visible handoff when provider setup hits a CAPTCHA", async () => {
+		const preserveForHuman = vi.fn(async () => {});
+		const cleanup = vi.fn(async () => {});
+		const agentFactory = vi.fn(async () => ({
+			browser: {} as Browser,
+			context: { close: vi.fn(async () => {}) } as unknown as BrowserContext,
+			page: {} as Page,
+			cleanup,
+			preserveForHuman,
+		}));
+		runAgentsMock.mockRejectedValueOnce(
+			new HumanChallengeError({
+				provider: "doubao",
+				kind: "captcha",
+				pageUrl: "https://www.doubao.com/chat/blocked",
+				message: "human challenge: image captcha",
+			}),
+		);
+
+		await expect(
+			runWithRetryCycles(
+				"Doubao",
+				agentFactory,
+				{
+					user_id: "user-1",
+					workspace_id: "workspace-1",
+					created_at: new Date(0).toISOString(),
+					prompts: [{ id: "prompt-1", prompt: "Prompt one" }],
+				},
+				"doubao",
+			),
+		).rejects.toBeInstanceOf(HumanChallengeError);
+		expect(preserveForHuman).not.toHaveBeenCalled();
+		expect(cleanup).toHaveBeenCalledTimes(1);
 	});
 });

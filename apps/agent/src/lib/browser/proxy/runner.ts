@@ -12,11 +12,7 @@ import {
 	resolveAppMode,
 	shouldUseProxyInMode,
 } from "@aloom/types";
-import {
-	createProviderLogger,
-	exponentialBackoff,
-	logger,
-} from "@aloom/utils";
+import { createProviderLogger, exponentialBackoff, logger } from "@aloom/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { runAgents } from "../../../core/runAgents.js";
 
@@ -332,8 +328,10 @@ async function runRetryCycle(
 			}
 
 			if (failureType === "human_challenge") {
-				plog.warn("human verification required — pausing without retry");
-					await refs.preserveForHuman?.();
+				plog.warn(
+					"human verification blocked provider setup — ending this attempt without opening a visible browser",
+				);
+				await invalidateAndEvict(refs);
 				throw err;
 			}
 
@@ -380,7 +378,7 @@ async function runRetryCycle(
 				attempt < attemptsPerCycle - 1
 			) {
 				plog.warn(
-					`editor unavailable after page retries; restarting the same persistent profile context`,
+					"editor unavailable after page retries; restarting the same persistent profile context",
 				);
 				await invalidateAndEvict(refs);
 			}
@@ -486,7 +484,10 @@ export async function runWithRetryCycles(
 
 		if (outcome.done) {
 			const merged = new Map<string, AskPromptResult>();
-			for (const sample of [...completedByPromptId.values(), ...accumulatedResults]) {
+			for (const sample of [
+				...completedByPromptId.values(),
+				...accumulatedResults,
+			]) {
 				merged.set(sample.promptId, sample);
 			}
 			return payload.prompts

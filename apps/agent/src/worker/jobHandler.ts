@@ -9,10 +9,8 @@ import {
 	buildProviderJobId,
 	finalizeGeoProviderRun,
 	hasRuntimeProviderAuth,
-	persistGeoHumanChallenge,
 	persistGeoSampleCheckpoint,
 	recordGeoSampleAttempt,
-	recordProviderChallenge,
 	redis,
 	updateProviderProgress,
 	writeProviderAuthStatus,
@@ -98,18 +96,6 @@ async function ensureProgressSeed(
 	);
 }
 
-function normalizeRunProviders(
-	provider: Provider,
-	runProviders?: Provider[],
-): Provider[] {
-	const providers = (runProviders?.length ? runProviders : [provider]).filter(
-		(currentProvider, index, values): currentProvider is Provider =>
-			PROVIDER_LIST.includes(currentProvider) &&
-			values.indexOf(currentProvider) === index,
-	);
-	return providers.length > 0 ? providers : [provider];
-}
-
 function buildEmptyResults(): Record<Provider, AgentResult> {
 	return Object.fromEntries(
 		PROVIDER_LIST.map((currentProvider) => [
@@ -152,7 +138,6 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		jobGroupId,
 		collectionRunId,
 		prompts,
-		runProviders,
 		user_id,
 		workspace_id,
 		initialCompletedCount = 0,
@@ -165,7 +150,9 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 	const plog = createProviderLogger(provider);
 	const browserTaskId = `collection:${collectionRunId ?? jobGroupId}:${provider}`;
 	releaseProviderHumanHold(provider, browserTaskId);
-	const ownedProviders = normalizeRunProviders(provider, runProviders);
+	// A queue job owns exactly one provider. Never let legacy payload metadata
+	// propagate this provider's progress or failure state to another provider.
+	const ownedProviders = [provider];
 
 	if (!PROVIDER_LIST.includes(provider)) {
 		throw new ValidationError(`Unknown provider: ${provider}`, { provider });
@@ -397,69 +384,39 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				return true;
 			}
 			if (err instanceof HumanChallengeError) {
-				const createdAt = new Date();
-				const expiresAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
 				if (
 					err.challengeKind === "login_required" &&
 					(AUTH_PROVIDER_LIST as readonly string[]).includes(provider)
 				) {
 					await writeProviderAuthStatus(provider as AuthProvider, {
 						connecting: false,
-						lastUpdatedAt: createdAt.toISOString(),
+						lastUpdatedAt: new Date().toISOString(),
 						syncedAt: null,
 						error: "Session expired — please re-authenticate",
 						launcherPid: null,
 					}).catch(() => {});
 				}
-				await recordProviderChallenge({
-					jobGroupId,
-					provider,
-					challenge: {
-						kind: err.challengeKind,
-						pageUrl: err.pageUrl,
-						message: err.message,
-						createdAt: createdAt.toISOString(),
-						expiresAt: expiresAt.toISOString(),
-					},
-				});
-				await persistGeoHumanChallenge({
-					collectionRunId,
-					workspaceId: workspace_id,
-					provider,
-					promptId: activePromptId,
-					kind: err.challengeKind,
-					pageUrl: err.pageUrl,
-					message: err.message,
-					expiresAt,
-				});
+				terminalFailure = describePromptFailure(err);
+				terminalFailureMessage = toErrorMessage(err);
 				plog.warn(
-					`paused for human verification (${err.challengeKind}); ${persistedSampleCount} sample(s) checkpointed`,
+					`provider setup was blocked by ${err.challengeKind}; recording terminal failures without waiting for human input`,
 				);
-				if (clickhouseSampleCount > 0) {
-					runAnalysisInBackground({
-						workspaceId: workspace_id,
-						userId: user_id,
-						provider,
-						jobGroupId,
-						collectionRunId,
-					});
+			} else {
+				plog.error("failed:", toErrorMessage(err));
+				terminalFailure = describePromptFailure(err);
+				terminalFailureMessage = toErrorMessage(err);
+				if (
+					classifyError(err) === "logged_out" &&
+					(AUTH_PROVIDER_LIST as readonly string[]).includes(provider)
+				) {
+					await writeProviderAuthStatus(provider as AuthProvider, {
+						connecting: false,
+						lastUpdatedAt: new Date().toISOString(),
+						syncedAt: null,
+						error: "Session expired — please re-authenticate",
+						launcherPid: null,
+					}).catch(() => {});
 				}
-				return true;
-			}
-			plog.error("failed:", toErrorMessage(err));
-			terminalFailure = describePromptFailure(err);
-			terminalFailureMessage = toErrorMessage(err);
-			if (
-				classifyError(err) === "logged_out" &&
-				(AUTH_PROVIDER_LIST as readonly string[]).includes(provider)
-			) {
-				await writeProviderAuthStatus(provider as AuthProvider, {
-					connecting: false,
-					lastUpdatedAt: new Date().toISOString(),
-					syncedAt: null,
-					error: "Session expired — please re-authenticate",
-					launcherPid: null,
-				}).catch(() => {});
 			}
 		}
 
