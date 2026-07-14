@@ -11,6 +11,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import("next").NextConfig} */
 const config = {
+	// Keep the development compiler isolated from production builds. Running
+	// `next build` while the local collector UI is open must not overwrite the
+	// dev server's manifests, chunks, or global CSS assets.
+	distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
 	output: "standalone",
 	outputFileTracingRoot: path.join(process.cwd(), "../../"),
 	async redirects() {
