@@ -1,62 +1,260 @@
-name: Build
+name: CI/CD
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
-    paths:
-      - 'apps/**'
-      - 'docs/**'
-      - 'packages/**'
-      - '.npmrc'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.json'
-      - 'turbo.json'
-      - 'docker-compose.yml'
-      - '.github/workflows/build.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
+  CI: 'true'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.16.0'
+  NEXT_TELEMETRY_DISABLED: '1'
+  TURBO_TELEMETRY_DISABLED: '1'
+  SKIP_ENV_VALIDATION: 'true'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aloom
+  BETTER_AUTH_SECRET: ci-only-auth-secret
+  INTERNAL_CRON_SECRET: ci-only-cron-secret
   REGISTRY: ghcr.io
-  PREFIX: ghcr.io/${{ github.repository_owner }}
-  PNPM: '10.16.0'
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  # ── Typecheck ────────────────────────────────────────────────
-  validate:
-    name: Typecheck
+  workflow-config:
+    name: Configuration / workflows and Compose
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint GitHub Actions workflows
+        run: >-
+          docker run --rm
+          -v "$PWD:/repo"
+          -w /repo
+          rhysd/actionlint:1.7.7@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9
+      - name: Validate default Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+      - name: Validate collector Compose profile
+        run: docker compose --profile container-collector config --quiet
+
+  policy:
+    name: Policy / language and repository privacy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check English-only product surfaces
+        run: node scripts/check-user-facing-english.mjs
+      - name: Check repository privacy policy
+        run: node scripts/check-repository-privacy.mjs
+
+  lint:
+    name: Static analysis / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM }}
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:privacy
+      - run: pnpm lint
+
+  typecheck:
+    name: Static analysis / TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
 
-  # ── Detect which apps changed ────────────────────────────────
-  changes:
-    name: Detect Changes
+  tests:
+    name: Tests / ${{ matrix.group.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - name: collector
+            paths: apps/agent
+          - name: services-and-runtime
+            paths: packages scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run ${{ matrix.group.name }} tests
+        run: |
+          mkdir -p test-results
+          pnpm exec vitest run ${{ matrix.group.paths }} \
+            --reporter=default \
+            --reporter=junit \
+            --outputFile.junit=test-results/${{ matrix.group.name }}.xml
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.group.name }}
+          path: test-results/*.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  production-build:
+    name: Build / production workspaces
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  data-layer:
+    name: Integration / Postgres, ClickHouse, and Redis
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start clean data services
+        run: |
+          cp .env.example .env
+          docker network create aloom-edge
+          docker compose up -d --build --wait db clickhouse redis
+      - name: Apply migrations twice to verify idempotency
+        run: |
+          pnpm db:migrate
+          pnpm db:migrate
+      - name: Verify schemas and service health
+        run: scripts/ci/verify-data-layer.sh
+      - name: Capture service logs after a failure
+        if: ${{ failure() }}
+        run: docker compose logs --no-color > data-layer.log
+      - name: Upload failure logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-layer-logs
+          path: data-layer.log
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop data services
+        if: ${{ always() }}
+        run: |
+          docker compose down --volumes --remove-orphans
+          docker network rm aloom-edge || true
+
+  quality-gate:
+    name: Required quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    needs:
+      - workflow-config
+      - policy
+      - lint
+      - typecheck
+      - tests
+      - production-build
+      - data-layer
+    steps:
+      - name: Require every validation job
+        env:
+          WORKFLOW_CONFIG: ${{ needs.workflow-config.result }}
+          POLICY: ${{ needs.policy.result }}
+          LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          TESTS: ${{ needs.tests.result }}
+          PRODUCTION_BUILD: ${{ needs.production-build.result }}
+          DATA_LAYER: ${{ needs.data-layer.result }}
+        run: |
+          printf '%-24s %s\n' \
+            workflow-config "$WORKFLOW_CONFIG" \
+            policy "$POLICY" \
+            lint "$LINT" \
+            typecheck "$TYPECHECK" \
+            tests "$TESTS" \
+            production-build "$PRODUCTION_BUILD" \
+            data-layer "$DATA_LAYER"
+          for result in \
+            "$WORKFLOW_CONFIG" \
+            "$POLICY" \
+            "$LINT" \
+            "$TYPECHECK" \
+            "$TESTS" \
+            "$PRODUCTION_BUILD" \
+            "$DATA_LAYER"; do
+            test "$result" = success
+          done
+
+  changes:
+    name: Packaging / detect image changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      web:      ${{ steps.f.outputs.web }}
-      agent:    ${{ steps.f.outputs.agent }}
-      postgres: ${{ steps.f.outputs.postgres }}
+      web: ${{ steps.filter.outputs.web }}
+      agent: ${{ steps.filter.outputs.agent }}
+      postgres: ${{ steps.filter.outputs.postgres }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
-        id: f
+        id: filter
         with:
           filters: |
             web:
               - 'apps/web/**'
-              - 'packages/**'
+              - 'packages/db/**'
+              - 'packages/errors/**'
+              - 'packages/services/**'
+              - 'packages/types/**'
+              - 'packages/ui/**'
+              - 'packages/utils/**'
               - '.npmrc'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -65,7 +263,11 @@ jobs:
               - 'turbo.json'
             agent:
               - 'apps/agent/**'
-              - 'packages/**'
+              - 'packages/db/**'
+              - 'packages/errors/**'
+              - 'packages/services/**'
+              - 'packages/types/**'
+              - 'packages/utils/**'
               - '.npmrc'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -74,21 +276,24 @@ jobs:
               - 'turbo.json'
             postgres:
               - 'packages/db/Dockerfile'
-              - 'packages/db/init-scripts/**'
-              - '.github/workflows/build.yml'
 
-  # ── Build jobs ───────────────────────────────────────────────
-  build-web:
-    name: Web
-    needs: [validate, changes]
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' }}
+  build-web-image:
+    name: Package / Web image
+    needs: [quality-gate, changes]
+    if: >-
+      ${{
+        needs.quality-gate.result == 'success' &&
+        (github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true')
+      }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
+        if: ${{ github.event_name != 'pull_request' }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         if: ${{ github.event_name != 'pull_request' }}
@@ -97,35 +302,41 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v5
-        id: meta
+        id: metadata
         with:
-          images: ${{ env.PREFIX }}/aloom-web
+          images: ${{ env.IMAGE_PREFIX }}/aloom-web
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=sha-,format=short
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./apps/web/Dockerfile
-          build-args: PNPM_VERSION=${{ env.PNPM }}
-          platforms: linux/amd64,linux/arm64
+          build-args: PNPM_VERSION=${{ env.PNPM_VERSION }}
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=aloom-web
           cache-to: type=gha,scope=aloom-web,mode=max
 
-  build-agent:
-    name: Agent
-    needs: [validate, changes]
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.agent == 'true' }}
+  build-agent-image:
+    name: Package / Collector image
+    needs: [quality-gate, changes]
+    if: >-
+      ${{
+        needs.quality-gate.result == 'success' &&
+        (github.event_name == 'workflow_dispatch' || needs.changes.outputs.agent == 'true')
+      }}
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
+        if: ${{ github.event_name != 'pull_request' }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         if: ${{ github.event_name != 'pull_request' }}
@@ -134,38 +345,44 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v5
-        id: meta
+        id: metadata
         with:
-          images: ${{ env.PREFIX }}/aloom-agent
+          images: ${{ env.IMAGE_PREFIX }}/aloom-agent
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=sha-,format=short
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./apps/agent/Dockerfile
           build-args: |
-            PNPM_VERSION=${{ env.PNPM }}
-            CAMOUFOX_PIP_SPEC=cloverlabs-camoufox[geoip]
-            CAMOUFOX_BROWSER_CHANNEL=official/prerelease
-          platforms: linux/amd64,linux/arm64
+            PNPM_VERSION=${{ env.PNPM_VERSION }}
+            CAMOUFOX_PIP_SPEC=cloverlabs-camoufox[geoip]==0.5.5
+            CAMOUFOX_BROWSER_CHANNEL=official/stable/135.0.1-beta.24
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=aloom-agent
           cache-to: type=gha,scope=aloom-agent,mode=max
 
-  build-postgres:
-    name: Postgres
-    needs: [validate, changes]
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.postgres == 'true' }}
+  build-postgres-image:
+    name: Package / Postgres image
+    needs: [quality-gate, changes]
+    if: >-
+      ${{
+        needs.quality-gate.result == 'success' &&
+        (github.event_name == 'workflow_dispatch' || needs.changes.outputs.postgres == 'true')
+      }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
+        if: ${{ github.event_name != 'pull_request' }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         if: ${{ github.event_name != 'pull_request' }}
@@ -174,19 +391,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v5
-        id: meta
+        id: metadata
         with:
-          images: ${{ env.PREFIX }}/aloom-postgres
+          images: ${{ env.IMAGE_PREFIX }}/aloom-postgres
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=sha-,format=short
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           context: .
           file: ./packages/db/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=aloom-postgres
           cache-to: type=gha,scope=aloom-postgres,mode=max
