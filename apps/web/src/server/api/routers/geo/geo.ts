@@ -237,6 +237,10 @@ export const geoRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const profile = await getBrandProfile(ctx.workspaceId);
+			if (profile?.confirmationStatus !== "confirmed") {
+				await confirmBrandProfile(ctx.workspaceId);
+			}
 			const promptSet = await createDetectionSet({
 				workspaceId: ctx.workspaceId,
 				suiteKey: input.suiteKey,

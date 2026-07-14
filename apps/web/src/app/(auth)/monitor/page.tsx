@@ -321,6 +321,15 @@ export default function NewDetectionPage() {
 				prompt.decisionStage.includes(query),
 		);
 	}, [previewQuery.data?.prompts, promptSearch]);
+	const runBlockReason = !previewQuery.data
+		? (previewQuery.error?.message ?? "Loading the detection plan.")
+		: !previewQuery.data.profileCompleteness.complete
+			? `Complete the required product profile fields: ${previewQuery.data.profileCompleteness.missing.join(", ")}.`
+			: !previewQuery.data.complete
+				? "Resolve the prompt coverage gaps before running."
+				: providers.length === 0
+					? "Select at least one Web provider."
+					: null;
 
 	const saveProfile = () =>
 		save.mutate({
@@ -825,19 +834,24 @@ export default function NewDetectionPage() {
 									pass
 								</p>
 							) : null}
+							{previewQuery.data?.profileCompleteness.complete &&
+							!previewQuery.data.profileCompleteness.confirmed ? (
+								<p className="mt-4 text-xs leading-5 text-amber-700 dark:text-amber-300">
+									Running confirms the saved product profile.
+								</p>
+							) : null}
+							{runBlockReason ? (
+								<p className="mt-4 text-xs leading-5 text-red-700 dark:text-red-300">
+									{runBlockReason}
+								</p>
+							) : null}
 							<p className="mt-4 text-xs leading-5 text-stone-500">
 								The prompts, providers, and modes shown here are saved with this
 								run for comparable reporting.
 							</p>
 							<Button
 								className={cn(formPrimaryButtonClassName, "mt-5 w-full")}
-								disabled={
-									!previewQuery.data?.complete ||
-									!previewQuery.data.profileCompleteness.complete ||
-									!previewQuery.data.profileCompleteness.confirmed ||
-									providers.length === 0 ||
-									start.isPending
-								}
+								disabled={Boolean(runBlockReason) || start.isPending}
 								onClick={() =>
 									start.mutate({
 										workspaceId,
