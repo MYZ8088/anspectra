@@ -619,7 +619,15 @@ async function setQwenToolsEnabled(
 		if (current !== shouldEnable) toolsSwitch.click();
 		return current;
 	}, enabled);
-	if (changed === null) throw new Error("Qwen Tools switch is not available");
+	if (changed === null) {
+		await page.keyboard.press("Escape").catch(() => undefined);
+		if (!enabled) return;
+		throw new Error("Qwen Tools switch is not available");
+	}
+	if (changed === enabled) {
+		await page.keyboard.press("Escape").catch(() => undefined);
+		return;
+	}
 	await page.waitForTimeout(450);
 
 	let verified = await page.evaluate(() => {

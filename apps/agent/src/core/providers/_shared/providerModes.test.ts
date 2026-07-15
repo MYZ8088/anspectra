@@ -278,4 +278,40 @@ describe("official Web provider mode adapters", () => {
 			fixture.close();
 		}
 	});
+
+	it("accepts Qwen anonymous default mode when the Tools control is absent", async () => {
+		const fixture = await modeFixturePage("qwen");
+		try {
+			await fixture.page.evaluate(() => {
+				document.querySelector("[data-menu-id$='-tools']")?.remove();
+			}, undefined);
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "qwen",
+					mode: "default",
+				}),
+			).resolves.toBe("auto");
+		} finally {
+			fixture.close();
+		}
+	});
+
+	it("still requires Qwen Tools for Web Search", async () => {
+		const fixture = await modeFixturePage("qwen");
+		try {
+			await fixture.page.evaluate(() => {
+				document.querySelector("[data-menu-id$='-tools']")?.remove();
+			}, undefined);
+			await expect(
+				applyOfficialWebMode({
+					page: fixture.page,
+					provider: "qwen",
+					mode: "web_search",
+				}),
+			).rejects.toThrow(/Tools switch is not available/i);
+		} finally {
+			fixture.close();
+		}
+	});
 });

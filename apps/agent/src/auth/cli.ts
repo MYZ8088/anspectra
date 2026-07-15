@@ -731,6 +731,7 @@ async function runAuthLogin(provider: AuthProvider): Promise<void> {
 		const persistentLaunch = await getPersistentLaunchOptions({
 			provider: browserProvider,
 			profileDir: runtimeProfileDir,
+			visibility: "headful",
 		});
 		persistentGeometry = persistentLaunch.geometry;
 		browserLaunchOptions = {
