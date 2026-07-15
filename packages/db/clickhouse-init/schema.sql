@@ -85,6 +85,8 @@ CREATE TABLE IF NOT EXISTS analytics.answer_samples_v2 (
         favicon Nullable(String)
     )),
 	    source_exposure LowCardinality(String) DEFAULT 'not_exposed',
+	    reported_search_source_count Nullable(UInt16),
+	    search_source_coverage LowCardinality(String) DEFAULT 'not_exposed',
 	    requested_mode LowCardinality(String) DEFAULT 'default',
 	    actual_mode LowCardinality(String) DEFAULT 'default',
     conversation_id Nullable(String),
@@ -114,6 +116,7 @@ CREATE TABLE IF NOT EXISTS analytics.sample_citations (
     cited_text String,
     url String,
     domain Nullable(String),
+    source_kind LowCardinality(String) DEFAULT 'legacy_unknown',
     support_level LowCardinality(String) DEFAULT 'unreviewed',
     created_at DateTime DEFAULT now()
 )
@@ -146,6 +149,7 @@ ALTER TABLE analytics.sample_analysis_v2 ADD COLUMN IF NOT EXISTS raw_output Str
 ALTER TABLE analytics.sample_analysis_v2 ADD COLUMN IF NOT EXISTS status LowCardinality(String) DEFAULT 'completed';
 ALTER TABLE analytics.sample_analysis_v2 ADD COLUMN IF NOT EXISTS error String DEFAULT '';
 ALTER TABLE analytics.sample_analysis_v2 ADD COLUMN IF NOT EXISTS attempt_count UInt8 DEFAULT 1;
+ALTER TABLE analytics.sample_citations ADD COLUMN IF NOT EXISTS source_kind LowCardinality(String) DEFAULT 'legacy_unknown';
 
 ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS series_id Nullable(String);
 ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS prompt_hash String DEFAULT '';
@@ -155,3 +159,5 @@ ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS locale LowCardi
 ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS brand_exposure LowCardinality(String) DEFAULT '';
 ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS requested_mode LowCardinality(String) DEFAULT 'default';
 ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS actual_mode LowCardinality(String) DEFAULT 'default';
+ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS reported_search_source_count Nullable(UInt16);
+ALTER TABLE analytics.answer_samples_v2 ADD COLUMN IF NOT EXISTS search_source_coverage LowCardinality(String) DEFAULT 'not_exposed';

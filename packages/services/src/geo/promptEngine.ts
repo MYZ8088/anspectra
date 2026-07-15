@@ -294,6 +294,32 @@ function productTemplateValue(args: {
 		: args.product;
 }
 
+function containsHanCharacters(value: string): boolean {
+	return /\p{Script=Han}/u.test(value);
+}
+
+function localizedEvidenceRequirement(
+	value: string | null | undefined,
+	locale: string,
+): string {
+	const zh = locale.toLowerCase().startsWith("zh");
+	const normalized = value?.trim();
+	if (normalized && containsHanCharacters(normalized) === zh) return normalized;
+	return zh
+		? "引用注明日期且可核验的公开来源，并标记无法确认的信息"
+		: "Cite dated, verifiable public sources and mark anything that cannot be confirmed.";
+}
+
+function withResponseLanguageInstruction(
+	prompt: string,
+	locale: string,
+): string {
+	const instruction = locale.toLowerCase().startsWith("zh")
+		? "请使用简体中文完整回答；产品名和专有名词可保留原文。"
+		: "Answer fully in English; product names and proper nouns may remain in their original form.";
+	return `${prompt.trim()}\n\n${instruction}`;
+}
+
 function localizedDefaults(profile: BrandPromptProfile, locale: string) {
 	const zh = locale.toLowerCase().startsWith("zh");
 	return {
@@ -325,11 +351,10 @@ function localizedDefaults(profile: BrandPromptProfile, locale: string) {
 		implementationPeriod:
 			profile.implementationPeriod ||
 			(zh ? "未限定实施周期" : "no fixed implementation period"),
-		evidenceRequirement:
-			profile.evidenceRequirement ||
-			(zh
-				? "引用可核验的公开来源，并标记无法确认的信息"
-				: "Cite verifiable public sources and mark anything that cannot be confirmed."),
+		evidenceRequirement: localizedEvidenceRequirement(
+			profile.evidenceRequirement,
+			locale,
+		),
 	};
 }
 
@@ -407,8 +432,10 @@ function createPrompt(args: {
 		audience: args.audience,
 		region: args.region,
 	};
-	const prompt =
-		args.promptOverride ?? renderTemplate(args.entry.prompt, values);
+	const prompt = withResponseLanguageInstruction(
+		args.promptOverride ?? renderTemplate(args.entry.prompt, values),
+		args.pack.locale,
+	);
 	const templateKey = `${args.pack.packKey}:${args.entry.key}${
 		args.origin === "generated_expansion" ? ":expansion" : ""
 	}`;

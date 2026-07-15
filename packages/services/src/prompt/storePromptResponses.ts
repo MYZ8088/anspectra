@@ -1,5 +1,5 @@
-import { toErrorMessage } from "@aloom/errors";
 import { db, schema } from "@aloom/db";
+import { toErrorMessage } from "@aloom/errors";
 import type {
 	ModelResult,
 	Provider,
@@ -7,8 +7,9 @@ import type {
 	StorePromptResponsesArgs,
 } from "@aloom/types";
 import { formatDateToClickHouse } from "@aloom/utils";
-import { v4 as uuidv4 } from "uuid";
 import { and, eq, inArray } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
+import { ensureSourceKindSchema } from "./lib/ensureSourceKindSchema.js";
 import { insertClickHouseWithFallback } from "./lib/insertClickHouseWithFallback.js";
 
 export async function storePromptResponses(
@@ -28,6 +29,7 @@ export async function storePromptResponses(
 		sources: Source[];
 		prompt_run_at: string;
 	}> = [];
+	const extractedSourcesByResponseId = new Map<string, Source[]>();
 
 	for (const [provider, result] of Object.entries(results) as [
 		Provider,
@@ -36,8 +38,10 @@ export async function storePromptResponses(
 		if (result.status !== "fulfilled") continue;
 
 		for (const item of result.data) {
+			const responseId = uuidv4();
+			extractedSourcesByResponseId.set(responseId, item.sources);
 			values.push({
-				id: uuidv4(),
+				id: responseId,
 				prompt_id: item.promptId,
 				prompt: item.prompt,
 				user_id: userId,
@@ -118,7 +122,7 @@ export async function storePromptResponses(
 				(entry) =>
 					entry.provider === value.model_provider &&
 					entry.item.promptId === value.prompt_id,
-				);
+			);
 		const promptMetadata = promptById.get(value.prompt_id);
 		const checkpoint = checkpointByKey.get(
 			`${value.model_provider}:${value.prompt_id}`,
@@ -139,9 +143,15 @@ export async function storePromptResponses(
 			repeat_index: args.repeatIndex ?? 0,
 			source_exposure:
 				sourceResult?.item.sourceExposure ??
-					(value.sources.length > 0 ? "exposed" : "not_exposed"),
+				(value.sources.length > 0 ? "exposed" : "not_exposed"),
+			reported_search_source_count:
+				sourceResult?.item.reportedSearchSourceCount ?? null,
+			search_source_coverage:
+				sourceResult?.item.searchSourceCoverage ?? "not_exposed",
 			requested_mode:
-				sourceResult?.item.requestedMode ?? checkpoint?.requestedMode ?? "default",
+				sourceResult?.item.requestedMode ??
+				checkpoint?.requestedMode ??
+				"default",
 			actual_mode:
 				sourceResult?.item.actualMode ??
 				checkpoint?.actualMode ??
@@ -160,22 +170,26 @@ export async function storePromptResponses(
 			error_message: null,
 		};
 	});
+	await ensureSourceKindSchema();
 	await insertClickHouseWithFallback("analytics.answer_samples_v2", v2Values, {
 		throwOnAllFailed: false,
 	});
 	const citations = v2Values.flatMap((value) =>
-		value.sources.map((source, sourceIndex) => ({
-			id: uuidv4(),
-			sample_id: value.id,
-			workspace_id: value.workspace_id,
-			model_provider: value.model_provider,
-			source_index: sourceIndex,
-			title: source.title,
-			cited_text: source.cited_text,
-			url: source.url,
-			domain: source.domain,
-			support_level: "unreviewed",
-		})),
+		(extractedSourcesByResponseId.get(value.id) ?? value.sources).map(
+			(source, sourceIndex) => ({
+				id: uuidv4(),
+				sample_id: value.id,
+				workspace_id: value.workspace_id,
+				model_provider: value.model_provider,
+				source_index: sourceIndex,
+				title: source.title,
+				cited_text: source.cited_text,
+				url: source.url,
+				domain: source.domain,
+				source_kind: source.source_kind ?? "legacy_unknown",
+				support_level: "unreviewed",
+			}),
+		),
 	);
 	if (citations.length > 0) {
 		await insertClickHouseWithFallback(

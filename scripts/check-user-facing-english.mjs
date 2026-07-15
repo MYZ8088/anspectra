@@ -29,6 +29,7 @@ const allowlistedTechnicalFiles = [
 	/^apps\/agent\/src\/auth\/cli\.ts$/u,
 	/^apps\/agent\/src\/core\/providers\//u,
 	/^apps\/agent\/src\/core\/prompt-runner\/responseCompleteness\.ts$/u,
+	/^apps\/agent\/src\/core\/steps\/extractSources\.ts$/u,
 	/^apps\/agent\/src\/inspect-provider-modes\.ts$/u,
 	/^apps\/agent\/src\/lib\/browser\/domOps\.ts$/u,
 	/^apps\/agent\/src\/lib\/input\/response\/provisionalResponse\.ts$/u,

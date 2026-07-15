@@ -1,8 +1,5 @@
 import { ValidationError } from "@aloom/errors";
-import type {
-	AnalysisInputSingle,
-	BrandAnalysisResult,
-} from "@aloom/types";
+import type { AnalysisInputSingle, BrandAnalysisResult } from "@aloom/types";
 import { z } from "zod";
 import { env } from "../env.js";
 import { aihubmix, chatgpt, claude } from "../llm/index.js";
@@ -15,6 +12,7 @@ import {
 	parseStructuredOutput,
 } from "../llm/structuredOutput.js";
 import { analysisPrompt } from "./analysisPrompt.js";
+import { applyTargetEntitySafeguards } from "./targetEntities.js";
 
 const systemPrompt =
 	"You are an expert brand intelligence analyst. " +
@@ -281,7 +279,10 @@ export async function runAnalysisDetailed(
 		errorMessage: "Invalid JSON returned from LLM during analysis.",
 	});
 	return {
-		result: execution.data as BrandAnalysisResult,
+		result: applyTargetEntitySafeguards({
+			input,
+			result: execution.data as BrandAnalysisResult,
+		}),
 		rawOutputs: execution.rawOutputs,
 		model: execution.model,
 		attemptCount: execution.attemptCount,

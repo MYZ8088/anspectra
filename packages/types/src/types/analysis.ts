@@ -11,6 +11,8 @@ export interface AnalysisFilters {
 export interface AnalysisInputSingle {
 	brandDomain: string;
 	brandName: string;
+	brandAliases?: string[];
+	products?: string[];
 	response: string;
 	prompt: string;
 	sources?: Source[];
@@ -27,6 +29,9 @@ export interface BrandAnalysisResult {
 	metadata?: {
 		brandName: string;
 		brandDomain: string;
+		brandAliases?: string[];
+		products?: string[];
+		matchedTargetEntities?: string[];
 	};
 
 	/**

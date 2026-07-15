@@ -1,5 +1,6 @@
-import type { Source } from "./sources.js";
 import type { ProviderMode } from "./geo.js";
+import type { Source } from "./sources.js";
+import type { SearchSourceCoverage } from "./sources.js";
 
 export interface AskPromptResult {
 	userId: string;
@@ -12,6 +13,8 @@ export interface AskPromptResult {
 	conversationUrl?: string | null;
 	conversationIsolation?: "fresh" | "multi_turn_experiment";
 	sourceExposure?: "exposed" | "not_exposed";
+	reportedSearchSourceCount?: number | null;
+	searchSourceCoverage?: SearchSourceCoverage;
 	requestedMode?: ProviderMode;
 	actualMode?: ProviderMode;
 }

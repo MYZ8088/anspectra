@@ -1,4 +1,4 @@
-import type { Provider, Source } from "@aloom/types";
+import type { Provider, Source, SourceKind } from "@aloom/types";
 import { getDomain, getFaviconUrls } from "@aloom/utils";
 import type { Locator, Page } from "playwright";
 
@@ -11,11 +11,15 @@ export type RawSource = {
 	rawHref: string;
 	title: string;
 	citedText: string;
+	sourceKind?: SourceKind;
 };
 
-export function extractVisibleUrlCandidates(text: string): RawSource[] {
+export function extractVisibleUrlCandidates(
+	text: string,
+	sourceKind: SourceKind = "answer_link",
+): RawSource[] {
 	const candidates = text.match(
-		/(?:https?:\/\/|www\.)[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<>{}\[\]"']*)?|\b[a-z0-9](?:[a-z0-9-]{0,62}\.)+(?:com|ai|io|org|net|cn|co|dev|app|tech|cloud|edu|gov)(?:\/[^\s<>{}\[\]"']*)?/gi,
+		/(?:https?:\/\/|www\.)[a-z0-9.-]+\.(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})(?:\/[^\s<>{}\[\]"']*)?|\b[a-z0-9](?:[a-z0-9-]{0,62}\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})(?:\/[^\s<>{}\[\]"']*)?/gi,
 	);
 	if (!candidates) return [];
 	return [...new Set(candidates)].map((candidate) => {
@@ -23,7 +27,7 @@ export function extractVisibleUrlCandidates(text: string): RawSource[] {
 		const rawHref = /^https?:\/\//i.test(cleaned)
 			? cleaned
 			: `https://${cleaned}`;
-		return { rawHref, title: cleaned, citedText: "" };
+		return { rawHref, title: cleaned, citedText: "", sourceKind };
 	});
 }
 
@@ -95,7 +99,13 @@ export function buildSources(
 	const results: Source[] = [];
 	const seen = new Set<string>();
 
-	for (const { rawHref, title: rawTitle, citedText } of rawSources) {
+	for (const {
+		rawHref,
+		title: rawTitle,
+		citedText,
+		sourceKind = "legacy_unknown",
+	} of rawSources) {
+		if (!/^https?:\/\//i.test(rawHref)) continue;
 		const url = rawHref.replace(/#.*$/, "");
 		if (!url) continue;
 		if (isProviderOwnedSource(options?.provider, url)) continue;
@@ -109,12 +119,14 @@ export function buildSources(
 			url,
 			domain,
 			favicon,
+			source_kind: sourceKind,
 		};
 		const dedupeKey = JSON.stringify({
 			domain: source.domain ?? null,
 			url: source.url,
 			title: source.title,
 			cited_text: source.cited_text ?? "",
+			source_kind: source.source_kind,
 		});
 
 		if (seen.has(dedupeKey)) continue;

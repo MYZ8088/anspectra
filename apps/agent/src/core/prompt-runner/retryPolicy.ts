@@ -114,7 +114,12 @@ export async function executePromptWithRetry(
 		}).catch(() => {});
 
 		try {
-			const { response, sources } = recoverSubmitted
+			const {
+				response,
+				sources,
+				reportedSearchSourceCount,
+				searchSourceCoverage,
+			} = recoverSubmitted
 				? await recoverSubmittedPrompt(page, promptEntry.prompt, provider)
 				: await executePrompt(page, promptEntry.prompt, provider);
 
@@ -129,6 +134,8 @@ export async function executePromptWithRetry(
 				prompt: promptEntry.prompt,
 				response,
 				sources,
+				reportedSearchSourceCount,
+				searchSourceCoverage,
 			};
 			await onAttemptUpdate?.({
 				promptId: promptEntry.id,

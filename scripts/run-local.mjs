@@ -19,6 +19,7 @@ import {
 } from "./lib/runtime.mjs";
 
 const localAppUrl = "http://localhost:3000";
+const dockerPullPolicy = process.env.ALOOM_DOCKER_PULL_POLICY ?? "missing";
 
 async function main() {
 	await ensureEnvFiles();
@@ -33,7 +34,7 @@ async function main() {
 		"-d",
 		"--build",
 		"--pull",
-		"always",
+		dockerPullPolicy,
 		"--force-recreate",
 		"--wait",
 		"db",

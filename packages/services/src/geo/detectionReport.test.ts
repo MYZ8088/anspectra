@@ -1,9 +1,11 @@
 import type { BrandAnalysisResult } from "@aloom/types";
 import { describe, expect, it, vi } from "vitest";
 import {
+	answerMatchesPromptLocale,
 	buildDetectionExecutiveSummary,
 	buildDetectionFailureBreakdown,
 	buildDetectionSlices,
+	detectAnswerLanguage,
 } from "./detectionReport.js";
 import { planDetectionPrompts } from "./promptEngine.js";
 
@@ -97,7 +99,11 @@ function sample(overrides: Record<string, unknown> = {}) {
 			targetRegion: "APAC",
 		},
 		response: "Product A is worth considering.",
+		responseLanguage: "en-US",
+		languageMatch: true,
 		sources: [],
+		reportedSearchSourceCount: null,
+		searchSourceCoverage: "not_exposed",
 		conversationId: "conversation-1",
 		conversationUrl: "https://example.test/conversation-1",
 		errorCode: null,
@@ -107,6 +113,25 @@ function sample(overrides: Record<string, unknown> = {}) {
 }
 
 describe("buildDetectionSlices", () => {
+	it("detects answer language and compares it with the frozen prompt locale", () => {
+		expect(
+			detectAnswerLanguage(
+				"这是一个完整的中文回答，产品名称 PostHog 可以保留英文原文。",
+			),
+		).toBe("zh-CN");
+		expect(
+			detectAnswerLanguage(
+				"This is a complete English answer about PostHog and its product analytics capabilities.",
+			),
+		).toBe("en-US");
+		expect(
+			answerMatchesPromptLocale({
+				responseLanguage: "en-US",
+				promptLocale: "zh-CN",
+			}),
+		).toBe(false);
+	});
+
 	it("aggregates a complete 54-cell matrix without combining answer contexts", () => {
 		const plan = planDetectionPrompts(
 			{
@@ -147,6 +172,11 @@ describe("buildDetectionSlices", () => {
 			planned: 54,
 			completed: 54,
 			analysed: 54,
+			answerLanguageMatchRate: {
+				numerator: 54,
+				denominator: 54,
+				value: 100,
+			},
 		});
 		expect(slices.prompt).toHaveLength(54);
 		expect(slices.intent).toHaveLength(9);
@@ -227,6 +257,57 @@ describe("buildDetectionSlices", () => {
 		expect(
 			slices.brand_exposure.find((row) => row.key === "blind")?.planned,
 		).toBe(3);
+	});
+
+	it("reports answer links and provider search sources separately", () => {
+		const rows = [
+			sample({
+				reportedSearchSourceCount: 2,
+				searchSourceCoverage: "partial",
+				sources: [
+					{
+						title: "Answer link",
+						citedText: "",
+						url: "https://example.com/answer",
+						domain: "example.com",
+						sourceKind: "answer_link",
+					},
+					{
+						title: "Search source",
+						citedText: "",
+						url: "https://example.org/source",
+						domain: "example.org",
+						sourceKind: "search_source",
+					},
+				],
+			}),
+			sample({
+				id: "sample-2",
+				analyticsSampleId: "answer-2",
+				sources: [],
+			}),
+		];
+		const overall = buildDetectionSlices({
+			rows: rows as never,
+			tier: "quick",
+			requiredProviders: ["doubao"],
+		}).overall[0];
+
+		expect(overall?.answerLinkExposureRate).toEqual({
+			numerator: 1,
+			denominator: 2,
+			value: 50,
+		});
+		expect(overall?.searchSourceExposureRate).toEqual({
+			numerator: 1,
+			denominator: 2,
+			value: 50,
+		});
+		expect(overall?.searchSourceUrlCoverageRate).toEqual({
+			numerator: 1,
+			denominator: 2,
+			value: 50,
+		});
 	});
 
 	it("separates collection failures from structured analysis failures", () => {

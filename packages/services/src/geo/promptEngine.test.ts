@@ -83,6 +83,50 @@ describe("Aloom GEO Detection Pack", () => {
 		},
 	);
 
+	it("keeps evidence and answer-language instructions aligned with the selected locale", () => {
+		const chinese = planDetectionPrompts(
+			{
+				...profile,
+				products: ["PostHog"],
+				regions: ["China"],
+				evidenceRequirement: "Use dated, verifiable public sources.",
+				locale: "zh-CN",
+			},
+			{ suiteKey: "quick_scan", samplingDepth: "single" },
+		);
+		expect(
+			chinese.prompts.every((item) =>
+				item.prompt.endsWith(
+					"请使用简体中文完整回答；产品名和专有名词可保留原文。",
+				),
+			),
+		).toBe(true);
+		expect(chinese.prompts.map((item) => item.prompt).join("\n")).not.toContain(
+			"Use dated, verifiable public sources",
+		);
+
+		const english = planDetectionPrompts(
+			{
+				...profile,
+				products: ["PostHog"],
+				regions: ["China"],
+				evidenceRequirement: "请引用注明日期的公开来源。",
+				locale: "en-US",
+			},
+			{ suiteKey: "quick_scan", samplingDepth: "single" },
+		);
+		expect(
+			english.prompts.every((item) =>
+				item.prompt.endsWith(
+					"Answer fully in English; product names and proper nouns may remain in their original form.",
+				),
+			),
+		).toBe(true);
+		expect(english.prompts.map((item) => item.prompt).join("\n")).not.toContain(
+			"请引用注明日期的公开来源",
+		);
+	});
+
 	it.each([
 		["quick", 18],
 		["standard", 54],

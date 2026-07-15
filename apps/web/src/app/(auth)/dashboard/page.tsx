@@ -3,6 +3,7 @@
 import { formPrimaryButtonClassName } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
+import type { RouterOutputs } from "@/trpc/react";
 import {
 	type DetectionWeightedScore,
 	type ProviderMode,
@@ -20,15 +21,21 @@ import {
 import {
 	AlertTriangle,
 	ArrowRight,
-	Bot,
+	CheckCircle2,
+	ChevronDown,
 	ExternalLink,
+	Languages,
+	Link2,
 	Loader2,
 	Radar,
 	Search,
-	Server,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+
+type ReportData = NonNullable<RouterOutputs["geo"]["detectionReport"]>;
+type ReportSlice = ReportData["slices"]["overall"][number];
+type ReportSource = ReportData["samples"][number]["sources"][number];
 
 const PROVIDER_LABELS: Record<string, string> = {
 	doubao: "Doubao",
@@ -46,50 +53,409 @@ const STAGE_SHORT_LABELS: Record<string, string> = {
 	review: "Review",
 };
 
-function metricValue(value: number | null, suffix = "%") {
-	return value === null ? "—" : `${value}${suffix}`;
+const SUITE_LABELS: Record<string, string> = {
+	quick_scan: "Quick Scan",
+	discovery: "Discovery",
+	competitive_position: "Competitive Position",
+	trust_risk: "Trust & Risk",
+	buyer_journey: "Buyer Journey",
+	full_matrix: "Full Matrix",
+	filtered: "Filtered Preset",
+};
+
+function formatLabel(value: string) {
+	return value.replaceAll("_", " ");
 }
 
-function Metric(props: { label: string; value: string; detail?: string }) {
+function percentage(value: number | null | undefined) {
+	return value === null || value === undefined ? "Not assessed" : `${value}%`;
+}
+
+function Metric(props: {
+	label: string;
+	value: string;
+	detail: string;
+	accent?: boolean;
+}) {
 	return (
-		<div className="min-w-0 border-r border-b border-stone-200 p-4 last:border-r-0 dark:border-neutral-800">
+		<div className="min-w-0 py-2 sm:py-0">
 			<p className="text-xs font-medium text-stone-500">{props.label}</p>
-			<p className="mt-2 text-2xl font-semibold tabular-nums">{props.value}</p>
-			{props.detail ? (
-				<p className="mt-1 truncate text-xs text-stone-500">{props.detail}</p>
-			) : null}
+			<p
+				className={`mt-2 text-3xl font-semibold tabular-nums ${props.accent ? "text-cyan-700 dark:text-cyan-300" : ""}`}
+			>
+				{props.value}
+			</p>
+			<p className="mt-1 text-xs text-stone-500">{props.detail}</p>
 		</div>
 	);
 }
 
-function ScoreLayers(props: {
-	score: DetectionWeightedScore;
-	compact?: boolean;
-}) {
+function ScoreLayers(props: { score: DetectionWeightedScore }) {
 	return (
-		<div
-			className={
-				props.compact ? "space-y-2" : "grid gap-x-6 gap-y-3 sm:grid-cols-2"
-			}
-		>
+		<div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
 			{props.score.layers.map((layer) => (
-				<div key={layer.key}>
-					<div className="flex items-center justify-between gap-3 text-xs">
+				<div key={layer.key} className="min-w-0">
+					<div className="flex items-center justify-between gap-4 text-xs">
 						<span className="text-stone-600 dark:text-stone-300">
-							{layer.label} · {layer.weight}%
+							{layer.label}
 						</span>
-						<span className="font-medium tabular-nums">
+						<span className="font-medium tabular-nums text-stone-500">
 							{layer.score === null ? "Not assessed" : `${layer.score}/100`}
 						</span>
 					</div>
-					<div className="mt-1.5 h-1.5 overflow-hidden rounded bg-stone-100 dark:bg-neutral-900">
+					<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100 dark:bg-neutral-900">
 						<div
-							className="h-full bg-cyan-600"
+							className="h-full rounded-full bg-cyan-600"
 							style={{ width: `${layer.score ?? 0}%` }}
 						/>
 					</div>
+					<p className="mt-1 text-[11px] text-stone-400">
+						{layer.weight}% of the weighted score
+					</p>
 				</div>
 			))}
+		</div>
+	);
+}
+
+type ChartSeries = {
+	label: string;
+	color: string;
+	values: number[];
+};
+
+function smoothPath(points: Array<{ x: number; y: number }>) {
+	if (!points.length) return "";
+	return points.slice(1).reduce(
+		(path, point, index) => {
+			const previous = points[index];
+			if (!previous) return path;
+			const middleX = (previous.x + point.x) / 2;
+			return `${path} C ${middleX} ${previous.y}, ${middleX} ${point.y}, ${point.x} ${point.y}`;
+		},
+		`M ${points[0]?.x ?? 0} ${points[0]?.y ?? 0}`,
+	);
+}
+
+function LineChart(props: {
+	ariaLabel: string;
+	labels: string[];
+	series: ChartSeries[];
+	emptyMessage: string;
+}) {
+	if (
+		!props.labels.length ||
+		!props.series.some((item) => item.values.length)
+	) {
+		return (
+			<div className="flex aspect-[16/7] items-center justify-center border-y border-stone-200 text-sm text-stone-500 dark:border-neutral-800">
+				{props.emptyMessage}
+			</div>
+		);
+	}
+
+	const width = 720;
+	const height = 280;
+	const left = 42;
+	const right = 18;
+	const top = 18;
+	const bottom = 44;
+	const plotWidth = width - left - right;
+	const plotHeight = height - top - bottom;
+	const xFor = (index: number) =>
+		props.labels.length === 1
+			? left + plotWidth / 2
+			: left + (index / (props.labels.length - 1)) * plotWidth;
+	const yFor = (value: number) =>
+		top + (1 - Math.max(0, Math.min(100, value)) / 100) * plotHeight;
+	const yTicks = [0, 25, 50, 75, 100];
+
+	return (
+		<div>
+			<div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-500">
+				{props.series.map((item) => (
+					<span key={item.label} className="inline-flex items-center gap-2">
+						<span
+							className="h-0.5 w-5"
+							style={{ backgroundColor: item.color }}
+						/>
+						{item.label}
+					</span>
+				))}
+			</div>
+			<svg
+				viewBox={`0 0 ${width} ${height}`}
+				role="img"
+				aria-label={props.ariaLabel}
+				className="aspect-[16/7] w-full"
+			>
+				{yTicks.map((tick) => {
+					const y = yFor(tick);
+					return (
+						<g key={tick}>
+							<line
+								x1={left}
+								x2={width - right}
+								y1={y}
+								y2={y}
+								stroke="currentColor"
+								className="text-stone-200 dark:text-neutral-800"
+								strokeWidth="1"
+							/>
+							<text
+								x={left - 10}
+								y={y + 4}
+								textAnchor="end"
+								className="fill-stone-400 text-[10px]"
+							>
+								{tick}%
+							</text>
+						</g>
+					);
+				})}
+				{props.series.map((item) => {
+					const points = item.values.map((value, index) => ({
+						x: xFor(index),
+						y: yFor(value),
+					}));
+					return (
+						<g key={item.label}>
+							<path
+								d={smoothPath(points)}
+								fill="none"
+								stroke={item.color}
+								strokeWidth="3"
+								strokeLinecap="round"
+							/>
+							{points.map((point, index) => (
+								<circle
+									key={`${item.label}:${props.labels[index]}`}
+									cx={point.x}
+									cy={point.y}
+									r="4"
+									fill="white"
+									stroke={item.color}
+									strokeWidth="2.5"
+								>
+									<title>{`${props.labels[index]}: ${item.label} ${item.values[index]}%`}</title>
+								</circle>
+							))}
+						</g>
+					);
+				})}
+				{props.labels.map((label, index) => (
+					<text
+						key={label}
+						x={xFor(index)}
+						y={height - 14}
+						textAnchor="middle"
+						className="fill-stone-500 text-[10px]"
+					>
+						{label.length > 15 ? `${label.slice(0, 13)}...` : label}
+					</text>
+				))}
+			</svg>
+		</div>
+	);
+}
+
+function ProviderReport(props: { rows: ReportData["slices"]["provider"] }) {
+	return (
+		<div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
+			{props.rows.map((row) => (
+				<div
+					key={row.key}
+					className="grid gap-5 py-5 md:grid-cols-[minmax(150px,1fr)_90px_minmax(0,2fr)] md:items-center"
+				>
+					<div>
+						<p className="font-semibold">
+							{PROVIDER_LABELS[row.key] ?? row.label}
+						</p>
+						<p className="mt-1 text-xs text-stone-500">
+							{row.completed}/{row.planned} collected, {row.analysed} analysed
+						</p>
+					</div>
+					<div>
+						<p className="text-3xl font-semibold tabular-nums">
+							{row.weightedScore.overall}
+						</p>
+						<p className="text-xs text-stone-500">GEO score</p>
+					</div>
+					<div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-5">
+						{[
+							["Mention", row.mentionRate.value],
+							["Recommend", row.recommendationRate.value],
+							["Search", row.searchSourceExposureRate.value],
+							["Answer links", row.answerLinkExposureRate.value],
+							["Language", row.answerLanguageMatchRate.value],
+						].map(([label, value]) => (
+							<div key={String(label)}>
+								<div className="flex items-center justify-between gap-2 text-xs">
+									<span className="text-stone-500">{label}</span>
+									<span className="font-medium tabular-nums">{value}%</span>
+								</div>
+								<div className="mt-2 h-1 overflow-hidden rounded-full bg-stone-100 dark:bg-neutral-900">
+									<div
+										className="h-full rounded-full bg-cyan-600"
+										style={{ width: `${value}%` }}
+									/>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function IntentStageHeatmap(props: {
+	intents: string[];
+	stages: string[];
+	heatmap: Map<string, ReportSlice>;
+}) {
+	return (
+		<div className="border-y border-stone-200 dark:border-neutral-800">
+			<div
+				className="grid items-center text-center text-[10px] sm:text-xs"
+				style={{
+					gridTemplateColumns: `minmax(82px, 1.45fr) repeat(${props.stages.length}, minmax(0, 1fr))`,
+				}}
+			>
+				<div className="px-2 py-3 text-left font-medium">Intent</div>
+				{props.stages.map((stage) => (
+					<div
+						key={stage}
+						className="min-w-0 px-0.5 py-3 text-stone-500"
+						title={formatLabel(stage)}
+					>
+						<span className="md:hidden">
+							{STAGE_SHORT_LABELS[stage] ?? stage.slice(0, 5)}
+						</span>
+						<span className="hidden capitalize md:inline">
+							{formatLabel(stage)}
+						</span>
+					</div>
+				))}
+				{props.intents.map((intent) => (
+					<div key={intent} className="contents">
+						<div className="border-t border-stone-100 px-2 py-2.5 text-left font-medium capitalize leading-tight dark:border-neutral-900">
+							{formatLabel(intent)}
+						</div>
+						{props.stages.map((stage) => {
+							const value = props.heatmap.get(`${intent}:${stage}`)?.mentionRate
+								.value;
+							return (
+								<div
+									key={`${intent}:${stage}`}
+									className="border-t border-stone-100 p-1 dark:border-neutral-900"
+								>
+									<div
+										className="flex h-8 items-center justify-center rounded-[4px] tabular-nums"
+										style={{
+											backgroundColor:
+												value === undefined
+													? "transparent"
+													: `color-mix(in srgb, #0891b2 ${Math.max(8, value)}%, transparent)`,
+										}}
+									>
+										{value === undefined ? "-" : `${value}%`}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function SampleLanguage(props: {
+	responseLanguage: string;
+	languageMatch: boolean | null;
+	promptLocale: string;
+}) {
+	if (props.languageMatch === null) {
+		return <span className="text-xs text-stone-400">Unknown language</span>;
+	}
+	return (
+		<span
+			className={`inline-flex items-center gap-1 text-xs font-medium ${props.languageMatch ? "text-cyan-700 dark:text-cyan-300" : "text-red-700 dark:text-red-300"}`}
+		>
+			{props.languageMatch ? (
+				<CheckCircle2 className="size-3.5" />
+			) : (
+				<AlertTriangle className="size-3.5" />
+			)}
+			{props.languageMatch
+				? `${props.responseLanguage} response`
+				: `${props.responseLanguage} response / expected ${props.promptLocale}`}
+		</span>
+	);
+}
+
+function sourceCount(
+	sources: ReportSource[],
+	kind: ReportSource["sourceKind"],
+) {
+	return new Set(
+		sources
+			.filter((source) => source.sourceKind === kind)
+			.map((source) => source.url),
+	).size;
+}
+
+function SampleSourceSummary(props: {
+	sources: ReportSource[];
+	reportedSearchSourceCount: number | null;
+}) {
+	const searchSources = sourceCount(props.sources, "search_source");
+	const answerLinks = sourceCount(props.sources, "answer_link");
+	const legacySources = sourceCount(props.sources, "legacy_unknown");
+	return (
+		<span>
+			{searchSources}
+			{props.reportedSearchSourceCount
+				? `/${props.reportedSearchSourceCount}`
+				: ""}{" "}
+			search sources / {answerLinks} answer links
+			{legacySources ? ` / ${legacySources} legacy` : ""}
+		</span>
+	);
+}
+
+function SourceList(props: {
+	title: string;
+	description: string;
+	sources: ReportSource[];
+	emptyMessage: string;
+}) {
+	return (
+		<div>
+			<p className="text-xs font-semibold text-stone-500">{props.title}</p>
+			<p className="mt-1 text-xs leading-5 text-stone-400">
+				{props.description}
+			</p>
+			<div className="mt-3 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
+				{props.sources.map((source) => (
+					<a
+						key={`${source.sourceKind}:${source.url}`}
+						href={source.url}
+						target="_blank"
+						rel="noreferrer"
+						className="block py-3 hover:text-cyan-700"
+					>
+						<span className="font-medium">{source.title}</span>
+						<span className="mt-1 block truncate text-xs text-stone-500">
+							{source.url}
+						</span>
+					</a>
+				))}
+				{!props.sources.length ? (
+					<p className="py-4 text-stone-500">{props.emptyMessage}</p>
+				) : null}
+			</div>
 		</div>
 	);
 }
@@ -100,6 +466,7 @@ export default function Dashboard() {
 	const requestedSeries = searchParams.get("series") ?? "";
 	const [selectedSeries, setSelectedSeries] = useState(requestedSeries);
 	const [sampleQuery, setSampleQuery] = useState("");
+	const [showAllSamples, setShowAllSamples] = useState(false);
 	const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
 	const overview = api.geo.overview.useQuery(
 		{ workspaceId },
@@ -128,6 +495,7 @@ export default function Dashboard() {
 		{ workspaceId, seriesId: selectedSeries || undefined, limit: 12 },
 		{ enabled: Boolean(workspaceId && selectedSeries), retry: false },
 	);
+	const selectedRun = formalRuns.find((run) => run.id === selectedSeries);
 	const selectedSample =
 		report.data?.samples.find(
 			(sample) => sample.checkpointId === selectedSampleId,
@@ -138,21 +506,25 @@ export default function Dashboard() {
 			(sample) =>
 				!query ||
 				sample.prompt.toLocaleLowerCase().includes(query) ||
+				sample.response?.toLocaleLowerCase().includes(query) ||
 				sample.provider.includes(query) ||
 				sample.intent.includes(query) ||
 				sample.requestedMode.includes(query) ||
-				(sample.actualMode ?? "").includes(query) ||
-				(sample.errorCode ?? "").includes(query) ||
-				(sample.analysisErrorCode ?? "").includes(query),
+				(sample.errorCode ?? "").includes(query),
 		);
 	}, [report.data?.samples, sampleQuery]);
+	const visibleSamples =
+		showAllSamples || sampleQuery.trim()
+			? filteredSamples
+			: filteredSamples.slice(0, 12);
 
-	if (!workspaceId)
+	if (!workspaceId) {
 		return (
 			<div className="web-centered-state">
 				Select a workspace to view detection results.
 			</div>
 		);
+	}
 	if (overview.isLoading || runs.isLoading || report.isLoading) {
 		return (
 			<div className="web-centered-state">
@@ -198,7 +570,6 @@ export default function Dashboard() {
 
 	const overall = report.data.slices.overall[0];
 	const providerRows = report.data.slices.provider;
-	const providerModeRows = report.data.slices.provider_mode;
 	const exposureRows = report.data.slices.brand_exposure;
 	const heatmap = new Map(
 		report.data.slices.intent_stage.map((row) => [row.key, row]),
@@ -217,514 +588,372 @@ export default function Dashboard() {
 				.filter((value): value is string => Boolean(value)),
 		),
 	];
+	const providerChartLabels = providerRows.map(
+		(row) => PROVIDER_LABELS[row.key] ?? row.label,
+	);
+	const trendPoints = trend.data?.points ?? [];
+	const trendLabels = trendPoints.map((point) =>
+		new Date(point.createdAt).toLocaleDateString(undefined, {
+			month: "short",
+			day: "numeric",
+		}),
+	);
+	const blind = exposureRows.find((row) => row.key === "blind");
+	const aided = exposureRows.find((row) => row.key === "aided");
 
 	return (
-		<div className="web-page-wide">
-			<div className="web-page-wide-inner space-y-7 py-6 sm:py-8">
-				<header className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 pb-6 dark:border-neutral-800">
+		<div className="web-page-wide bg-white dark:bg-neutral-950">
+			<div className="mx-auto w-full max-w-[1240px] space-y-12 px-4 py-7 sm:px-7 sm:py-9 lg:px-10">
+				<header className="flex flex-wrap items-end justify-between gap-5 border-b border-stone-200 pb-6 dark:border-neutral-800">
 					<div>
-						<p className="text-xs font-semibold uppercase text-cyan-700 dark:text-cyan-300">
-							Overview
+						<p className="text-xs font-medium text-stone-500">
+							{SUITE_LABELS[report.data.suiteKey]} / {report.data.samplingDepth}
 						</p>
 						<h1 className="mt-2 text-2xl font-semibold">
-							GEO detection report
+							{selectedRun?.promptSet?.name ?? "GEO detection report"}
 						</h1>
+						<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-500">
+							<span>{new Date(report.data.createdAt).toLocaleString()}</span>
+							<span className="capitalize">
+								{formatLabel(report.data.seriesStatus)}
+							</span>
+							<span>
+								{overview.data?.runnerOnline
+									? "Collector online"
+									: "Collector offline"}
+							</span>
+						</div>
 					</div>
 					<select
 						value={selectedSeries}
 						onChange={(event) => setSelectedSeries(event.target.value)}
 						className="h-10 max-w-full rounded-md border border-stone-200 bg-white px-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
+						aria-label="Detection series"
 					>
 						{formalRuns.map((run) => (
 							<option key={run.id} value={run.id}>
-								{new Date(run.createdAt).toLocaleString()} ·{" "}
+								{new Date(run.createdAt).toLocaleString()} /{" "}
 								{run.promptSet?.name ?? "Detection"}
 							</option>
 						))}
 					</select>
 				</header>
 
-				<section className="grid gap-3 sm:grid-cols-3">
-					<div className="flex items-center gap-3 rounded-md border border-stone-200 p-4 dark:border-neutral-800">
-						<Server
-							className={`size-5 ${overview.data?.runnerOnline ? "text-emerald-600" : "text-amber-500"}`}
-						/>
-						<div>
-							<p className="text-sm font-medium">Collector</p>
-							<p className="text-xs text-stone-500">
-								{overview.data?.runnerOnline ? "Online" : "Offline"}
-							</p>
-						</div>
-					</div>
-					<div className="flex items-center gap-3 rounded-md border border-stone-200 p-4 dark:border-neutral-800">
-						<Bot className="size-5 text-stone-500" />
-						<div>
-							<p className="text-sm font-medium">Series status</p>
-							<p className="text-xs capitalize text-stone-500">
-								{report.data.seriesStatus.replaceAll("_", " ")}
-							</p>
-						</div>
-					</div>
-					<div className="flex items-center gap-3 rounded-md border border-stone-200 p-4 dark:border-neutral-800">
-						<AlertTriangle
-							className={`size-5 ${overview.data?.openChallenges ? "text-amber-500" : "text-stone-400"}`}
-						/>
-						<div>
-							<p className="text-sm font-medium">Human checks</p>
-							<p className="text-xs text-stone-500">
-								{overview.data?.openChallenges ?? 0} open
-							</p>
-						</div>
-					</div>
-				</section>
-
 				{report.data.provisional ? (
-					<div className="flex items-center gap-2 border-l-2 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
-						<AlertTriangle className="size-4" /> Provisional report: collection
-						is incomplete or some scoring dimensions are not yet assessable.
+					<div className="flex items-start gap-3 border-l-2 border-amber-500 px-4 py-1 text-sm text-stone-600 dark:text-stone-300">
+						<AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+						<p>
+							This report is provisional because collection is incomplete or
+							some score layers cannot yet be assessed.
+						</p>
 					</div>
 				) : null}
 
-				<section className="grid gap-6 border-y border-stone-200 py-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)] dark:border-neutral-800">
+				{overall ? (
+					<section className="grid gap-10 border-y border-stone-200 py-8 lg:grid-cols-[220px_minmax(0,1fr)] dark:border-neutral-800">
+						<div>
+							<p className="text-xs font-medium text-stone-500">
+								Aloom GEO Score v1
+							</p>
+							<div className="mt-3 flex items-end gap-2">
+								<span className="text-6xl font-semibold tabular-nums text-cyan-700 dark:text-cyan-300">
+									{overall.weightedScore.overall}
+								</span>
+								<span className="pb-2 text-sm text-stone-500">/ 100</span>
+							</div>
+							<p className="mt-3 text-xs leading-5 text-stone-500">
+								{overall.weightedScore.coverage}% scoring coverage.{" "}
+								{overall.weightedScore.provisional
+									? "Use as a directional signal."
+									: "All required score layers are available."}
+							</p>
+						</div>
+						<div className="grid gap-x-8 gap-y-7 sm:grid-cols-2 xl:grid-cols-4">
+							<Metric
+								label="Completion"
+								value={percentage(overall.completionRate)}
+								detail={`${overall.completed} of ${overall.planned} planned samples`}
+							/>
+							<Metric
+								label="Mention rate"
+								value={percentage(overall.mentionRate.value)}
+								detail={`${overall.mentionRate.numerator} observed mentions`}
+								accent
+							/>
+							<Metric
+								label="Recommendation"
+								value={percentage(overall.recommendationRate.value)}
+								detail={`${overall.recommendationRate.numerator} recommendation signals`}
+							/>
+							<Metric
+								label="Average rank"
+								value={
+									overall.averageRank === null
+										? "Not assessed"
+										: overall.averageRank.toString()
+								}
+								detail="Absolute rank when the target appears"
+							/>
+						</div>
+					</section>
+				) : null}
+
+				<section className="grid gap-10 xl:grid-cols-2">
+					<div className="min-w-0">
+						<div className="mb-6">
+							<h2 className="text-lg font-semibold">Provider visibility</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Mention and recommendation rates across the selected official
+								Web providers.
+							</p>
+						</div>
+						<LineChart
+							ariaLabel="Provider mention and recommendation rate chart"
+							labels={providerChartLabels}
+							series={[
+								{
+									label: "Mention rate",
+									color: "#0891b2",
+									values: providerRows.map((row) => row.mentionRate.value),
+								},
+								{
+									label: "Recommendation rate",
+									color: "#f97360",
+									values: providerRows.map(
+										(row) => row.recommendationRate.value,
+									),
+								},
+							]}
+							emptyMessage="No provider metrics are available."
+						/>
+					</div>
+					<div className="min-w-0">
+						<div className="mb-6">
+							<h2 className="text-lg font-semibold">Comparable trend</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Only series with the same frozen detection configuration are
+								compared.
+							</p>
+						</div>
+						<LineChart
+							ariaLabel="Comparable detection trend chart"
+							labels={trendPoints.length > 1 ? trendLabels : []}
+							series={[
+								{
+									label: "Mention rate",
+									color: "#0891b2",
+									values: trendPoints.map((point) => point.mentionRate),
+								},
+								{
+									label: "Recommendation rate",
+									color: "#f97360",
+									values: trendPoints.map((point) => point.recommendationRate),
+								},
+							]}
+							emptyMessage="Run the same detection set again to create a comparable trend."
+						/>
+					</div>
+				</section>
+
+				<section>
+					<div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+						<div>
+							<h2 className="text-lg font-semibold">AI provider reports</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Each provider is measured against its own planned samples.
+							</p>
+						</div>
+						<p className="text-xs text-stone-500">
+							Failures remain in the denominator.
+						</p>
+					</div>
+					<ProviderReport rows={providerRows} />
+					<details className="mt-5 border-b border-stone-200 pb-4 dark:border-neutral-800">
+						<summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">
+							Detailed score composition <ChevronDown className="size-4" />
+						</summary>
+						<div className="mt-6 grid gap-8 lg:grid-cols-2">
+							{providerRows.map((row) => (
+								<div key={row.key}>
+									<p className="mb-4 text-sm font-semibold">
+										{PROVIDER_LABELS[row.key] ?? row.label}
+									</p>
+									<ScoreLayers score={row.weightedScore} />
+								</div>
+							))}
+						</div>
+					</details>
+				</section>
+
+				<section className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(270px,0.7fr)]">
+					<div className="min-w-0">
+						<div className="mb-6">
+							<h2 className="text-lg font-semibold">Intent x decision stage</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Mention rate for every tested intent-stage cell.
+							</p>
+						</div>
+						<IntentStageHeatmap
+							intents={intents}
+							stages={stages}
+							heatmap={heatmap}
+						/>
+					</div>
 					<div>
-						<h2 className="text-base font-semibold">Executive readout</h2>
-						<ul className="mt-3 space-y-2 text-sm leading-6 text-stone-600 dark:text-stone-300">
+						<h2 className="text-lg font-semibold">Score composition</h2>
+						<p className="mt-1 text-sm text-stone-500">
+							Unavailable dimensions stay visible instead of becoming zero.
+						</p>
+						{overall ? (
+							<div className="mt-6">
+								<ScoreLayers score={overall.weightedScore} />
+							</div>
+						) : null}
+					</div>
+				</section>
+
+				{overall ? (
+					<section>
+						<div className="mb-6">
+							<h2 className="text-lg font-semibold">Evidence quality</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Language compliance and visible citations are measured
+								separately from brand visibility.
+							</p>
+						</div>
+						<div className="grid gap-8 border-y border-stone-200 py-7 md:grid-cols-2 xl:grid-cols-4 dark:border-neutral-800">
+							<div className="flex gap-4">
+								<Languages className="mt-1 size-5 shrink-0 text-cyan-700" />
+								<div>
+									<p className="text-sm font-medium">Answer language match</p>
+									<p className="mt-2 text-3xl font-semibold tabular-nums">
+										{overall.answerLanguageMatchRate.value}%
+									</p>
+									<p className="mt-1 text-xs text-stone-500">
+										{overall.answerLanguageMatchRate.numerator} of{" "}
+										{overall.answerLanguageMatchRate.denominator} collected
+										answers
+									</p>
+								</div>
+							</div>
+							<div className="flex gap-4">
+								<Search className="mt-1 size-5 shrink-0 text-cyan-700" />
+								<div>
+									<p className="text-sm font-medium">Search-source exposure</p>
+									<p className="mt-2 text-3xl font-semibold tabular-nums">
+										{overall.searchSourceExposureRate.value}%
+									</p>
+									<p className="mt-1 text-xs text-stone-500">
+										Provider search cards, citation panels, and reference lists
+										{overall.searchSourceUrlCoverageRate.denominator > 0
+											? `; ${overall.searchSourceUrlCoverageRate.numerator}/${overall.searchSourceUrlCoverageRate.denominator} reported URLs extracted`
+											: ""}
+									</p>
+								</div>
+							</div>
+							<div className="flex gap-4">
+								<Link2 className="mt-1 size-5 shrink-0 text-cyan-700" />
+								<div>
+									<p className="text-sm font-medium">Answer-link exposure</p>
+									<p className="mt-2 text-3xl font-semibold tabular-nums">
+										{overall.answerLinkExposureRate.value}%
+									</p>
+									<p className="mt-1 text-xs text-stone-500">
+										URLs or links rendered directly inside the generated answer
+									</p>
+								</div>
+							</div>
+							<div>
+								<p className="text-sm font-medium">Blind to aided lift</p>
+								<p className="mt-2 text-3xl font-semibold tabular-nums">
+									{blind && aided
+										? `${Math.round((aided.mentionRate.value - blind.mentionRate.value) * 100) / 100} pp`
+										: "Not assessed"}
+								</p>
+								<p className="mt-1 text-xs text-stone-500">
+									{blind && aided
+										? `${blind.mentionRate.value}% blind vs ${aided.mentionRate.value}% aided`
+										: "Both exposure cohorts are required"}
+								</p>
+							</div>
+						</div>
+					</section>
+				) : null}
+
+				<section className="grid gap-10 lg:grid-cols-2">
+					<div>
+						<h2 className="text-lg font-semibold">Executive readout</h2>
+						<ul className="mt-5 space-y-4 text-sm leading-6 text-stone-600 dark:text-stone-300">
 							{report.data.executiveSummary.map((statement) => (
-								<li key={statement} className="flex gap-2">
-									<span className="mt-2 size-1.5 shrink-0 rounded-full bg-blue-600" />
+								<li key={statement} className="flex gap-3">
+									<span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-cyan-600" />
 									<span>{statement}</span>
 								</li>
 							))}
 						</ul>
 					</div>
 					<div>
-						<h2 className="text-base font-semibold">Analysis boundary</h2>
-						<p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-							Each answer is analysed in its own schema-validated model call.
-							This report combines those validated fields deterministically; it
-							never sends all prompt answers in one model context.
-						</p>
-						<dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-							<div>
-								<dt className="text-stone-500">Checkpoints</dt>
-								<dd className="mt-0.5 font-medium tabular-nums">
-									{report.data.methodology.checkpointSamples}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-stone-500">Unique prompts</dt>
-								<dd className="mt-0.5 font-medium tabular-nums">
-									{report.data.methodology.uniquePromptHashes}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-stone-500">Answers per AI call</dt>
-								<dd className="mt-0.5 font-medium tabular-nums">1</dd>
-							</div>
-							<div>
-								<dt className="text-stone-500">Largest answer</dt>
-								<dd className="mt-0.5 font-medium tabular-nums">
-									{report.data.methodology.largestResponseCharacters.toLocaleString()}{" "}
-									chars
-								</dd>
-							</div>
-						</dl>
-					</div>
-				</section>
-
-				{overall ? (
-					<section className="grid gap-6 border-b border-stone-200 pb-6 lg:grid-cols-[260px_minmax(0,1fr)] dark:border-neutral-800">
-						<div>
-							<p className="text-xs font-semibold uppercase text-stone-500">
-								Aloom GEO Score v1
-							</p>
-							<div className="mt-2 flex items-end gap-2">
-								<span className="text-5xl font-semibold tabular-nums">
-									{overall.weightedScore.overall}
-								</span>
-								<span className="pb-1 text-sm text-stone-500">/ 100</span>
-							</div>
-							<p className="mt-2 text-xs leading-5 text-stone-500">
-								{overall.weightedScore.coverage}% scoring coverage ·{" "}
-								{overall.weightedScore.provisional ? "provisional" : "complete"}
-							</p>
-							<p className="mt-3 text-xs leading-5 text-stone-500">
-								The weighted series score is separate from the per-answer GEO
-								score ({overall.answerPerformanceScore}/100 average).
-							</p>
-						</div>
-						<ScoreLayers score={overall.weightedScore} />
-					</section>
-				) : null}
-
-				<section className="grid overflow-hidden rounded-md border border-stone-200 sm:grid-cols-3 xl:grid-cols-6 dark:border-neutral-800">
-					<Metric
-						label="Completion"
-						value={metricValue(overall?.completionRate ?? 0)}
-						detail={`${overall?.completed ?? 0}/${overall?.planned ?? 0} samples`}
-					/>
-					<Metric
-						label="Mention rate"
-						value={metricValue(overall?.mentionRate.value ?? 0)}
-					/>
-					<Metric
-						label="Recommendation"
-						value={metricValue(overall?.recommendationRate.value ?? 0)}
-					/>
-					<Metric
-						label="Average rank"
-						value={
-							overall?.averageRank === null ||
-							overall?.averageRank === undefined
-								? "—"
-								: overall.averageRank.toString()
-						}
-					/>
-					<Metric
-						label="Source exposure"
-						value={metricValue(overall?.sourceExposureRate.value ?? 0)}
-					/>
-					<Metric
-						label="Stability"
-						value={metricValue(overall?.stability ?? null)}
-						detail={`${report.data.samplingDepth} sampling`}
-					/>
-				</section>
-
-				<section>
-					<div className="flex flex-wrap items-end justify-between gap-3">
-						<div>
-							<h2 className="text-base font-semibold">AI provider reports</h2>
-							<p className="mt-1 text-sm text-stone-500">
-								Each official Web provider is scored from its own planned
-								samples.
-							</p>
-						</div>
-						<p className="text-xs text-stone-500">
-							Failed collection and analysis attempts remain in the denominator.
-						</p>
-					</div>
-					<div className="mt-4 grid gap-4 xl:grid-cols-2">
-						{providerRows.map((row) => (
-							<article
-								key={row.key}
-								className="rounded-md border border-stone-200 p-5 dark:border-neutral-800"
-							>
-								<header className="flex items-start justify-between gap-4 border-b border-stone-200 pb-4 dark:border-neutral-800">
-									<div>
-										<h3 className="font-semibold">
-											{PROVIDER_LABELS[row.key] ?? row.label}
-										</h3>
-										<p className="mt-1 text-xs text-stone-500">
-											{row.completed}/{row.planned} collected · {row.analysed}{" "}
-											analysed
-										</p>
-									</div>
-									<div className="text-right">
-										<p className="text-3xl font-semibold tabular-nums">
-											{row.weightedScore.overall}
-										</p>
-										<p className="text-xs text-stone-500">
-											GEO score · {row.weightedScore.coverage}% coverage
-										</p>
-									</div>
-								</header>
-								<dl className="grid grid-cols-2 gap-x-4 gap-y-3 py-4 text-xs sm:grid-cols-4">
-									<div>
-										<dt className="text-stone-500">Mention</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.mentionRate.value}%
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Recommendation</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.recommendationRate.value}%
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Average rank</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.averageRank ?? "—"}
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Answer score</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.answerPerformanceScore}/100
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Sentiment</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.averageSentiment ?? "—"}
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Source exposure</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.sourceExposureRate.value}%
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Target share</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.targetShare}%
-										</dd>
-									</div>
-									<div>
-										<dt className="text-stone-500">Competitor share</dt>
-										<dd className="mt-1 font-medium tabular-nums">
-											{row.competitorShare}%
-										</dd>
-									</div>
-								</dl>
-								<ScoreLayers score={row.weightedScore} compact />
-							</article>
-						))}
-					</div>
-				</section>
-
-				<section className="space-y-7">
-					<div className="min-w-0">
-						<h2 className="text-base font-semibold">Intent × stage</h2>
-						<div className="mt-4 overflow-hidden border-y border-stone-200 dark:border-neutral-800">
-							<table className="w-full table-fixed text-center text-[10px] sm:text-xs">
-								<colgroup>
-									<col className="w-[30%] sm:w-[24%] lg:w-[20%]" />
-									{stages.map((stage) => (
-										<col key={stage} />
-									))}
-								</colgroup>
-								<thead>
-									<tr>
-										<th className="px-2 py-3 text-left sm:px-3">Intent</th>
-										{stages.map((stage) => (
-											<th
-												key={stage}
-												className="px-0.5 py-3 capitalize text-stone-500 sm:px-1"
-												title={stage.replaceAll("_", " ")}
-											>
-												<span className="lg:hidden">
-													{STAGE_SHORT_LABELS[stage] ?? stage.slice(0, 5)}
-												</span>
-												<span className="hidden lg:inline">
-													{stage.replaceAll("_", " ")}
-												</span>
-											</th>
-										))}
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
-									{intents.map((intent) => (
-										<tr key={intent}>
-											<th className="break-words px-2 py-2 text-left font-medium capitalize leading-tight sm:px-3 sm:py-3">
-												{intent.replaceAll("_", " ")}
-											</th>
-											{stages.map((stage) => {
-												const cell = heatmap.get(`${intent}:${stage}`);
-												const value = cell?.mentionRate.value ?? null;
-												return (
-													<td
-														key={stage}
-														className="px-0.5 py-1.5 sm:px-1 sm:py-2"
-													>
-														<div
-															className="rounded-sm px-0.5 py-2 tabular-nums"
-															style={{
-																backgroundColor:
-																	value === null
-																		? "transparent"
-																		: `color-mix(in srgb, #0891b2 ${Math.max(8, value)}%, transparent)`,
-															}}
-														>
-															{value === null ? "—" : `${value}%`}
-														</div>
-													</td>
-												);
-											})}
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					</div>
-					<div>
-						<h2 className="text-base font-semibold">
-							Mention rate by provider
-						</h2>
-						<div className="mt-4 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
-							{providerRows.map((row) => (
-								<div key={row.key} className="py-3">
-									<div className="flex items-center justify-between text-sm">
-										<span className="font-medium">
-											{PROVIDER_LABELS[row.key] ?? row.label}
-										</span>
-										<span className="tabular-nums">
-											{row.mentionRate.value}%
-										</span>
-									</div>
-									<div className="mt-2 h-1.5 overflow-hidden rounded bg-stone-100 dark:bg-neutral-900">
-										<div
-											className="h-full bg-cyan-600"
-											style={{ width: `${row.mentionRate.value}%` }}
-										/>
-									</div>
-									<p className="mt-2 text-xs text-stone-500">
-										{row.completed}/{row.planned} complete ·{" "}
-										{row.recommendationRate.value}% recommended
-									</p>
-								</div>
-							))}
-						</div>
-					</div>
-				</section>
-
-				<section className="grid gap-6 lg:grid-cols-2">
-					<div>
-						<h2 className="text-base font-semibold">Blind vs aided</h2>
-						<div className="mt-4 grid grid-cols-2 gap-3">
-							{exposureRows.map((row) => (
+						<h2 className="text-lg font-semibold">Competitor presence</h2>
+						<div className="mt-5 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
+							{report.data.competitors.slice(0, 6).map((competitor) => (
 								<div
-									key={row.key}
-									className="rounded-md border border-stone-200 p-4 dark:border-neutral-800"
+									key={competitor.name}
+									className="flex items-center justify-between gap-5 py-3 text-sm"
 								>
-									<p className="text-sm font-medium capitalize">{row.label}</p>
-									<p className="mt-3 text-2xl font-semibold">
-										{row.mentionRate.value}%
-									</p>
-									<p className="mt-1 text-xs text-stone-500">
-										{row.recommendationRate.value}% recommended
-									</p>
-								</div>
-							))}
-						</div>
-					</div>
-					<div>
-						<h2 className="text-base font-semibold">Comparable trend</h2>
-						<div className="mt-4 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
-							{trend.data?.points.map((point) => (
-								<div
-									key={point.seriesId}
-									className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 text-sm"
-								>
-									<span className="truncate text-stone-500">
-										{new Date(point.createdAt).toLocaleDateString()}
-									</span>
-									<span className="tabular-nums">
-										{point.mentionRate}% mention
-									</span>
-									<span className="tabular-nums">
-										{point.recommendationRate}% recommend
+									<span className="font-medium">{competitor.name}</span>
+									<span className="text-right text-xs text-stone-500">
+										{competitor.mentions} mentions /{" "}
+										{competitor.recommendations} recommendations
 									</span>
 								</div>
 							))}
-							{!trend.data?.points.length ? (
+							{!report.data.competitors.length ? (
 								<p className="py-8 text-center text-sm text-stone-500">
-									No comparable history.
+									No analysed competitor mentions.
 								</p>
 							) : null}
 						</div>
 					</div>
 				</section>
 
-				<section>
-					<h2 className="text-base font-semibold">Official Web modes</h2>
-					<div className="mt-4 overflow-auto border-y border-stone-200 dark:border-neutral-800">
-						<table className="w-full min-w-[620px] text-left text-sm">
-							<thead className="text-xs text-stone-500">
-								<tr>
-									<th className="px-3 py-3">Provider / mode</th>
-									<th className="px-3 py-3">Complete</th>
-									<th className="px-3 py-3">GEO score</th>
-									<th className="px-3 py-3">Mention</th>
-									<th className="px-3 py-3">Recommendation</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
-								{providerModeRows.map((row) => {
-									const [provider, mode = "default"] = row.key.split(":");
-									return (
-										<tr key={row.key}>
-											<td className="px-3 py-3 font-medium">
-												{PROVIDER_LABELS[provider ?? ""] ?? provider} ·{" "}
-												{getProviderModeLabel(
-													provider ?? "unknown",
-													mode as ProviderMode,
-												)}
-											</td>
-											<td className="px-3 py-3 tabular-nums">
-												{row.completed}/{row.planned}
-											</td>
-											<td className="px-3 py-3 tabular-nums">
-												{row.weightedScore.overall}/100
-											</td>
-											<td className="px-3 py-3 tabular-nums">
-												{row.mentionRate.value}%
-											</td>
-											<td className="px-3 py-3 tabular-nums">
-												{row.recommendationRate.value}%
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
-				</section>
-
-				<section>
-					<h2 className="text-base font-semibold">Competitor presence</h2>
-					<div className="mt-4 overflow-auto border-y border-stone-200 dark:border-neutral-800">
-						<table className="w-full min-w-[520px] text-left text-sm">
-							<thead className="text-xs text-stone-500">
-								<tr>
-									<th className="px-3 py-3">Competitor</th>
-									<th className="px-3 py-3">Mentions</th>
-									<th className="px-3 py-3">Recommendations</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
-								{report.data.competitors.map((competitor) => (
-									<tr key={competitor.name}>
-										<td className="px-3 py-3 font-medium">{competitor.name}</td>
-										<td className="px-3 py-3 tabular-nums">
-											{competitor.mentions}
-										</td>
-										<td className="px-3 py-3 tabular-nums">
-											{competitor.recommendations}
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-						{!report.data.competitors.length ? (
-							<p className="py-8 text-center text-sm text-stone-500">
-								No analysed competitor mentions.
+				{report.data.failures.length ? (
+					<section>
+						<div className="mb-5">
+							<h2 className="text-lg font-semibold">Failures</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Collection and analysis failures are listed separately.
 							</p>
-						) : null}
-					</div>
-				</section>
-
-				<section className="space-y-4">
-					{report.data.failures.length ? (
-						<div className="border-y border-stone-200 py-4 dark:border-neutral-800">
-							<h2 className="text-base font-semibold">Failure breakdown</h2>
-							<div className="mt-3 flex flex-wrap gap-2">
-								{report.data.failures.map((failure) => (
-									<span
-										key={`${failure.kind}:${failure.code}`}
-										className="rounded border border-stone-200 px-2.5 py-1.5 text-xs dark:border-neutral-800"
-									>
-										{failure.kind} · {failure.code.replaceAll("_", " ")} ·{" "}
-										<strong>{failure.count}</strong>
-									</span>
-								))}
-							</div>
 						</div>
-					) : null}
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<h2 className="text-base font-semibold">Sample evidence</h2>
+						<div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
+							{report.data.failures.map((failure) => (
+								<div
+									key={`${failure.kind}:${failure.code}`}
+									className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-4 py-3 text-sm"
+								>
+									<span className="capitalize text-stone-500">
+										{failure.kind}
+									</span>
+									<span className="font-medium">
+										{formatLabel(failure.code)}
+									</span>
+									<span className="tabular-nums text-red-700 dark:text-red-300">
+										{failure.count}
+									</span>
+								</div>
+							))}
+						</div>
+					</section>
+				) : null}
+
+				<section>
+					<div className="flex flex-wrap items-end justify-between gap-4">
+						<div>
+							<h2 className="text-lg font-semibold">Sample evidence</h2>
+							<p className="mt-1 text-sm text-stone-500">
+								Open any answer to inspect the original text, sources, language,
+								and conversation identity.
+							</p>
+						</div>
 						<Link
 							href={`/runs?workspace=${workspaceId}&series=${report.data.seriesId}`}
 							className="inline-flex items-center gap-1 text-sm text-cyan-700"
@@ -732,87 +961,81 @@ export default function Dashboard() {
 							Operational details <ArrowRight className="size-4" />
 						</Link>
 					</div>
-					<div className="flex items-center gap-2 border-y border-stone-200 p-3 dark:border-neutral-800">
+					<div className="mt-6 flex items-center gap-2 border-y border-stone-200 px-1 py-3 dark:border-neutral-800">
 						<Search className="size-4 text-stone-400" />
 						<Input
 							value={sampleQuery}
 							onChange={(event) => setSampleQuery(event.target.value)}
-							placeholder="Filter prompts, providers, modes, or errors"
+							placeholder="Filter prompts, answers, providers, or errors"
 							className="border-0 shadow-none"
 						/>
 					</div>
-					<div className="overflow-auto border-b border-stone-200 dark:border-neutral-800">
-						<table className="w-full min-w-[920px] table-fixed text-left text-sm">
-							<thead className="text-xs text-stone-500">
-								<tr>
-									<th className="w-28 px-3 py-3">Provider</th>
-									<th className="w-36 px-3 py-3">Mode</th>
-									<th className="w-28 px-3 py-3">Status</th>
-									<th className="w-36 px-3 py-3">Dimension</th>
-									<th className="px-3 py-3">Prompt</th>
-									<th className="w-20 px-3 py-3" />
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
-								{filteredSamples.map((sample) => (
-									<tr key={sample.checkpointId}>
-										<td className="px-3 py-3 font-medium">
-											{PROVIDER_LABELS[sample.provider] ?? sample.provider}
-										</td>
-										<td className="px-3 py-3 text-xs text-stone-500">
-											{getProviderModeLabel(
-												sample.provider,
-												sample.actualMode ?? sample.requestedMode,
-											)}
-											{sample.actualMode &&
-											sample.actualMode !== sample.requestedMode ? (
-												<span className="mt-1 block">
-													Requested{" "}
-													{getProviderModeLabel(
-														sample.provider,
-														sample.requestedMode,
-													)}
-												</span>
-											) : null}
-										</td>
-										<td className="px-3 py-3 text-xs">
-											<span
-												className={
-													sample.status === "completed"
-														? "text-emerald-700"
-														: sample.status === "waiting_human"
-															? "text-amber-700"
-															: "text-red-700"
-												}
-											>
-												{sample.status.replaceAll("_", " ")}
-											</span>
-											<br />
-											<span className="text-stone-500">
-												{sample.analysisStatus} analysis
-											</span>
-										</td>
-										<td className="px-3 py-3 text-xs capitalize text-stone-500">
-											{sample.intent.replaceAll("_", " ")}
-											<br />
-											{sample.decisionStage}
-										</td>
-										<td className="truncate px-3 py-3">{sample.prompt}</td>
-										<td className="px-3 py-3">
-											<Button
-												variant="ghost"
-												size="icon"
-												aria-label="Open sample"
-												onClick={() => setSelectedSampleId(sample.checkpointId)}
-											>
-												<ExternalLink className="size-4" />
-											</Button>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+					<div className="divide-y divide-stone-200 dark:divide-neutral-800">
+						{visibleSamples.map((sample) => (
+							<button
+								key={sample.checkpointId}
+								type="button"
+								onClick={() => setSelectedSampleId(sample.checkpointId)}
+								className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-stone-50 sm:grid-cols-[130px_minmax(0,1fr)_150px_32px] sm:items-center dark:hover:bg-neutral-900/50"
+							>
+								<div>
+									<p className="text-sm font-medium">
+										{PROVIDER_LABELS[sample.provider] ?? sample.provider}
+									</p>
+									<p className="mt-1 text-xs text-stone-500">
+										{getProviderModeLabel(
+											sample.provider,
+											sample.actualMode ?? sample.requestedMode,
+										)}
+									</p>
+								</div>
+								<div className="min-w-0">
+									<p className="line-clamp-2 text-sm leading-6">
+										{sample.prompt}
+									</p>
+									<p className="mt-1 text-xs capitalize text-stone-500">
+										{formatLabel(sample.intent)} /{" "}
+										{sample.decisionStage
+											? formatLabel(sample.decisionStage)
+											: "Unknown stage"}
+									</p>
+								</div>
+								<div className="flex items-center justify-between gap-4 sm:block">
+									<SampleLanguage
+										responseLanguage={sample.responseLanguage}
+										languageMatch={sample.languageMatch}
+										promptLocale={sample.locale}
+									/>
+									<p className="mt-1 text-xs text-stone-500">
+										<SampleSourceSummary
+											sources={sample.sources}
+											reportedSearchSourceCount={
+												sample.reportedSearchSourceCount
+											}
+										/>{" "}
+										/ {formatLabel(sample.status)}
+									</p>
+								</div>
+								<ExternalLink className="hidden size-4 text-stone-400 sm:block" />
+							</button>
+						))}
+						{!visibleSamples.length ? (
+							<p className="py-10 text-center text-sm text-stone-500">
+								No matching samples.
+							</p>
+						) : null}
 					</div>
+					{!sampleQuery.trim() && filteredSamples.length > 12 ? (
+						<Button
+							variant="ghost"
+							className="mt-4"
+							onClick={() => setShowAllSamples((current) => !current)}
+						>
+							{showAllSamples
+								? "Show fewer samples"
+								: `Show all ${filteredSamples.length} samples`}
+						</Button>
+					) : null}
 				</section>
 			</div>
 
@@ -825,22 +1048,27 @@ export default function Dashboard() {
 						<DialogTitle>Sample evidence</DialogTitle>
 						<DialogDescription>
 							{selectedSample
-								? `${PROVIDER_LABELS[selectedSample.provider] ?? selectedSample.provider} · ${selectedSample.locale} · ${selectedSample.status}`
+								? `${PROVIDER_LABELS[selectedSample.provider] ?? selectedSample.provider} / ${selectedSample.locale} / ${selectedSample.status}`
 								: ""}
 						</DialogDescription>
 					</DialogHeader>
 					{selectedSample ? (
-						<div className="space-y-5 text-sm">
+						<div className="space-y-6 text-sm">
 							<div>
-								<p className="text-xs font-semibold uppercase text-stone-500">
-									Prompt
+								<p className="text-xs font-semibold text-stone-500">Prompt</p>
+								<p className="mt-2 whitespace-pre-wrap leading-6">
+									{selectedSample.prompt}
 								</p>
-								<p className="mt-2 leading-6">{selectedSample.prompt}</p>
 							</div>
 							<div>
-								<p className="text-xs font-semibold uppercase text-stone-500">
-									Answer
-								</p>
+								<div className="flex flex-wrap items-center justify-between gap-3">
+									<p className="text-xs font-semibold text-stone-500">Answer</p>
+									<SampleLanguage
+										responseLanguage={selectedSample.responseLanguage}
+										languageMatch={selectedSample.languageMatch}
+										promptLocale={selectedSample.locale}
+									/>
+								</div>
 								<div className="mt-2 whitespace-pre-wrap rounded-md bg-stone-50 p-4 leading-6 dark:bg-neutral-900">
 									{selectedSample.response ??
 										selectedSample.errorMessage ??
@@ -848,11 +1076,11 @@ export default function Dashboard() {
 								</div>
 							</div>
 							{selectedSample.analysisStatus === "failed" ? (
-								<div className="border-l-2 border-red-500 bg-red-50 px-4 py-3 dark:bg-red-950/20">
-									<p className="text-xs font-semibold uppercase text-red-700 dark:text-red-300">
+								<div className="border-l-2 border-red-500 px-4 py-1">
+									<p className="text-xs font-semibold text-red-700 dark:text-red-300">
 										Analysis failed
 									</p>
-									<p className="mt-1 text-sm text-red-900 dark:text-red-100">
+									<p className="mt-1 text-sm">
 										{selectedSample.analysisErrorCode ?? "analysis_failed"}
 										{selectedSample.analysisErrorMessage
 											? `: ${selectedSample.analysisErrorMessage}`
@@ -860,33 +1088,39 @@ export default function Dashboard() {
 									</p>
 								</div>
 							) : null}
-							<div>
-								<p className="text-xs font-semibold uppercase text-stone-500">
-									Visible sources
-								</p>
-								<div className="mt-2 space-y-2">
-									{selectedSample.sources.map((source) => (
-										<a
-											key={source.url}
-											href={source.url}
-											target="_blank"
-											rel="noreferrer"
-											className="block rounded-md border border-stone-200 p-3 hover:border-cyan-500 dark:border-neutral-800"
-										>
-											<span className="font-medium">{source.title}</span>
-											<span className="mt-1 block truncate text-xs text-stone-500">
-												{source.url}
-											</span>
-										</a>
-									))}
-									{!selectedSample.sources.length ? (
-										<p className="text-stone-500">
-											The Web page did not expose extractable links.
-										</p>
-									) : null}
-								</div>
-							</div>
-							<dl className="grid gap-3 border-t border-stone-200 pt-4 sm:grid-cols-2 dark:border-neutral-800">
+							<SourceList
+								title="Search sources"
+								description={
+									selectedSample.reportedSearchSourceCount
+										? `URLs exposed by provider search cards, citation panels, or reference lists. ${sourceCount(selectedSample.sources, "search_source")} of ${selectedSample.reportedSearchSourceCount} provider-reported sources had extractable URLs.`
+										: "URLs exposed by provider search cards, citation panels, or reference lists. The provider did not expose a numeric source total."
+								}
+								sources={selectedSample.sources.filter(
+									(source) => source.sourceKind === "search_source",
+								)}
+								emptyMessage="The provider did not expose extractable search-source URLs. This does not mean no sources were consulted."
+							/>
+							<SourceList
+								title="Answer links"
+								description="URLs rendered directly in the generated answer body."
+								sources={selectedSample.sources.filter(
+									(source) => source.sourceKind === "answer_link",
+								)}
+								emptyMessage="The generated answer did not contain a directly extractable URL."
+							/>
+							{selectedSample.sources.some(
+								(source) => source.sourceKind === "legacy_unknown",
+							) ? (
+								<SourceList
+									title="Legacy unclassified sources"
+									description="Captured before source-surface provenance was recorded."
+									sources={selectedSample.sources.filter(
+										(source) => source.sourceKind === "legacy_unknown",
+									)}
+									emptyMessage="No legacy sources."
+								/>
+							) : null}
+							<dl className="grid gap-4 border-t border-stone-200 pt-5 sm:grid-cols-2 dark:border-neutral-800">
 								<div>
 									<dt className="text-xs text-stone-500">Official Web mode</dt>
 									<dd className="mt-1">
@@ -900,6 +1134,17 @@ export default function Dashboard() {
 									<dt className="text-xs text-stone-500">Answer size</dt>
 									<dd className="mt-1 tabular-nums">
 										{selectedSample.responseLength.toLocaleString()} characters
+									</dd>
+								</div>
+								<div>
+									<dt className="text-xs text-stone-500">
+										Search-source coverage
+									</dt>
+									<dd className="mt-1 capitalize">
+										{formatLabel(selectedSample.searchSourceCoverage)}
+										{selectedSample.reportedSearchSourceCount
+											? ` (${sourceCount(selectedSample.sources, "search_source")}/${selectedSample.reportedSearchSourceCount})`
+											: ""}
 									</dd>
 								</div>
 								<div>

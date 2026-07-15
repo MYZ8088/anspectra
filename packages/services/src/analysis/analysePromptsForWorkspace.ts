@@ -1,14 +1,69 @@
 import { clickhouse, db, schema } from "@aloom/db";
 import { BaseError, toErrorMessage } from "@aloom/errors";
-import type { PromptAnalysis, PromptResponse } from "@aloom/types";
+import type { PromptAnalysis, PromptResponse, Source } from "@aloom/types";
 import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { ensureSourceKindSchema } from "../prompt/lib/ensureSourceKindSchema.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import { type AnalysisExecution, runAnalysisDetailed } from "./runAnalysis.js";
+
+async function loadSourcesWithProvenance(
+	workspaceId: string,
+	responseIds: string[],
+) {
+	const grouped = new Map<string, Source[]>();
+	if (responseIds.length === 0) return grouped;
+	try {
+		await ensureSourceKindSchema();
+		const result = await clickhouse.query({
+			query: `
+				SELECT sample_id, title, cited_text, url, domain, source_kind
+				FROM analytics.sample_citations FINAL
+				WHERE workspace_id = {workspaceId:String}
+				  AND sample_id IN ({responseIds:Array(String)})
+				ORDER BY sample_id, source_index
+			`,
+			query_params: { workspaceId, responseIds },
+			format: "JSONEachRow",
+		});
+		const rows = (await result.json()) as Array<{
+			sample_id: string;
+			title: string;
+			cited_text: string;
+			url: string;
+			domain: string | null;
+			source_kind: string;
+		}>;
+		for (const row of rows) {
+			const source: Source = {
+				title: row.title || row.url,
+				cited_text: row.cited_text,
+				url: row.url,
+				domain: row.domain,
+				favicon: null,
+				source_kind:
+					row.source_kind === "answer_link" ||
+					row.source_kind === "search_source"
+						? row.source_kind
+						: "legacy_unknown",
+			};
+			grouped.set(row.sample_id, [
+				...(grouped.get(row.sample_id) ?? []),
+				source,
+			]);
+		}
+	} catch {
+		// Legacy installations can still analyze the nested source tuple while
+		// the additive provenance column is being prepared.
+	}
+	return grouped;
+}
 
 async function analysePromptResponse(args: {
 	brandDomain: string;
 	brandName: string;
+	brandAliases: string[];
+	products: string[];
 	response: string;
 	prompt: string;
 	sources?: PromptResponse["sources"];
@@ -22,6 +77,8 @@ async function analysePromptResponse(args: {
 	const execution = await runAnalysisDetailed({
 		brandDomain: args.brandDomain,
 		brandName: args.brandName,
+		brandAliases: args.brandAliases,
+		products: args.products,
 		response: args.response,
 		prompt: args.prompt,
 		sources: args.sources,
@@ -29,8 +86,11 @@ async function analysePromptResponse(args: {
 	});
 
 	execution.result.metadata = {
+		...execution.result.metadata,
 		brandName: args.brandName,
 		brandDomain: args.brandDomain,
+		brandAliases: args.brandAliases,
+		products: args.products,
 	};
 
 	return execution;
@@ -61,6 +121,8 @@ export async function analysePromptsForWorkspace(args: {
 	const analysisContext = {
 		brandName: profile?.brandName ?? workspace.name,
 		brandDomain: profile?.officialDomain ?? workspace.domain,
+		brandAliases: profile?.aliases ?? [],
+		products: profile?.products ?? [],
 		facts: ledger.map((fact) => ({
 			claim: `${fact.subject} — ${fact.predicate}: ${fact.value}`,
 			sourceUrl: fact.sourceUrl,
@@ -131,6 +193,10 @@ export async function analysePromptsForWorkspace(args: {
 		if (responses.length === 0) {
 			break;
 		}
+		const sourcesByResponseId = await loadSourcesWithProvenance(
+			workspaceId,
+			responses.map((response) => response.id),
+		);
 
 		const analysisRows: PromptAnalysis[] = [];
 		const analysisV2Rows: Array<Record<string, unknown>> = [];
@@ -148,7 +214,7 @@ export async function analysePromptsForWorkspace(args: {
 					...analysisContext,
 					response: resp.response,
 					prompt: resp.prompt,
-					sources: resp.sources,
+					sources: sourcesByResponseId.get(resp.id) ?? resp.sources,
 				});
 
 				const analysisId = uuidv4();
@@ -296,15 +362,15 @@ export async function analysePromptsForWorkspace(args: {
 	const remainingResult = scopedResponseIds
 		? null
 		: await clickhouse.query({
-			query: `
+				query: `
             SELECT count() as count
             FROM analytics.prompt_responses
             WHERE workspace_id = {workspaceId:String}
               AND is_analysed = false
         `,
-			query_params: { workspaceId },
-			format: "JSONEachRow",
-		});
+				query_params: { workspaceId },
+				format: "JSONEachRow",
+			});
 
 	const remainingData: Array<{ count: string }> = remainingResult
 		? await remainingResult.json()

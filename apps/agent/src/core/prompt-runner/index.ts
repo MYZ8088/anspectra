@@ -125,6 +125,9 @@ export async function runPrompts(
 			}
 			recoveredResult.sourceExposure =
 				recovered.sources.length > 0 ? "exposed" : "not_exposed";
+			recoveredResult.reportedSearchSourceCount =
+				recovered.reportedSearchSourceCount;
+			recoveredResult.searchSourceCoverage = recovered.searchSourceCoverage;
 			results.push(recoveredResult);
 			await onSampleComplete?.(recoveredResult);
 			await onAttemptUpdate?.({

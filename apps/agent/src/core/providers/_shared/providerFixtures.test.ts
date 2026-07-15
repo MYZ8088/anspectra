@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
 import { extractResponseFromDeepseek } from "../deepseek/lib/extractResponse.js";
+import { extractSourcesFromDeepseek } from "../deepseek/lib/extractSources.js";
 import { hunyuanConfig } from "../hunyuan/index.js";
 import {
 	extractLatestChineseChatResponse,
@@ -98,7 +99,11 @@ describe("redacted China provider DOM fixtures", () => {
 				expect(response).not.toContain("PostHog、Mixpanel 和 Amplitude 怎么选");
 				expect(response).not.toContain("还想了解部署模式吗");
 			}
-			expect(sources).toHaveLength(1);
+			expect(sources).toHaveLength(2);
+			expect(sources.map((source) => source.source_kind).sort()).toEqual([
+				"answer_link",
+				"search_source",
+			]);
 			expect(sources[0]?.url).toMatch(/^https:\/\/posthog\.com/);
 		},
 	);
@@ -107,8 +112,15 @@ describe("redacted China provider DOM fixtures", () => {
 		const response = await extractResponseFromDeepseek(
 			await fixturePage("deepseek"),
 		);
+		const sources = await extractSourcesFromDeepseek(
+			await fixturePage("deepseek"),
+		);
 		expect(response).toContain("PostHog");
 		expect(response).not.toContain("推理过程");
+		expect(sources.map((source) => source.source_kind).sort()).toEqual([
+			"answer_link",
+			"search_source",
+		]);
 	});
 
 	it("accepts Yuanbao submission when the sent bubble exists but the editor retains its text", async () => {
@@ -116,8 +128,7 @@ describe("redacted China provider DOM fixtures", () => {
 			await fixturePage("hunyuan", "hunyuan-submitting"),
 			{
 				preSubmitUrl: "https://example.test/hunyuan/conversation-1",
-				preSubmitContent:
-					"请用三点说明企业选择产品分析工具时应评估哪些因素。",
+				preSubmitContent: "请用三点说明企业选择产品分析工具时应评估哪些因素。",
 			},
 		);
 		expect(result).toBe(true);

@@ -1,7 +1,16 @@
 import type { AnalysisInputSingle } from "@aloom/types";
+import { targetEntities } from "./targetEntities.js";
 
 export function analysisPrompt(input: AnalysisInputSingle): string {
 	const { prompt, response, brandDomain, brandName } = input;
+	const entities = targetEntities(input);
+	const aliases = input.brandAliases?.length
+		? input.brandAliases.join(", ")
+		: "None configured";
+	const products = input.products?.length
+		? input.products.join(", ")
+		: "None configured";
+	const targetEntitySet = entities.map((entity) => `"${entity}"`).join(", ");
 	const factLedger = input.facts?.length
 		? input.facts
 				.map(
@@ -14,13 +23,13 @@ export function analysisPrompt(input: AnalysisInputSingle): string {
 		? input.sources
 				.map(
 					(source, index) =>
-						`${index + 1}. ${source.title || "Untitled source"} — ${source.url || "no visible URL"}${source.cited_text ? ` — ${source.cited_text}` : ""}`,
+						`${index + 1}. [${source.source_kind ?? "legacy_unknown"}] ${source.title || "Untitled source"} — ${source.url || "no visible URL"}${source.cited_text ? ` — ${source.cited_text}` : ""}`,
 				)
 				.join("\n")
 		: "No source links were exposed by the provider Web page.";
 
 	return `
-You are a precision instrument for Generative Engine Optimization (GEO) analysis. Your task: analyze exactly how "${brandName}" (${brandDomain}) appears in an LLM-generated response. You must produce perfectly calibrated, evidence-backed metrics.
+You are a precision instrument for Generative Engine Optimization (GEO) analysis. Your task: analyze exactly how the configured target brand, its aliases, and its products appear in an LLM-generated response. You must produce perfectly calibrated, evidence-backed metrics.
 
 ## ABSOLUTE RULES
 
@@ -45,6 +54,11 @@ ${response}
 </response>
 
 **Target Brand:** ${brandName} (${brandDomain})
+**Configured Brand Aliases:** ${aliases}
+**Configured Products / Product Lines:** ${products}
+**Canonical Target Entity Set:** ${targetEntitySet}
+
+Every exact configured alias and product/product-line name is a reference to the target brand. A response that names a configured product but omits the parent company name still counts as target presence. Do not infer additional aliases or products from similarity alone.
 
 **Verified Fact Ledger (the only authority for factual accuracy):**
 ${factLedger}
@@ -70,10 +84,12 @@ Before analyzing, classify the response:
 
 ### Step 1: Brand Detection & Mention Counting
 
-Scan the response for ALL mentions of "${brandName}". Apply these STRICT counting rules:
+Scan the response for ALL mentions of the canonical target entity set (${targetEntitySet}). Apply these STRICT counting rules:
 
 **COUNTS as a mention:**
 - Exact brand name: "${brandName}"
+- Any exact configured alias: ${aliases}
+- Any exact configured product or product-line name: ${products}
 - Domain reference: "${brandDomain}"
 - Clearly identified sub-products that belong to ${brandName} (e.g., if ${brandName} is "Google", then "Gmail" counts)
 - Well-known abbreviations of ${brandName}
@@ -83,7 +99,7 @@ Scan the response for ALL mentions of "${brandName}". Apply these STRICT countin
 - The brand name appearing inside the LLM's echo/restatement of the user's original question
 - The brand name appearing ONLY in a URL, citation, or source reference (not in prose)
 - Partial string matches (e.g., "Hub" does not match "HubSpot", "Zoom" does not match "Zoho")
-- A different brand/product that contains ${brandName} as a substring
+- A different brand/product that merely contains a target entity as a substring
 - Possessive or derivative forms that refer to the brand's users rather than the brand itself ("${brandName} users say..." — this counts, but "${brandName}-like" does not count as a mention of ${brandName})
 
 If the brand is not found in any of the above → the brand is ABSENT. Use the ABSENT BRAND DEFAULT OUTPUT below.
@@ -294,10 +310,10 @@ overall = round((visibility_value × 0.25) + (rank_value × 0.25) + (sentiment_v
 ## COMPETITOR EXTRACTION & DEDUPLICATION RULES
 
 ### Identification
-Only extract brands/products that are DIRECTLY compared to or listed alongside ${brandName} in the same response. Do NOT include:
+Only extract brands/products that are DIRECTLY compared to or listed alongside the target entity set in the same response. Do NOT include:
 - Brands mentioned in a completely different context or section
 - Generic category references (e.g., "CRM software" is not a competitor)
-- The target brand ${brandName} itself — NEVER include the target brand as its own competitor
+- The target brand, any configured alias, or any configured product/product line — NEVER include a target entity as a competitor
 - Brands that only appear in the user's prompt but not in the LLM's response
 - Brands that appear ONLY inside questions from the LLM (not in declarative content)
 
@@ -405,7 +421,7 @@ Before outputting, verify ALL of these. If any fail, fix the output:
 4. If recommendation.type = "not_mentioned" → mentioned = false.
 5. If recommendation.type = "top_pick" → the brand must be the absolute #1 across the entire response (not just a sub-category).
 6. geoScore.overall must be mathematically consistent with the weighted formula ± 3 points (rounding tolerance).
-7. ${brandName} must NOT appear in the competitors array.
+7. None of the configured target entities (${targetEntitySet}) may appear in the competitors array.
 8. No two competitors should share the same parent brand (deduplication rule).
 9. Every string in coreClaims[] and differentiators[] must be traceable to actual text in the response (not from questions the LLM asked). If no genuine risks exist, set items = [].
 10. rankPosition must be the ABSOLUTE rank (reading order across all sections), NOT the local rank within a sub-category.

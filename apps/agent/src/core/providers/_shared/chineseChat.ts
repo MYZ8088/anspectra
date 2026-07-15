@@ -221,6 +221,64 @@ export async function extractSourcesFromChineseChat(
 	provider: Provider,
 	selectors: string[],
 ): Promise<ReturnType<typeof buildSources>> {
+	// Search-backed answers often keep their full source list behind a compact
+	// "searched N pages" control. Reveal that surface before reading the DOM.
+	try {
+		const revealedTextControl = await page.evaluate(() => {
+			const pattern =
+				/搜索\s*\d+.*(?:参考|来源)\s*\d+|参考来源|信息来源|查看来源|sources?\s*\d*|citations?\s*\d*|references?\s*\d*/i;
+			const candidates = Array.from(
+				document.querySelectorAll(
+					'button, [role="button"], [class*="cursor-pointer"], [data-plugin-identifier*="search"]',
+				),
+			).filter((element) => {
+				const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+				if (!text || text.length > 240 || !pattern.test(text)) return false;
+				const rect = element.getBoundingClientRect();
+				const style = window.getComputedStyle(element);
+				return (
+					rect.width > 1 &&
+					rect.height > 1 &&
+					style.display !== "none" &&
+					style.visibility !== "hidden"
+				);
+			});
+			const candidate = candidates.at(-1) as HTMLElement | undefined;
+			candidate?.click();
+			return Boolean(candidate);
+		}, undefined);
+		if (revealedTextControl) {
+			await page.waitForTimeout(350);
+		}
+		const revealSelectors: Partial<Record<Provider, string[]>> = {
+			doubao: [
+				'[data-plugin-identifier*="search_query_result_block"]',
+				'[data-plugin-identifier*="search_result"]',
+			],
+			qwen: [
+				'.qwen-chat-message-assistant [class*="search" i][class*="source" i]',
+				'.qwen-chat-message-assistant [class*="reference" i]',
+			],
+			hunyuan: [
+				'[data-conv-speaker="ai"] [class*="deepsearch" i] [class*="source" i]',
+				'[data-conv-speaker="ai"] [class*="reference" i]',
+			],
+		};
+		for (const selector of revealSelectors[provider] ?? []) {
+			const candidates = page.locator(selector);
+			for (let index = (await candidates.count()) - 1; index >= 0; index -= 1) {
+				const candidate = candidates.nth(index);
+				if (!(await candidate.isVisible().catch(() => false))) continue;
+				await candidate.click({ timeout: 1_500 }).catch(() => undefined);
+				await page.waitForTimeout(350);
+				break;
+			}
+		}
+	} catch {
+		// The answer body may still expose links even when a provider changes its
+		// source-panel control. Extraction below remains useful and deterministic.
+	}
+
 	const extraction = await page.evaluate(
 		({ provider: currentProvider, responseSelectors }) => {
 			function isVisible(element: Element | null): element is HTMLElement {
@@ -318,37 +376,132 @@ export async function extractSourcesFromChineseChat(
 					?.element ?? null;
 			if (!response) return { rawSources: [], visibleText: "" };
 
-			const rawSources = Array.from(response.querySelectorAll("a[href]"))
-				.map((anchor) => {
-					const link = anchor as HTMLAnchorElement;
-					const text = (link.textContent || "").replace(/\s+/g, " ").trim();
-					const label = link.getAttribute("aria-label") || link.title || "";
-					const candidate =
-						link.getAttribute("data-url") ||
-						link.getAttribute("data-href") ||
-						link.getAttribute("href") ||
-						"";
-					let rawHref = "";
-					try {
-						rawHref = new URL(candidate, window.location.href).href;
-						const redirect = new URL(rawHref);
-						for (const key of ["url", "target", "target_url", "redirect"]) {
-							const nested = redirect.searchParams.get(key);
-							if (nested && /^https?:\/\//i.test(nested)) {
-								rawHref = nested;
-								break;
-							}
-						}
-					} catch {
-						rawHref = "";
+			function assistantRoot(element: HTMLElement): HTMLElement {
+				const rootSelectors: Partial<Record<string, string>> = {
+					qwen: ".qwen-chat-message-assistant",
+					doubao: '[data-message-id]:not([class*="justify-end"])',
+					hunyuan: '[data-conv-speaker="ai"]',
+				};
+				const selector = rootSelectors[currentProvider];
+				return (
+					((selector ? element.closest(selector) : null) as HTMLElement) ||
+					element
+				);
+			}
+
+			function isSearchSurface(element: Element): boolean {
+				let current: Element | null = element;
+				for (let depth = 0; current && depth < 7; depth += 1) {
+					const signature = [
+						current.id,
+						current.className,
+						current.getAttribute("role"),
+						current.getAttribute("aria-label"),
+						current.getAttribute("data-testid"),
+						current.getAttribute("data-plugin-identifier"),
+					]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase();
+					if (
+						/citation|reference|source-list|source-card|search-result|search_result|web-search|web_search|deepsearch/.test(
+							signature,
+						)
+					) {
+						return true;
 					}
-					return {
+					current = current.parentElement;
+				}
+				return false;
+			}
+
+			function rawHrefFrom(element: Element): string {
+				const candidate =
+					element.getAttribute("data-url") ||
+					element.getAttribute("data-href") ||
+					element.getAttribute("href") ||
+					"";
+				try {
+					let rawHref = new URL(candidate, window.location.href).href;
+					const redirect = new URL(rawHref);
+					for (const key of [
+						"url",
+						"target",
+						"target_url",
+						"redirect",
+						"redirect_url",
+					]) {
+						const nested = redirect.searchParams.get(key);
+						if (nested && /^https?:\/\//i.test(nested)) {
+							rawHref = nested;
+							break;
+						}
+					}
+					return rawHref;
+				} catch {
+					return "";
+				}
+			}
+
+			function isExplicitSourceElement(element: Element): boolean {
+				return Boolean(
+					element.closest(
+						'[class*="citation" i], [class*="reference" i], [class*="source-list" i], [class*="source-card" i], [class*="search-result" i], [class*="search_result" i], [data-plugin-identifier*="search"]',
+					),
+				);
+			}
+
+			const rawSources: Array<{
+				rawHref: string;
+				title: string;
+				citedText: string;
+				sourceKind: "answer_link" | "search_source";
+			}> = [];
+			const seenElements = new Set<Element>();
+			function collectFrom(root: ParentNode, forceSearchSource = false): void {
+				const linkSelector = "a[href], [data-url], [data-href]";
+				const elements = [
+					...(root instanceof Element && root.matches(linkSelector)
+						? [root]
+						: []),
+					...root.querySelectorAll(linkSelector),
+				];
+				for (const element of elements) {
+					if (seenElements.has(element)) continue;
+					seenElements.add(element);
+					const rawHref = rawHrefFrom(element);
+					if (!rawHref) continue;
+					const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+					const label =
+						element.getAttribute("aria-label") ||
+						element.getAttribute("title") ||
+						"";
+					rawSources.push({
 						rawHref,
 						title: text || label || rawHref,
 						citedText: "",
-					};
-				})
-				.filter((source) => source.rawHref);
+						sourceKind:
+							forceSearchSource || isExplicitSourceElement(element)
+								? "search_source"
+								: "answer_link",
+					});
+				}
+			}
+
+			collectFrom(response);
+			const root = assistantRoot(response);
+			for (const surface of root.querySelectorAll(
+				'[class*="citation" i], [class*="reference" i], [class*="source" i], [class*="search-result" i], [class*="search_result" i], [data-plugin-identifier*="search"]',
+			)) {
+				collectFrom(surface, true);
+			}
+			for (const surface of document.querySelectorAll(
+				'[role="dialog"], [role="listbox"], [class*="popover" i], [class*="drawer" i]',
+			)) {
+				if (isVisible(surface) && isSearchSurface(surface)) {
+					collectFrom(surface, true);
+				}
+			}
 			return {
 				rawSources,
 				visibleText: (response.innerText || response.textContent || "").trim(),
@@ -358,7 +511,7 @@ export async function extractSourcesFromChineseChat(
 	);
 	const rawSources = [
 		...((extraction.rawSources ?? []) as RawSource[]),
-		...extractVisibleUrlCandidates(extraction.visibleText ?? ""),
+		...extractVisibleUrlCandidates(extraction.visibleText ?? "", "answer_link"),
 	];
 
 	return buildSources(rawSources, { provider });

@@ -1,4 +1,5 @@
 import type { Provider } from "./agent.js";
+import type { SearchSourceCoverage, SourceKind } from "./sources.js";
 
 export const GEO_INTENT_LIST = [
 	"information",
@@ -71,6 +72,8 @@ export type DetectionMetricRate = {
 	value: number;
 };
 
+export type DetectedAnswerLanguage = "zh-CN" | "en-US" | "mixed" | "unknown";
+
 export const DETECTION_SCORE_LAYER_LIST = [
 	"visibility",
 	"evidence",
@@ -114,6 +117,10 @@ export type DetectionSliceMetrics = {
 	averageRank: number | null;
 	averageSentiment: number | null;
 	sourceExposureRate: DetectionMetricRate;
+	answerLinkExposureRate: DetectionMetricRate;
+	searchSourceExposureRate: DetectionMetricRate;
+	searchSourceUrlCoverageRate: DetectionMetricRate;
+	answerLanguageMatchRate: DetectionMetricRate;
 	stability: number | null;
 	targetShare: number;
 	competitorShare: number;
@@ -168,13 +175,18 @@ export type DetectionReport = {
 		actualMode: ProviderMode | null;
 		response: string | null;
 		responseLength: number;
+		responseLanguage: DetectedAnswerLanguage;
+		languageMatch: boolean | null;
 		sources: Array<{
 			title: string;
 			url: string;
 			citedText: string;
 			domain: string | null;
+			sourceKind: SourceKind;
 		}>;
 		sourceExposure: string | null;
+		reportedSearchSourceCount: number | null;
+		searchSourceCoverage: SearchSourceCoverage;
 		conversationId: string | null;
 		conversationUrl: string | null;
 		errorCode: string | null;

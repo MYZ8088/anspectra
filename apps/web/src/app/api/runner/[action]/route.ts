@@ -13,6 +13,8 @@ import {
 	FAILURE_CATEGORY_LIST,
 	FAILURE_CODE_LIST,
 	PROVIDER_MODE_LIST,
+	SEARCH_SOURCE_COVERAGE_LIST,
+	SOURCE_KIND_LIST,
 } from "@aloom/types";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -26,6 +28,7 @@ const sourceSchema = z.object({
 	url: z.string(),
 	domain: z.string().nullable(),
 	favicon: z.string().nullable(),
+	source_kind: z.enum(SOURCE_KIND_LIST).optional(),
 });
 const providerSchema = z.enum(GEO_WEB_PROVIDERS);
 
@@ -86,6 +89,15 @@ export async function POST(
 							.enum(["fresh", "multi_turn_experiment"])
 							.optional(),
 						sourceExposure: z.enum(["exposed", "not_exposed"]).optional(),
+						reportedSearchSourceCount: z
+							.number()
+							.int()
+							.min(1)
+							.nullable()
+							.optional(),
+						searchSourceCoverage: z
+							.enum(SEARCH_SOURCE_COVERAGE_LIST)
+							.optional(),
 						requestedMode: z.enum(PROVIDER_MODE_LIST).optional(),
 						actualMode: z.enum(PROVIDER_MODE_LIST).optional(),
 					}),

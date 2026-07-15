@@ -1,5 +1,6 @@
 import { ExternalServiceError, ValidationError } from "@aloom/errors";
 import type { Provider, Source } from "@aloom/types";
+import type { SearchSourceCoverage } from "@aloom/types";
 import { logger, validateResponse, withTimeout } from "@aloom/utils";
 import type { Page } from "playwright";
 import { detectBotPage } from "../../lib/input/response/detectBotPage.js";
@@ -36,7 +37,12 @@ async function extractAndValidateAnswer(
 	page: Page,
 	prompt: string,
 	provider: Provider,
-): Promise<{ response: string; sources: Source[] }> {
+): Promise<{
+	response: string;
+	sources: Source[];
+	reportedSearchSourceCount: number | null;
+	searchSourceCoverage: SearchSourceCoverage;
+}> {
 	let response: string;
 	try {
 		response = await withTimeout(
@@ -95,20 +101,27 @@ async function extractAndValidateAnswer(
 		);
 	}
 
-	const sources = await withTimeout(
+	const sourceResult = await withTimeout(
 		`[${provider}] extractSources`,
 		async () => await checkAndExtractSources(page, provider, response),
 		20_000,
 	);
-	return { response, sources };
+	return { response, ...sourceResult };
 }
 
 export async function recoverSubmittedPrompt(
 	page: Page,
 	prompt: string,
 	provider: Provider,
-): Promise<{ response: string; sources: Source[] }> {
-	logger.log(`[${provider}] recovering the submitted prompt after verification`);
+): Promise<{
+	response: string;
+	sources: Source[];
+	reportedSearchSourceCount: number | null;
+	searchSourceCoverage: SearchSourceCoverage;
+}> {
+	logger.log(
+		`[${provider}] recovering the submitted prompt after verification`,
+	);
 	return extractAndValidateAnswer(page, prompt, provider);
 }
 
@@ -126,7 +139,12 @@ export async function executePrompt(
 	page: Page,
 	prompt: string,
 	provider: Provider,
-): Promise<{ response: string; sources: Source[] }> {
+): Promise<{
+	response: string;
+	sources: Source[];
+	reportedSearchSourceCount: number | null;
+	searchSourceCoverage: SearchSourceCoverage;
+}> {
 	const config = PROVIDER_CONFIGS[provider];
 	try {
 		if (config.navigateToPrompt) {
