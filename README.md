@@ -1,20 +1,30 @@
 <p align="center">
-  <img src="assets/brand/aloom-lockup.svg" alt="Aloom" width="320" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/aloom-mark-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="./assets/brand/aloom-mark.svg" />
+    <img src="./assets/brand/aloom-mark.svg" alt="Aloom mark" width="92" />
+  </picture>
 </p>
 
-<h1 align="center">Aloom GEO Detection</h1>
+<h1 align="center">Aloom</h1>
 
 <p align="center">
-  Measure how an existing product appears across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.
+  <strong>Measure product visibility in official AI Web answers.</strong>
+</p>
+
+<p align="center">
+  Fixed prompt suites · Repeatable browser collection · Provider-level reports
 </p>
 
 <p align="center">
   <strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
-Aloom is a self-hosted GEO detection and recurring monitoring tool. It uses fixed, versioned prompt suites, real official-Web collection, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official-Web monitoring samples.
+Aloom is a self-hosted GEO detection and recurring monitoring tool for Doubao, DeepSeek, Yuanbao, and Qwen. It uses fixed, versioned prompt suites, real official-Web collection, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official-Web monitoring samples.
 
-![Aloom detection dashboard](docs/images/aloom-detection.png)
+<p align="center">
+  <img src="./docs/images/aloom-detection.png" alt="Aloom detection dashboard" width="100%" />
+</p>
 
 ### What Aloom measures
 

@@ -1,20 +1,30 @@
 <p align="center">
-  <img src="assets/brand/aloom-lockup.svg" alt="Aloom" width="320" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/aloom-mark-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="./assets/brand/aloom-mark.svg" />
+    <img src="./assets/brand/aloom-mark.svg" alt="Aloom 标志" width="92" />
+  </picture>
 </p>
 
-<h1 align="center">Aloom GEO 检测</h1>
+<h1 align="center">Aloom</h1>
 
 <p align="center">
-  通过豆包、DeepSeek、元宝和千问的官方 Web 页面，检测现有产品在生成式 AI 回答中的可见性。
+  <strong>衡量产品在官方 AI Web 回答中的可见性。</strong>
+</p>
+
+<p align="center">
+  固定提示词套件 · 可复现的浏览器采集 · 平台级检测报告
 </p>
 
 <p align="center">
   <a href="./README.md">English</a> · <strong>简体中文</strong>
 </p>
 
-Aloom 是一个可自托管的 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
+Aloom 是一个面向豆包、DeepSeek、元宝和千问的可自托管 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
 
-![Aloom 中文检测报告](docs/images/aloom-detection.zh-CN.png)
+<p align="center">
+  <img src="./docs/images/aloom-detection.zh-CN.png" alt="Aloom 中文检测报告" width="100%" />
+</p>
 
 ### 检测指标
 
