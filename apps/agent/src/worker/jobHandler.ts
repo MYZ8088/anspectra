@@ -221,6 +221,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 			collectionRunId,
 			provider,
 			status: "completed",
+			promptIds: requestedPrompts.map((prompt) => prompt.id),
 		});
 		plog.log(
 			"resume checkpoint has no unfinished prompts; skipping browser launch",
@@ -244,6 +245,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 			collectionRunId,
 			provider,
 			status: "failed",
+			promptIds: requestedPrompts.map((prompt) => prompt.id),
 			errorMessage: "Provider session is not authenticated",
 			failureCategory: "account",
 			failureCode: "login_required",
@@ -271,6 +273,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 			collectionRunId,
 			provider,
 			status: "failed",
+			promptIds: requestedPrompts.map((prompt) => prompt.id),
 			errorMessage: "Provider is disabled",
 			failureCategory: "provider_access",
 			failureCode: "mode_unavailable",
@@ -495,6 +498,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					collectionRunId,
 					provider,
 					status: "cancelled",
+					promptIds: requestedPrompts.map((prompt) => prompt.id),
 					errorMessage: "Stopped by user",
 					activePromptId,
 					failureCategory: "provider_access",
@@ -576,6 +580,7 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 		await finalizeGeoProviderRun({
 			collectionRunId,
 			provider,
+			promptIds: requestedPrompts.map((prompt) => prompt.id),
 			status:
 				persistedSampleCount >= totalPromptCount
 					? "completed"

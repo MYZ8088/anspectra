@@ -39,6 +39,7 @@ import { classifyAnalysisFailureCode } from "./analysisFailure.js";
 import { buildCollectorRestartCheckpointPatch } from "./collectorRestart.js";
 import { findConflictingConversationPrompt } from "./conversationIsolation.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
+import { selectFinalizableCheckpointIds } from "./finalizationScope.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
 import { assertPromptSetLocales } from "./promptSetLocale.js";
@@ -1582,6 +1583,7 @@ export async function finalizeGeoProviderRun(args: {
 	collectionRunId?: string;
 	provider: Provider;
 	status: "completed" | "partial" | "failed" | "cancelled";
+	promptIds?: string[];
 	errorMessage?: string;
 	activePromptId?: string;
 	failureCategory?: string;
@@ -1619,32 +1621,40 @@ export async function finalizeGeoProviderRun(args: {
 					),
 				);
 		}
-		await db
-			.update(schema.sampleCheckpoints)
-			.set({
-				status: args.status === "cancelled" ? "cancelled" : "not_attempted",
-				phase: "queued",
-				failureCategory: args.failureCategory ?? "provider_access",
-				errorCode: args.failureCode ?? "provider_aborted",
-				errorMessage:
-					args.errorMessage ??
-					"Provider ended before this prompt was attempted",
-				retryable: args.status !== "cancelled",
-				completedAt: now,
-				lastEventAt: now,
-				updatedAt: now,
-			})
-			.where(
-				and(
-					eq(schema.sampleCheckpoints.runId, args.collectionRunId),
-					eq(schema.sampleCheckpoints.provider, args.provider),
-					inArray(schema.sampleCheckpoints.status, [
-						"queued",
-						"running",
-						"retrying",
-					]),
-				),
-			);
+		const openCheckpoints = await db.query.sampleCheckpoints.findMany({
+			where: and(
+				eq(schema.sampleCheckpoints.runId, args.collectionRunId),
+				eq(schema.sampleCheckpoints.provider, args.provider),
+				inArray(schema.sampleCheckpoints.status, [
+					"queued",
+					"running",
+					"retrying",
+				]),
+			),
+			columns: { id: true, promptId: true },
+		});
+		const finalizableIds = selectFinalizableCheckpointIds({
+			openCheckpoints,
+			ownedPromptIds: args.promptIds,
+		});
+		if (finalizableIds.length > 0) {
+			await db
+				.update(schema.sampleCheckpoints)
+				.set({
+					status: args.status === "cancelled" ? "cancelled" : "not_attempted",
+					phase: "queued",
+					failureCategory: args.failureCategory ?? "provider_access",
+					errorCode: args.failureCode ?? "provider_aborted",
+					errorMessage:
+						args.errorMessage ??
+						"Provider ended before this prompt was attempted",
+					retryable: args.status !== "cancelled",
+					completedAt: now,
+					lastEventAt: now,
+					updatedAt: now,
+				})
+				.where(inArray(schema.sampleCheckpoints.id, finalizableIds));
+		}
 	}
 	const checkpoints = await db.query.sampleCheckpoints.findMany({
 		where: eq(schema.sampleCheckpoints.runId, args.collectionRunId),
