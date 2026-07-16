@@ -21,8 +21,8 @@ const ServicesEnvSchema = z.object({
 	AIHUBMIX_API_KEY: z.string().optional(),
 	aihubmix_api_key: z.string().optional(),
 	AIHUBMIX_BASE_URL: z.string().url().default("https://aihubmix.com/v1"),
-	AIHUBMIX_ANALYSIS_MODEL: z.string().default("deepseek-v4-pro"),
-	AIHUBMIX_ANALYSIS_FALLBACK_MODEL: z.string().default("gpt-4.1-mini"),
+	AIHUBMIX_ANALYSIS_MODEL: z.string().default("deepseek-v4-flash"),
+	AIHUBMIX_ANALYSIS_FALLBACK_MODEL: z.string().default(""),
 	ANALYSIS_LLM_PROVIDER: z
 		.enum(["openai", "claude", "aihubmix"])
 		.default("openai"),
