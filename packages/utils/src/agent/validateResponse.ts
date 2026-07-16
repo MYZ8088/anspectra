@@ -19,27 +19,69 @@ export const PROVIDER_MIN_RESPONSE_CHARS: Partial<Record<Provider, number>> = {
  * Known false/garbage response patterns across all providers.
  * Ordered from most specific to most general.
  */
-const FALSE_RESPONSE_PATTERNS: RegExp[] = [
+type FalseResponseRule = {
+	pattern: RegExp;
+	maxChars: number;
+	scanChars?: number;
+};
+
+const FALSE_RESPONSE_RULES: FalseResponseRule[] = [
 	// Gemini terms / disclaimer footer
-	/google terms.*opens in a new window.*apply/i,
-	/gemini is ai and can make mistakes/i,
-	/google privacy policy.*apply/i,
+	{ pattern: /google terms.*opens in a new window.*apply/i, maxChars: 2_000 },
+	{ pattern: /gemini is ai and can make mistakes/i, maxChars: 2_000 },
+	{ pattern: /google privacy policy.*apply/i, maxChars: 2_000 },
 	// CAPTCHA / bot detection
-	/our systems have detected unusual traffic/i,
-	/please verify you('re| are) human/i,
+	{
+		pattern: /our systems have detected unusual traffic/i,
+		maxChars: 1_200,
+		scanChars: 400,
+	},
+	{
+		pattern: /please verify you('re| are) human/i,
+		maxChars: 1_200,
+		scanChars: 400,
+	},
 	// Rate limiting
-	/too many requests/i,
+	{ pattern: /too many requests/i, maxChars: 800, scanChars: 300 },
 	// Downtime / unavailable
-	/service is (currently )?unavailable/i,
+	{
+		pattern: /service is (currently )?unavailable/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
 	// Auth walls / session expiry
-	/sign in to (continue|use|access)/i,
-	/you('ve| have) been logged out/i,
-	/access denied/i,
-	/not logged in|log in with wechat|scan with wechat/i,
-	/扫码登录|登录后.*使用|请先登录|微信登录|手机号登录|未登录/i,
+	{
+		pattern: /sign in to (continue|use|access)/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
+	{
+		pattern: /you('ve| have) been logged out/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
+	{ pattern: /access denied/i, maxChars: 800, scanChars: 300 },
+	{
+		pattern: /not logged in|log in with wechat|scan with wechat/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
+	{
+		pattern: /扫码登录|登录后.*使用|请先登录|微信登录|手机号登录|未登录/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
 	// CAPTCHA / visual verification surfaces used by China providers
-	/captcha|human verification|security verification/i,
-	/验证码|安全验证|人机验证|请选择所有符合|拖拽到这里|在卧室能看到/i,
+	{
+		pattern: /captcha|human verification|security verification/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
+	{
+		pattern: /验证码|安全验证|人机验证|请选择所有符合|拖拽到这里|在卧室能看到/i,
+		maxChars: 800,
+		scanChars: 300,
+	},
 ];
 
 type ValidationResult = { valid: true } | { valid: false; reason: string };
@@ -59,11 +101,14 @@ export function validateResponse(
 		};
 	}
 
-	for (const pattern of FALSE_RESPONSE_PATTERNS) {
-		if (pattern.test(trimmed)) {
+	for (const rule of FALSE_RESPONSE_RULES) {
+		const candidate = rule.scanChars
+			? trimmed.slice(0, rule.scanChars)
+			: trimmed;
+		if (trimmed.length <= rule.maxChars && rule.pattern.test(candidate)) {
 			return {
 				valid: false,
-				reason: `False/garbage response detected — matched: "${pattern}"`,
+				reason: `False/garbage response detected — matched: "${rule.pattern}"`,
 			};
 		}
 	}
