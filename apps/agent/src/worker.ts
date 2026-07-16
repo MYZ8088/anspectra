@@ -16,7 +16,13 @@ import {
 	providerConcurrencyDecision,
 	runWithProviderExecutionGate,
 } from "./worker/executionGate.js";
-import { handleJob, stopActiveProviderRun } from "./worker/jobHandler.js";
+import {
+	handleJob,
+	interruptActiveProviderRunsForShutdown,
+	stopActiveProviderRun,
+} from "./worker/jobHandler.js";
+
+export { interruptActiveProviderRunsForShutdown };
 
 // Exported so index.ts can call worker.close() during graceful shutdown.
 export let workers: Worker[] = [];

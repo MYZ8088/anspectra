@@ -36,6 +36,7 @@ import { getProviderQueue } from "../agent/queue.js";
 import { redis, waitForRedis } from "../agent/redis.js";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import { classifyAnalysisFailureCode } from "./analysisFailure.js";
+import { buildCollectorRestartCheckpointPatch } from "./collectorRestart.js";
 import { findConflictingConversationPrompt } from "./conversationIsolation.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
@@ -1449,6 +1450,40 @@ export async function validateGeoConversationIsolation(args: {
 		accepted: false,
 		conflictingPromptId,
 	};
+}
+
+export async function prepareGeoProviderForCollectorRestart(args: {
+	collectionRunId?: string;
+	provider: Provider;
+}): Promise<void> {
+	if (!args.collectionRunId) return;
+	const runId = args.collectionRunId;
+	const now = new Date();
+	await db.transaction(async (tx) => {
+		await tx
+			.update(schema.sampleCheckpoints)
+			.set(buildCollectorRestartCheckpointPatch(now))
+			.where(
+				and(
+					eq(schema.sampleCheckpoints.runId, runId),
+					eq(schema.sampleCheckpoints.provider, args.provider),
+					inArray(schema.sampleCheckpoints.status, ["running", "retrying"]),
+				),
+			);
+		await tx
+			.update(schema.collectionRuns)
+			.set({
+				status: "waiting_runner",
+				completedAt: null,
+				updatedAt: now,
+			})
+			.where(eq(schema.collectionRuns.id, runId));
+	});
+	await refreshGeoCollectionRunCounters(runId, now);
+	const run = await db.query.collectionRuns.findFirst({
+		where: eq(schema.collectionRuns.id, runId),
+	});
+	await refreshCollectionSeries(run?.seriesId);
 }
 
 export async function getGeoProviderCheckpointState(args: {

@@ -31,6 +31,10 @@ async function startRuntime() {
 		stopOutboxReplay();
 		stopAnalysisRecovery();
 		if (workerModule.workers.length > 0) {
+			await Promise.all(
+				workerModule.workers.map((worker) => worker.pause(true)),
+			);
+			await workerModule.interruptActiveProviderRunsForShutdown();
 			await Promise.all(workerModule.workers.map((worker) => worker.close()));
 		}
 		await redis.quit();

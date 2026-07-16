@@ -49,6 +49,7 @@ export {
 	markGeoAnalysisRunning,
 	persistGeoHumanChallenge,
 	persistGeoSampleCheckpoint,
+	prepareGeoProviderForCollectorRestart,
 	recordGeoSampleAttempt,
 	reconcileStaleGeoCollectionRuns,
 	requestHumanChallengeWindow,

@@ -7,10 +7,12 @@ import {
 import {
 	buildProviderCancelKey,
 	buildProviderJobId,
+	enqueueProviderJobs,
 	finalizeGeoProviderRun,
 	getGeoProviderCheckpointState,
 	hasRuntimeProviderAuth,
 	persistGeoSampleCheckpoint,
+	prepareGeoProviderForCollectorRestart,
 	recordGeoSampleAttempt,
 	redis,
 	updateProviderProgress,
@@ -66,6 +68,14 @@ type ProviderJobData = {
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
 const activeProviderStops = new Map<string, () => Promise<void>>();
+const activeProviderShutdowns = new Map<string, () => Promise<void>>();
+
+class CollectorShutdownError extends Error {
+	constructor(provider: Provider) {
+		super(`Collector shutdown interrupted ${provider}`);
+		this.name = "CollectorShutdownError";
+	}
+}
 
 function buildProgressSeed(providers: Provider[], promptCount: number): string {
 	return JSON.stringify({
@@ -120,7 +130,9 @@ function unregisterActiveProviderStop(
 	jobGroupId: string,
 	provider: Provider,
 ): void {
-	activeProviderStops.delete(buildProviderJobId(jobGroupId, provider));
+	const key = buildProviderJobId(jobGroupId, provider);
+	activeProviderStops.delete(key);
+	activeProviderShutdowns.delete(key);
 }
 
 export async function stopActiveProviderRun(args: {
@@ -133,6 +145,12 @@ export async function stopActiveProviderRun(args: {
 	if (!stop) return false;
 	await stop();
 	return true;
+}
+
+export async function interruptActiveProviderRunsForShutdown(): Promise<void> {
+	await Promise.all(
+		[...activeProviderShutdowns.values()].map((interrupt) => interrupt()),
+	);
 }
 
 export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
@@ -283,11 +301,20 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 	let activePromptId: string | undefined;
 	let terminalFailure: ReturnType<typeof describePromptFailure> | undefined;
 	let terminalFailureMessage: string | undefined;
-
-	registerActiveProviderStop(jobGroupId, provider, async () => {
+	let collectorShutdownRequested = false;
+	const interruptAttempt = async () => {
 		stopController.abort();
 		await activeAttemptCleanup?.().catch(() => {});
-	});
+	};
+
+	registerActiveProviderStop(jobGroupId, provider, interruptAttempt);
+	activeProviderShutdowns.set(
+		buildProviderJobId(jobGroupId, provider),
+		async () => {
+			collectorShutdownRequested = true;
+			await interruptAttempt();
+		},
+	);
 
 	try {
 		try {
@@ -406,7 +433,9 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 			// agentHandler handles StopProviderRunError internally and returns
 			// partial/empty results — check signal here to still mark as stopped.
 			if (stopController.signal.aborted) {
-				throw new StopProviderRunError(provider);
+				throw collectorShutdownRequested
+					? new CollectorShutdownError(provider)
+					: new StopProviderRunError(provider);
 			}
 
 			providerResults[provider] = {
@@ -414,6 +443,42 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 				data: result,
 			};
 		} catch (err) {
+			if (collectorShutdownRequested || err instanceof CollectorShutdownError) {
+				plog.warn(
+					"collector is stopping; returning the active sample to the provider queue",
+				);
+				await prepareGeoProviderForCollectorRestart({
+					collectionRunId,
+					provider,
+				});
+				await enqueueProviderJobs({
+					jobGroupId,
+					collectionRunId,
+					prompts: requestedPrompts.map((prompt) => ({
+						...prompt,
+						user_id,
+						workspace_id,
+						created_at: executionTime,
+					})),
+					userId: user_id,
+					workspaceId: workspace_id,
+					providers: [provider],
+					initialCompletedCount: persistedSampleCount,
+					totalPromptCount,
+					minPromptDelayMs,
+					maxPromptDelayMs,
+					providerModes: { [provider]: providerMode },
+					attemptIndexOffsets,
+					queueJobIdSuffix: `collector-restart-${Date.now()}`,
+				});
+				await updateProviderProgress({
+					jobGroupId,
+					provider,
+					status: "pending",
+					resultCount: persistedSampleCount,
+				});
+				return true;
+			}
 			if (err instanceof StopProviderRunError) {
 				plog.warn("stopped from UI");
 				await Promise.all(
