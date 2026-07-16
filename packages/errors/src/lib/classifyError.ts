@@ -11,7 +11,7 @@ export function classifyError(err: unknown): FailureType {
 	if (
 		// Chromium format: ERR_SSL_*, ERR_PROXY_*, ERR_CONNECTION_*, ERR_TUNNEL_*, ERR_TIMED_OUT
 		// Firefox/Camoufox format: SSL_ERROR_*, PR_CONNECT_*, SEC_ERROR_*
-		/err_proxy|err_connection|err_tunnel|err_ssl|err_timed_out|proxy connect failed|tunnel connection|ssl_error|pr_connect|sec_error/i.test(
+		/err_proxy|err_connection|err_tunnel|err_ssl|err_timed_out|ns_error_(?:failure|net_reset|net_timeout|unknown_host)|proxy connect failed|tunnel connection|ssl_error|pr_connect|sec_error/i.test(
 			msg,
 		)
 	)

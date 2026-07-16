@@ -189,7 +189,7 @@ export async function runPrompts(
 							? "fresh_conversation_failed"
 							: details.code,
 					failureMessage: toErrorMessage(err),
-					retryable: false,
+					retryable: details.retryable,
 					pageUrl: page.url(),
 					requestedMode,
 				}).catch(() => {});

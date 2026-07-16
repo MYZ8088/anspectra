@@ -116,4 +116,61 @@ describe("runPrompts terminal sample failures", () => {
 			]),
 		);
 	});
+
+	it("records transient fresh-conversation navigation failures as retryable", async () => {
+		mocks.startFreshConversation
+			.mockRejectedValueOnce(new Error("page.goto: NS_ERROR_FAILURE"))
+			.mockResolvedValueOnce(undefined);
+		mocks.executePromptWithRetry.mockResolvedValueOnce({
+			result: {
+				userId: "user-1",
+				workspaceId: "workspace-1",
+				promptId: "prompt-2",
+				prompt: "Prompt two",
+				response: "A complete answer for prompt two.",
+				sources: [],
+			},
+			proxyNowProven: false,
+		});
+		const updates: Array<Record<string, unknown>> = [];
+		const page = {
+			context: () => ({
+				storageState: vi.fn().mockResolvedValue({ cookies: [], origins: [] }),
+			}),
+			url: () => "https://www.doubao.com/chat/current",
+			waitForLoadState: vi.fn().mockResolvedValue(undefined),
+			waitForTimeout: vi.fn().mockResolvedValue(undefined),
+		};
+
+		const results = await runPrompts(
+			{
+				user_id: "user-1",
+				workspace_id: "workspace-1",
+				created_at: new Date(0).toISOString(),
+				prompts: [
+					{ id: "prompt-1", prompt: "Prompt one" },
+					{ id: "prompt-2", prompt: "Prompt two" },
+				],
+			},
+			page as never,
+			"doubao",
+			undefined,
+			undefined,
+			async (update) => {
+				updates.push(update);
+			},
+		);
+
+		expect(results.map((result) => result.promptId)).toEqual(["prompt-2"]);
+		expect(updates).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					promptId: "prompt-1",
+					status: "failed",
+					failureCode: "network_error",
+					retryable: true,
+				}),
+			]),
+		);
+	});
 });

@@ -15,6 +15,7 @@ describe("describePromptFailure", () => {
 			"incomplete_response",
 		],
 		["browser has been closed", "session", "browser_crash"],
+		["page.goto: NS_ERROR_FAILURE", "navigation", "network_error"],
 	] as const)("maps %s to %s/%s", (message, phase, code) => {
 		const details = describePromptFailure(new Error(message));
 		expect(details.phase).toBe(phase);
