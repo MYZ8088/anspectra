@@ -234,6 +234,14 @@ export function supportsStrictAnalysisSchema(model: string): boolean {
 	return !model.toLowerCase().includes("deepseek-v4");
 }
 
+export function analysisModelRequestOverrides(
+	model: string,
+): Record<string, unknown> | undefined {
+	return model.toLowerCase().includes("deepseek-v4")
+		? { thinking: { type: "disabled" } }
+		: undefined;
+}
+
 function analysisGenerators(): StructuredModelGenerator[] {
 	switch (env.ANALYSIS_LLM_PROVIDER) {
 		case "claude":
@@ -252,6 +260,7 @@ function analysisGenerators(): StructuredModelGenerator[] {
 						maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
 						timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
 						strictSchema: supportsStrictAnalysisSchema(model),
+						extraBody: analysisModelRequestOverrides(model),
 					}),
 				);
 		default:

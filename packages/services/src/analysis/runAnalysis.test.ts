@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { analysisPrompt } from "./analysisPrompt.js";
 import {
+	analysisModelRequestOverrides,
 	parseAnalysisOutput,
 	supportsStrictAnalysisSchema,
 } from "./runAnalysis.js";
@@ -63,6 +64,13 @@ describe("analysis model capabilities", () => {
 		expect(supportsStrictAnalysisSchema("deepseek-v4-flash")).toBe(false);
 		expect(supportsStrictAnalysisSchema("deep-deepseek-v4-pro")).toBe(false);
 		expect(supportsStrictAnalysisSchema("gpt-4.1-mini")).toBe(true);
+	});
+
+	it("disables DeepSeek V4 thinking for structured scoring", () => {
+		expect(analysisModelRequestOverrides("deepseek-v4-flash")).toEqual({
+			thinking: { type: "disabled" },
+		});
+		expect(analysisModelRequestOverrides("gpt-4.1-mini")).toBeUndefined();
 	});
 });
 

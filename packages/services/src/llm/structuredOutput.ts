@@ -443,6 +443,7 @@ export function createOpenAiCompatibleGenerator(args: {
 	maxTokens?: number;
 	timeoutMs?: number;
 	strictSchema?: boolean;
+	extraBody?: Record<string, unknown>;
 }): StructuredModelGenerator {
 	return {
 		provider: args.provider,
@@ -466,8 +467,7 @@ export function createOpenAiCompatibleGenerator(args: {
 								},
 							}
 						: { type: "json_object" as const };
-				const response = await args.client.chat.completions.create(
-					{
+				const requestBody = {
 						model: args.model,
 						temperature: 0,
 						max_tokens: args.maxTokens ?? 8192,
@@ -476,7 +476,10 @@ export function createOpenAiCompatibleGenerator(args: {
 							{ role: "system", content: request.systemPrompt },
 							{ role: "user", content: request.userPrompt },
 						],
-					},
+						...args.extraBody,
+					} as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming;
+				const response = await args.client.chat.completions.create(
+					requestBody,
 					{ signal: controller.signal, timeout: timeoutMs },
 				);
 				const choice = response.choices[0];
