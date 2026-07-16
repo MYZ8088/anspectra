@@ -1,5 +1,8 @@
 import type { Provider } from "@aloom/types";
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
+import {
+	PROVIDER_MODEL_RESPONSE_SELECTORS,
+	normalizeProviderMarkdown,
+} from "@aloom/utils";
 import type { Page } from "playwright";
 import { turndown } from "./converter.js";
 
@@ -13,6 +16,5 @@ export async function extractAssistantMarkdown(
 	});
 	if (!html) return "";
 
-	const markdown = turndown.turndown(html);
-	return markdown.replace(/\n{3,}/g, "\n\n").trim();
+	return normalizeProviderMarkdown(turndown.turndown(html));
 }

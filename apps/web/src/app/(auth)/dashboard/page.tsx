@@ -17,16 +17,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
 } from "@aloom/ui";
+import { formatMarkdown, normalizeProviderMarkdown } from "@aloom/utils";
 import {
 	AlertTriangle,
 	ArrowRight,
 	CheckCircle2,
 	ChevronDown,
-	ExternalLink,
+	ChevronRight,
 	Languages,
 	Link2,
-	Loader2,
 	Radar,
 	Search,
 } from "lucide-react";
@@ -402,8 +406,47 @@ function sourceCount(
 	return new Set(
 		sources
 			.filter((source) => source.sourceKind === kind)
-			.map((source) => source.url),
+			.map((source) => source.url.trim().toLocaleLowerCase())
+			.filter(Boolean),
 	).size;
+}
+
+function uniqueSources(sources: ReportSource[]) {
+	const unique = new Map<string, ReportSource>();
+	for (const source of sources) {
+		const url = source.url.trim();
+		if (!url) continue;
+		const key = `${source.sourceKind}:${url.toLocaleLowerCase()}`;
+		const existing = unique.get(key);
+		if (!existing || existing.title === existing.url) {
+			unique.set(key, { ...source, url });
+		}
+	}
+	return [...unique.values()];
+}
+
+function safeExternalUrl(value: string | null) {
+	if (!value) return null;
+	try {
+		const url = new URL(value);
+		return url.protocol === "http:" || url.protocol === "https:"
+			? url.toString()
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function sourceTitle(source: ReportSource) {
+	const title = source.title.trim();
+	if (title && title.toLocaleLowerCase() !== source.url.toLocaleLowerCase()) {
+		return title;
+	}
+	try {
+		return new URL(source.url).hostname.replace(/^www\./, "");
+	} catch {
+		return "External source";
+	}
 }
 
 function SampleSourceSummary(props: {
@@ -416,7 +459,7 @@ function SampleSourceSummary(props: {
 	return (
 		<span>
 			{searchSources}
-			{props.reportedSearchSourceCount
+			{props.reportedSearchSourceCount !== null
 				? `/${props.reportedSearchSourceCount}`
 				: ""}{" "}
 			search sources / {answerLinks} answer links
@@ -431,6 +474,7 @@ function SourceList(props: {
 	sources: ReportSource[];
 	emptyMessage: string;
 }) {
+	const sources = uniqueSources(props.sources);
 	return (
 		<div>
 			<p className="text-xs font-semibold text-stone-500">{props.title}</p>
@@ -438,7 +482,7 @@ function SourceList(props: {
 				{props.description}
 			</p>
 			<div className="mt-3 divide-y divide-stone-200 border-y border-stone-200 dark:divide-neutral-800 dark:border-neutral-800">
-				{props.sources.map((source) => (
+				{sources.map((source) => (
 					<a
 						key={`${source.sourceKind}:${source.url}`}
 						href={source.url}
@@ -446,18 +490,84 @@ function SourceList(props: {
 						rel="noreferrer"
 						className="block py-3 hover:text-cyan-700"
 					>
-						<span className="font-medium">{source.title}</span>
+						<span className="font-medium">{sourceTitle(source)}</span>
 						<span className="mt-1 block truncate text-xs text-stone-500">
 							{source.url}
 						</span>
 					</a>
 				))}
-				{!props.sources.length ? (
+				{!sources.length ? (
 					<p className="py-4 text-stone-500">{props.emptyMessage}</p>
 				) : null}
 			</div>
 		</div>
 	);
+}
+
+function OverviewLoadingState() {
+	return (
+		<div
+			className="web-page-wide bg-white dark:bg-neutral-950"
+			aria-label="Loading detection report"
+			aria-live="polite"
+			aria-busy="true"
+		>
+			<span className="sr-only">Loading detection report</span>
+			<div className="mx-auto w-full max-w-[1240px] animate-pulse space-y-10 px-4 py-7 sm:px-7 sm:py-9 lg:px-10">
+				<div className="flex items-end justify-between border-b border-stone-200 pb-6 dark:border-neutral-800">
+					<div className="space-y-3">
+						<div className="h-3 w-36 rounded bg-stone-100 dark:bg-neutral-900" />
+						<div className="h-7 w-64 rounded bg-stone-200 dark:bg-neutral-800" />
+						<div className="h-3 w-48 rounded bg-stone-100 dark:bg-neutral-900" />
+					</div>
+					<div className="hidden h-10 w-64 rounded bg-stone-100 sm:block dark:bg-neutral-900" />
+				</div>
+				<div className="grid gap-8 border-y border-stone-200 py-8 lg:grid-cols-[220px_minmax(0,1fr)] dark:border-neutral-800">
+					<div className="h-32 rounded bg-stone-100 dark:bg-neutral-900" />
+					<div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+						{["completion", "mention", "recommendation", "rank"].map(
+							(metric) => (
+								<div
+									key={metric}
+									className="h-24 rounded bg-stone-100 dark:bg-neutral-900"
+								/>
+							),
+						)}
+					</div>
+				</div>
+				<div className="grid gap-10 xl:grid-cols-2">
+					<div className="h-72 rounded bg-stone-100 dark:bg-neutral-900" />
+					<div className="h-72 rounded bg-stone-100 dark:bg-neutral-900" />
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function provisionalReason(
+	report: ReportData,
+	overall: ReportSlice | undefined,
+) {
+	if (!overall)
+		return "This report does not yet contain an overall score slice.";
+	if (overall.completed < overall.planned) {
+		return `Collection is incomplete: ${overall.completed} of ${overall.planned} planned samples are complete. Failed and pending samples remain in the denominator.`;
+	}
+
+	const missingLayers = overall.weightedScore.layers.filter(
+		(layer) => layer.score === null,
+	);
+	if (
+		report.samplingDepth === "single" &&
+		missingLayers.length === 1 &&
+		missingLayers[0]?.key === "stability"
+	) {
+		return "Collection is complete. Stability is not assessed because Single sampling has only one round; use Reliable or Stability sampling to measure answer consistency.";
+	}
+	if (missingLayers.length) {
+		return `Collection is complete, but ${missingLayers.map((layer) => layer.label).join(" and ")} cannot yet be assessed from the available evidence.`;
+	}
+	return "Collection is complete, but one or more report confidence requirements are not yet met.";
 }
 
 export default function Dashboard() {
@@ -509,6 +619,9 @@ export default function Dashboard() {
 		report.data?.samples.find(
 			(sample) => sample.checkpointId === selectedSampleId,
 		) ?? null;
+	const selectedConversationUrl = safeExternalUrl(
+		selectedSample?.conversationUrl ?? null,
+	);
 	const filteredSamples = useMemo(() => {
 		const query = sampleQuery.trim().toLocaleLowerCase();
 		return (report.data?.samples ?? []).filter(
@@ -535,11 +648,7 @@ export default function Dashboard() {
 		);
 	}
 	if (overview.isLoading || runs.isLoading || report.isLoading) {
-		return (
-			<div className="web-centered-state">
-				<Loader2 className="size-6 animate-spin text-stone-400" />
-			</div>
-		);
+		return <OverviewLoadingState />;
 	}
 	if (overview.error || runs.error || report.error) {
 		return (
@@ -651,10 +760,7 @@ export default function Dashboard() {
 				{report.data.provisional ? (
 					<div className="flex items-start gap-3 border-l-2 border-amber-500 px-4 py-1 text-sm text-stone-600 dark:text-stone-300">
 						<AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-						<p>
-							This report is provisional because collection is incomplete or
-							some score layers cannot yet be assessed.
-						</p>
+						<p>{provisionalReason(report.data, overall)}</p>
 					</div>
 				) : null}
 
@@ -984,6 +1090,8 @@ export default function Dashboard() {
 							<button
 								key={sample.checkpointId}
 								type="button"
+								aria-haspopup="dialog"
+								aria-label={`Open ${PROVIDER_LABELS[sample.provider] ?? sample.provider} sample evidence`}
 								onClick={() => setSelectedSampleId(sample.checkpointId)}
 								className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-stone-50 sm:grid-cols-[130px_minmax(0,1fr)_150px_32px] sm:items-center dark:hover:bg-neutral-900/50"
 							>
@@ -1025,7 +1133,7 @@ export default function Dashboard() {
 										/ {formatLabel(sample.status)}
 									</p>
 								</div>
-								<ExternalLink className="hidden size-4 text-stone-400 sm:block" />
+								<ChevronRight className="hidden size-4 text-stone-400 sm:block" />
 							</button>
 						))}
 						{!visibleSamples.length ? (
@@ -1052,8 +1160,8 @@ export default function Dashboard() {
 				open={Boolean(selectedSample)}
 				onOpenChange={(open) => !open && setSelectedSampleId(null)}
 			>
-				<DialogContent className="max-h-[88vh] max-w-3xl overflow-auto">
-					<DialogHeader>
+				<DialogContent className="grid h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[88vh]">
+					<DialogHeader className="border-b border-stone-200 px-5 py-4 pr-12 text-left sm:px-6 dark:border-neutral-800">
 						<DialogTitle>Sample evidence</DialogTitle>
 						<DialogDescription>
 							{selectedSample
@@ -1062,114 +1170,182 @@ export default function Dashboard() {
 						</DialogDescription>
 					</DialogHeader>
 					{selectedSample ? (
-						<div className="space-y-6 text-sm">
-							<div>
-								<p className="text-xs font-semibold text-stone-500">Prompt</p>
-								<p className="mt-2 whitespace-pre-wrap leading-6">
-									{selectedSample.prompt}
-								</p>
-							</div>
-							<div>
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<p className="text-xs font-semibold text-stone-500">Answer</p>
-									<SampleLanguage
-										responseLanguage={selectedSample.responseLanguage}
-										languageMatch={selectedSample.languageMatch}
-										promptLocale={selectedSample.locale}
-									/>
-								</div>
-								<div className="mt-2 whitespace-pre-wrap rounded-md bg-stone-50 p-4 leading-6 dark:bg-neutral-900">
-									{selectedSample.response ??
-										selectedSample.errorMessage ??
-										"No answer was captured."}
-								</div>
-							</div>
-							{selectedSample.analysisStatus === "failed" ? (
-								<div className="border-l-2 border-red-500 px-4 py-1">
-									<p className="text-xs font-semibold text-red-700 dark:text-red-300">
-										Analysis failed
-									</p>
-									<p className="mt-1 text-sm">
-										{selectedSample.analysisErrorCode ?? "analysis_failed"}
-										{selectedSample.analysisErrorMessage
-											? `: ${selectedSample.analysisErrorMessage}`
-											: ""}
+						<Tabs
+							defaultValue="answer"
+							className="min-h-0 gap-0 overflow-hidden"
+						>
+							<TabsList className="mx-5 mt-4 shrink-0 sm:mx-6">
+								<TabsTrigger value="answer">Answer</TabsTrigger>
+								<TabsTrigger value="sources">Sources</TabsTrigger>
+								<TabsTrigger value="details">Details</TabsTrigger>
+							</TabsList>
+
+							<TabsContent
+								value="answer"
+								className="min-h-0 overflow-y-auto px-5 pb-6 pt-5 text-sm sm:px-6"
+							>
+								<div>
+									<p className="text-xs font-semibold text-stone-500">Prompt</p>
+									<p className="mt-2 whitespace-pre-wrap leading-6">
+										{selectedSample.prompt}
 									</p>
 								</div>
-							) : null}
-							<SourceList
-								title="Search sources"
-								description={
-									selectedSample.reportedSearchSourceCount
-										? `URLs exposed by provider search cards, citation panels, or reference lists. ${sourceCount(selectedSample.sources, "search_source")} of ${selectedSample.reportedSearchSourceCount} provider-reported sources had extractable URLs.`
-										: "URLs exposed by provider search cards, citation panels, or reference lists. The provider did not expose a numeric source total."
-								}
-								sources={selectedSample.sources.filter(
-									(source) => source.sourceKind === "search_source",
-								)}
-								emptyMessage="The provider did not expose extractable search-source URLs. This does not mean no sources were consulted."
-							/>
-							<SourceList
-								title="Answer links"
-								description="URLs rendered directly in the generated answer body."
-								sources={selectedSample.sources.filter(
-									(source) => source.sourceKind === "answer_link",
-								)}
-								emptyMessage="The generated answer did not contain a directly extractable URL."
-							/>
-							{selectedSample.sources.some(
-								(source) => source.sourceKind === "legacy_unknown",
-							) ? (
-								<SourceList
-									title="Legacy unclassified sources"
-									description="Captured before source-surface provenance was recorded."
-									sources={selectedSample.sources.filter(
-										(source) => source.sourceKind === "legacy_unknown",
+								<div className="mt-6">
+									<div className="flex flex-wrap items-center justify-between gap-3">
+										<p className="text-xs font-semibold text-stone-500">
+											Answer
+										</p>
+										<SampleLanguage
+											responseLanguage={selectedSample.responseLanguage}
+											languageMatch={selectedSample.languageMatch}
+											promptLocale={selectedSample.locale}
+										/>
+									</div>
+									{selectedSample.response ? (
+										<div
+											className="prose prose-stone mt-3 max-w-none rounded-md bg-stone-50 p-4 text-sm leading-6 prose-headings:scroll-mt-4 prose-headings:font-semibold prose-a:text-cyan-700 prose-pre:max-w-full prose-pre:overflow-x-auto dark:prose-invert dark:bg-neutral-900"
+											// biome-ignore lint/security/noDangerouslySetInnerHtml: shared formatter sanitizes provider Markdown before rendering
+											dangerouslySetInnerHTML={{
+												__html: formatMarkdown(
+													normalizeProviderMarkdown(selectedSample.response),
+												),
+											}}
+										/>
+									) : (
+										<p className="mt-3 rounded-md bg-stone-50 p-4 leading-6 dark:bg-neutral-900">
+											{selectedSample.errorMessage ?? "No answer was captured."}
+										</p>
 									)}
-									emptyMessage="No legacy sources."
+								</div>
+								{selectedSample.analysisStatus === "failed" ? (
+									<div className="mt-6 border-l-2 border-red-500 px-4 py-1">
+										<p className="text-xs font-semibold text-red-700 dark:text-red-300">
+											Analysis failed
+										</p>
+										<p className="mt-1 text-sm">
+											{selectedSample.analysisErrorCode ?? "analysis_failed"}
+											{selectedSample.analysisErrorMessage
+												? `: ${selectedSample.analysisErrorMessage}`
+												: ""}
+										</p>
+									</div>
+								) : null}
+							</TabsContent>
+
+							<TabsContent
+								value="sources"
+								className="min-h-0 space-y-8 overflow-y-auto px-5 pb-6 pt-5 text-sm sm:px-6"
+							>
+								<SourceList
+									title="Search sources"
+									description={
+										selectedSample.reportedSearchSourceCount !== null
+											? `URLs exposed by provider search cards, citation panels, or reference lists. ${sourceCount(selectedSample.sources, "search_source")} of ${selectedSample.reportedSearchSourceCount} provider-reported sources had extractable URLs.`
+											: "URLs exposed by provider search cards, citation panels, or reference lists. The provider did not expose a numeric source total."
+									}
+									sources={selectedSample.sources.filter(
+										(source) => source.sourceKind === "search_source",
+									)}
+									emptyMessage="The provider did not expose extractable search-source URLs. This does not mean no sources were consulted."
 								/>
-							) : null}
-							<dl className="grid gap-4 border-t border-stone-200 pt-5 sm:grid-cols-2 dark:border-neutral-800">
-								<div>
-									<dt className="text-xs text-stone-500">Official Web mode</dt>
-									<dd className="mt-1">
-										{getProviderModeLabel(
-											selectedSample.provider,
-											selectedSample.actualMode ?? selectedSample.requestedMode,
+								<SourceList
+									title="Answer links"
+									description="URLs rendered directly in the generated answer body."
+									sources={selectedSample.sources.filter(
+										(source) => source.sourceKind === "answer_link",
+									)}
+									emptyMessage="The generated answer did not contain a directly extractable URL."
+								/>
+								{selectedSample.sources.some(
+									(source) => source.sourceKind === "legacy_unknown",
+								) ? (
+									<SourceList
+										title="Legacy unclassified sources"
+										description="Captured before source-surface provenance was recorded."
+										sources={selectedSample.sources.filter(
+											(source) => source.sourceKind === "legacy_unknown",
 										)}
-									</dd>
-								</div>
-								<div>
-									<dt className="text-xs text-stone-500">Answer size</dt>
-									<dd className="mt-1 tabular-nums">
-										{selectedSample.responseLength.toLocaleString()} characters
-									</dd>
-								</div>
-								<div>
-									<dt className="text-xs text-stone-500">
-										Search-source coverage
-									</dt>
-									<dd className="mt-1 capitalize">
-										{formatLabel(selectedSample.searchSourceCoverage)}
-										{selectedSample.reportedSearchSourceCount
-											? ` (${sourceCount(selectedSample.sources, "search_source")}/${selectedSample.reportedSearchSourceCount})`
-											: ""}
-									</dd>
-								</div>
-								<div>
-									<dt className="text-xs text-stone-500">Conversation ID</dt>
-									<dd className="mt-1 break-all">
-										{selectedSample.conversationId ?? "Not captured"}
-									</dd>
-								</div>
-								<div>
-									<dt className="text-xs text-stone-500">Conversation URL</dt>
-									<dd className="mt-1 break-all">
-										{selectedSample.conversationUrl ?? "Not captured"}
-									</dd>
-								</div>
-							</dl>
-						</div>
+										emptyMessage="No legacy sources."
+									/>
+								) : null}
+							</TabsContent>
+
+							<TabsContent
+								value="details"
+								className="min-h-0 overflow-y-auto px-5 pb-6 pt-5 text-sm sm:px-6"
+							>
+								<dl className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+									<div>
+										<dt className="text-xs text-stone-500">
+											Official Web mode
+										</dt>
+										<dd className="mt-1">
+											{getProviderModeLabel(
+												selectedSample.provider,
+												selectedSample.actualMode ??
+													selectedSample.requestedMode,
+											)}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-xs text-stone-500">Answer size</dt>
+										<dd className="mt-1 tabular-nums">
+											{selectedSample.responseLength.toLocaleString()}{" "}
+											characters
+										</dd>
+									</div>
+									<div>
+										<dt className="text-xs text-stone-500">
+											Collection status
+										</dt>
+										<dd className="mt-1 capitalize">
+											{formatLabel(selectedSample.status)}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-xs text-stone-500">Analysis status</dt>
+										<dd className="mt-1 capitalize">
+											{formatLabel(selectedSample.analysisStatus)}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-xs text-stone-500">
+											Search-source coverage
+										</dt>
+										<dd className="mt-1 capitalize">
+											{formatLabel(selectedSample.searchSourceCoverage)}
+											{selectedSample.reportedSearchSourceCount !== null
+												? ` (${sourceCount(selectedSample.sources, "search_source")}/${selectedSample.reportedSearchSourceCount})`
+												: ""}
+										</dd>
+									</div>
+									<div>
+										<dt className="text-xs text-stone-500">Conversation ID</dt>
+										<dd className="mt-1 break-all">
+											{selectedSample.conversationId ?? "Not captured"}
+										</dd>
+									</div>
+									<div className="sm:col-span-2">
+										<dt className="text-xs text-stone-500">Conversation URL</dt>
+										<dd className="mt-2">
+											{selectedConversationUrl ? (
+												<a
+													href={selectedConversationUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="inline-flex items-center gap-2 font-medium text-cyan-700 hover:underline"
+												>
+													<Link2 className="size-4" /> Open official
+													conversation
+												</a>
+											) : (
+												"Not captured"
+											)}
+										</dd>
+									</div>
+								</dl>
+							</TabsContent>
+						</Tabs>
 					) : null}
 				</DialogContent>
 			</Dialog>
