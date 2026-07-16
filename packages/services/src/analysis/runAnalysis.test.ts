@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { analysisPrompt } from "./analysisPrompt.js";
-import { parseAnalysisOutput } from "./runAnalysis.js";
+import {
+	parseAnalysisOutput,
+	supportsStrictAnalysisSchema,
+} from "./runAnalysis.js";
 import {
 	applyTargetEntitySafeguards,
 	findMatchedTargetEntities,
@@ -52,6 +55,14 @@ describe("parseAnalysisOutput", () => {
 		expect(() => parseAnalysisOutput('{"geoScore":{"overall":72}')).toThrow(
 			"Invalid JSON returned",
 		);
+	});
+});
+
+describe("analysis model capabilities", () => {
+	it("uses JSON object mode for DeepSeek V4 models", () => {
+		expect(supportsStrictAnalysisSchema("deepseek-v4-flash")).toBe(false);
+		expect(supportsStrictAnalysisSchema("deep-deepseek-v4-pro")).toBe(false);
+		expect(supportsStrictAnalysisSchema("gpt-4.1-mini")).toBe(true);
 	});
 });
 

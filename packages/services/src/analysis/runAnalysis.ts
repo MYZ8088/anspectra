@@ -230,6 +230,10 @@ function createClaudeGenerator(): StructuredModelGenerator {
 	};
 }
 
+export function supportsStrictAnalysisSchema(model: string): boolean {
+	return !model.toLowerCase().includes("deepseek-v4");
+}
+
 function analysisGenerators(): StructuredModelGenerator[] {
 	switch (env.ANALYSIS_LLM_PROVIDER) {
 		case "claude":
@@ -247,6 +251,7 @@ function analysisGenerators(): StructuredModelGenerator[] {
 						model,
 						maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
 						timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
+						strictSchema: supportsStrictAnalysisSchema(model),
 					}),
 				);
 		default:
