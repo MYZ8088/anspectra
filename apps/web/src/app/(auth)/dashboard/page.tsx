@@ -31,7 +31,7 @@ import {
 	Search,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ReportData = NonNullable<RouterOutputs["geo"]["detectionReport"]>;
 type ReportSlice = ReportData["slices"]["overall"][number];
@@ -484,18 +484,27 @@ export default function Dashboard() {
 			),
 		[runs.data],
 	);
-	useEffect(() => {
-		if (!selectedSeries && formalRuns[0]) setSelectedSeries(formalRuns[0].id);
-	}, [formalRuns, selectedSeries]);
+	const effectiveSeries = selectedSeries || formalRuns[0]?.id || "";
 	const report = api.geo.detectionReport.useQuery(
-		{ workspaceId, seriesId: selectedSeries || undefined },
-		{ enabled: Boolean(workspaceId), refetchInterval: 20_000, retry: false },
+		{ workspaceId, seriesId: effectiveSeries || undefined },
+		{
+			enabled: Boolean(workspaceId && effectiveSeries),
+			refetchInterval: 20_000,
+			retry: false,
+		},
 	);
 	const trend = api.geo.detectionTrend.useQuery(
-		{ workspaceId, seriesId: selectedSeries || undefined, limit: 12 },
-		{ enabled: Boolean(workspaceId && selectedSeries), retry: false },
+		{ workspaceId, seriesId: effectiveSeries || undefined, limit: 12 },
+		{
+			enabled: Boolean(
+				workspaceId &&
+					effectiveSeries &&
+					report.data?.seriesId === effectiveSeries,
+			),
+			retry: false,
+		},
 	);
-	const selectedRun = formalRuns.find((run) => run.id === selectedSeries);
+	const selectedRun = formalRuns.find((run) => run.id === effectiveSeries);
 	const selectedSample =
 		report.data?.samples.find(
 			(sample) => sample.checkpointId === selectedSampleId,
@@ -625,7 +634,7 @@ export default function Dashboard() {
 						</div>
 					</div>
 					<select
-						value={selectedSeries}
+						value={effectiveSeries}
 						onChange={(event) => setSelectedSeries(event.target.value)}
 						className="h-10 max-w-full rounded-md border border-stone-200 bg-white px-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
 						aria-label="Detection series"
