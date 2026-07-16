@@ -417,6 +417,55 @@ export async function runPageDomOp<T>(
 					.trim();
 				const title = (document.title || "").trim();
 				const url = window.location.href;
+				const hasVisibleComposer = Array.from(
+					document.querySelectorAll(
+						'textarea, [contenteditable="true"], [role="textbox"]',
+					),
+				).some(
+					(element) =>
+						isVisible(element) &&
+						!(element as HTMLInputElement).disabled &&
+						!(element as HTMLInputElement).readOnly,
+				);
+				const challengeSurfaceElements = Array.from(
+					document.querySelectorAll(
+						[
+							"dialog[open]",
+							'[role="dialog"]',
+							'[aria-modal="true"]',
+							'form[id*="captcha" i]',
+							'form[class*="captcha" i]',
+							'[class*="login-modal" i]',
+							'[class*="login-dialog" i]',
+							'[class*="login-panel" i]',
+							'[class*="qrcode" i]',
+							'[class*="qr-code" i]',
+							'[class*="captcha" i]',
+							'[class*="verification" i]',
+						].join(", "),
+					),
+				).filter((element) => isVisible(element));
+				const challengeSurfaceText = challengeSurfaceElements
+					.map((element) => elementText(element))
+					.filter(Boolean)
+					.join(" ")
+					.replace(/\s+/g, " ")
+					.trim();
+				// Model answers can discuss CAPTCHAs, login flows, or QR codes. Only
+				// treat those words as page state when they are inside visible auth
+				// chrome, or when the chat composer itself is no longer available.
+				const pageStateText =
+					challengeSurfaceText || (!hasVisibleComposer ? bodyText : "");
+				const hasVisibleCaptchaFrame = Array.from(
+					document.querySelectorAll(
+						'iframe[src*="captcha" i], iframe[src*="recaptcha" i]',
+					),
+				).some((element) => isVisible(element));
+				const hasVisibleCaptchaForm = challengeSurfaceElements.some((element) =>
+					element.matches(
+						'form#captcha-form, form[id*="captcha" i], form[class*="captcha" i]',
+					),
+				);
 
 				const signals: Array<{
 					matched: boolean;
@@ -426,20 +475,20 @@ export async function runPageDomOp<T>(
 					{
 						matched:
 							/请选择所有符合|拖拽到下方|图片验证码|图形验证码/i.test(
-								bodyText,
-							) || Boolean(document.querySelector('iframe[src*="captcha"]')),
+								pageStateText,
+							) || hasVisibleCaptchaFrame,
 						reason: "human challenge: image captcha",
 						kind: "captcha",
 					},
 					{
-						matched: /滑块|拖动.*验证|slide.*verify/i.test(bodyText),
+						matched: /滑块|拖动.*验证|slide.*verify/i.test(pageStateText),
 						reason: "human challenge: slider verification",
 						kind: "slider",
 					},
 					{
 						matched:
 							/scan (?:the )?qr|scan with wechat|请使用微信扫码|扫码登录|微信.*登录/i.test(
-								bodyText,
+								pageStateText,
 							),
 						reason: "human challenge: QR login required",
 						kind: "qr_login",
@@ -447,24 +496,22 @@ export async function runPageDomOp<T>(
 					{
 						matched:
 							/sorry/i.test(url) ||
-							/our systems have detected unusual traffic/i.test(bodyText),
+							/our systems have detected unusual traffic/i.test(pageStateText),
 						reason: "bot detection: unusual traffic / sorry page",
 						kind: "security_check",
 					},
 					{
 						matched: /captcha|recaptcha|turnstile|verify you are human/i.test(
-							bodyText,
+							pageStateText,
 						),
 						reason: "bot detection: captcha or human verification challenge",
 						kind: "captcha",
 					},
 					{
 						matched:
-							Boolean(
-								document.querySelector(
-									'form#captcha-form, iframe[src*="recaptcha"]',
-								),
-							) || /challenge/i.test(title),
+							hasVisibleCaptchaForm ||
+							hasVisibleCaptchaFrame ||
+							/challenge/i.test(title),
 						reason: "bot detection: challenge UI present",
 						kind: "security_check",
 					},
@@ -479,7 +526,7 @@ export async function runPageDomOp<T>(
 					{
 						matched:
 							/sign in to continue|you('ve| have) been signed out|create a free account|log in to continue|sign in to (?:chat|use|access)|please (?:sign|log) in|not logged in|未登录|请先登录/i.test(
-								bodyText,
+								pageStateText,
 							),
 						reason: "session expired: login wall detected",
 						kind: "login_required",
@@ -487,7 +534,7 @@ export async function runPageDomOp<T>(
 					{
 						matched:
 							/region.?ban|not available in your region|地区.*不可用/i.test(
-								`${url} ${bodyText}`,
+								`${url} ${pageStateText}`,
 							),
 						reason: "human challenge: region access blocked",
 						kind: "region_block",

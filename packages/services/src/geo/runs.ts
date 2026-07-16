@@ -40,6 +40,7 @@ import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
 import { assertPromptSetLocales } from "./promptSetLocale.js";
+import { summarizeCollectionCheckpointStatuses } from "./runCounters.js";
 import { STALE_RUN_DEFAULTS, decideStaleRunRecovery } from "./runRecovery.js";
 import { getNextRetestObservation } from "./runState.js";
 
@@ -195,6 +196,28 @@ async function refreshCollectionSeries(seriesId?: string | null) {
 		.where(eq(schema.collectionSeries.id, seriesId));
 }
 
+export async function refreshGeoCollectionRunCounters(
+	runId: string,
+	now = new Date(),
+) {
+	const checkpoints = await db.query.sampleCheckpoints.findMany({
+		where: eq(schema.sampleCheckpoints.runId, runId),
+		columns: { status: true },
+	});
+	const summary = summarizeCollectionCheckpointStatuses(
+		checkpoints.map((checkpoint) => checkpoint.status),
+	);
+	await db
+		.update(schema.collectionRuns)
+		.set({
+			completedSamples: summary.completed,
+			failedSamples: summary.failed,
+			updatedAt: now,
+		})
+		.where(eq(schema.collectionRuns.id, runId));
+	return summary;
+}
+
 async function persistTerminalFailuresToAnalytics(args: {
 	run: typeof schema.collectionRuns.$inferSelect;
 	checkpoints: Array<typeof schema.sampleCheckpoints.$inferSelect>;
@@ -346,10 +369,14 @@ export async function recordGeoSampleAttempt(args: SampleAttemptEvent) {
 			updatedAt: now,
 		})
 		.where(eq(schema.sampleCheckpoints.id, checkpoint.id));
-	await db
-		.update(schema.collectionRuns)
-		.set({ updatedAt: now })
-		.where(eq(schema.collectionRuns.id, args.runId));
+	if (collectionStatus === "failed") {
+		await refreshGeoCollectionRunCounters(args.runId, now);
+	} else {
+		await db
+			.update(schema.collectionRuns)
+			.set({ updatedAt: now })
+			.where(eq(schema.collectionRuns.id, args.runId));
+	}
 	const run = await db.query.collectionRuns.findFirst({
 		where: eq(schema.collectionRuns.id, args.runId),
 	});
@@ -1358,19 +1385,7 @@ export async function persistGeoSampleCheckpoint(args: {
 				eq(schema.sampleCheckpoints.provider, args.provider),
 			),
 		);
-	const [summary] = await db
-		.select({ value: count() })
-		.from(schema.sampleCheckpoints)
-		.where(
-			and(
-				eq(schema.sampleCheckpoints.runId, args.collectionRunId),
-				eq(schema.sampleCheckpoints.status, "completed"),
-			),
-		);
-	await db
-		.update(schema.collectionRuns)
-		.set({ completedSamples: summary?.value ?? 0, updatedAt: now })
-		.where(eq(schema.collectionRuns.id, args.collectionRunId));
+	await refreshGeoCollectionRunCounters(args.collectionRunId, now);
 	const run = await db.query.collectionRuns.findFirst({
 		where: eq(schema.collectionRuns.id, args.collectionRunId),
 	});
@@ -2026,6 +2041,7 @@ export async function retryGeoSamples(args: {
 					group.map((item) => item.id),
 				),
 			);
+		await refreshGeoCollectionRunCounters(run.id);
 		if (run.collectorNodeId) {
 			await db
 				.update(schema.collectionRuns)
