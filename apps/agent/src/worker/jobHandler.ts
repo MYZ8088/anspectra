@@ -14,6 +14,7 @@ import {
 	recordGeoSampleAttempt,
 	redis,
 	updateProviderProgress,
+	validateGeoConversationIsolation,
 	writeProviderAuthStatus,
 } from "@aloom/services";
 import type {
@@ -355,6 +356,18 @@ export async function handleJob(job: Job<ProviderJobData>): Promise<boolean> {
 					},
 					onSampleComplete: async (sample) => {
 						if (stopController.signal.aborted) return;
+						const isolation = await validateGeoConversationIsolation({
+							collectionRunId,
+							provider,
+							promptId: sample.promptId,
+							conversationId: sample.conversationId,
+						});
+						if (!isolation.accepted) {
+							plog.warn(
+								`rejected prompt ${sample.promptId}: conversation ${sample.conversationId ?? "unknown"} was already used by prompt ${isolation.conflictingPromptId ?? "unknown"}`,
+							);
+							return;
+						}
 						const checkpointResult = await persistSampleCheckpoint({
 							jobGroupId,
 							provider,

@@ -56,6 +56,7 @@ export {
 	retryGeoAnalysis,
 	retryGeoSamples,
 	startGeoCollectionRun,
+	validateGeoConversationIsolation,
 } from "./runs.js";
 export type { RecoverableGeoAnalysisRun } from "./runs.js";
 export { classifyAnalysisFailureCode } from "./analysisFailure.js";

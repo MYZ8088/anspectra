@@ -36,6 +36,7 @@ import { getProviderQueue } from "../agent/queue.js";
 import { redis, waitForRedis } from "../agent/redis.js";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import { classifyAnalysisFailureCode } from "./analysisFailure.js";
+import { findConflictingConversationPrompt } from "./conversationIsolation.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
@@ -1390,6 +1391,64 @@ export async function persistGeoSampleCheckpoint(args: {
 		where: eq(schema.collectionRuns.id, args.collectionRunId),
 	});
 	await refreshCollectionSeries(run?.seriesId);
+}
+
+export async function validateGeoConversationIsolation(args: {
+	collectionRunId?: string;
+	provider: Provider;
+	promptId: string;
+	conversationId?: string | null;
+}): Promise<
+	{ accepted: true } | { accepted: false; conflictingPromptId: string | null }
+> {
+	if (!args.collectionRunId || !args.conversationId) return { accepted: true };
+	const existing = await db.query.sampleCheckpoints.findMany({
+		where: and(
+			eq(schema.sampleCheckpoints.runId, args.collectionRunId),
+			eq(schema.sampleCheckpoints.provider, args.provider),
+			eq(schema.sampleCheckpoints.status, "completed"),
+			eq(schema.sampleCheckpoints.conversationId, args.conversationId),
+		),
+		columns: { promptId: true },
+	});
+	const conflictingPromptId = findConflictingConversationPrompt({
+		promptId: args.promptId,
+		completedSamples: existing,
+	});
+	if (!conflictingPromptId) return { accepted: true };
+
+	const now = new Date();
+	await db
+		.update(schema.sampleCheckpoints)
+		.set({
+			status: "failed",
+			phase: "fresh_conversation",
+			failureCategory: "provider_ui",
+			errorCode: "conversation_reused",
+			errorMessage:
+				"Provider reused a conversation that already belongs to another prompt",
+			retryable: true,
+			conversationId: args.conversationId,
+			completedAt: now,
+			lastEventAt: now,
+			updatedAt: now,
+		})
+		.where(
+			and(
+				eq(schema.sampleCheckpoints.runId, args.collectionRunId),
+				eq(schema.sampleCheckpoints.provider, args.provider),
+				eq(schema.sampleCheckpoints.promptId, args.promptId),
+			),
+		);
+	await refreshGeoCollectionRunCounters(args.collectionRunId, now);
+	const run = await db.query.collectionRuns.findFirst({
+		where: eq(schema.collectionRuns.id, args.collectionRunId),
+	});
+	await refreshCollectionSeries(run?.seriesId);
+	return {
+		accepted: false,
+		conflictingPromptId,
+	};
 }
 
 export async function getGeoProviderCheckpointState(args: {
