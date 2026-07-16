@@ -4,7 +4,8 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const scriptPath = fileURLToPath(import.meta.url);
+const scriptDir = path.dirname(scriptPath);
 const repoRoot = path.resolve(scriptDir, "..");
 const runtimeDir = path.join(repoRoot, ".aloom-storage", "runtime");
 const logDir = path.join(repoRoot, ".aloom-storage", "logs");
@@ -23,6 +24,21 @@ function isProcessAlive(pid) {
 	}
 }
 
+export function isProcessGroupAlive(pid) {
+	if (process.platform === "win32") return isProcessAlive(pid);
+	if (!Number.isInteger(pid) || pid <= 0) return false;
+	try {
+		process.kill(-pid, 0);
+		return true;
+	} catch (error) {
+		return error instanceof Error && "code" in error && error.code === "EPERM";
+	}
+}
+
+export function isManagedRuntimeAlive(pid) {
+	return isProcessAlive(pid) || isProcessGroupAlive(pid);
+}
+
 async function readState() {
 	try {
 		const parsed = JSON.parse(await readFile(stateFile, "utf8"));
@@ -34,21 +50,21 @@ async function readState() {
 
 async function clearStaleState() {
 	const state = await readState();
-	if (state && isProcessAlive(state.pid)) return state;
+	if (state && isManagedRuntimeAlive(state.pid)) return state;
 	if (existsSync(stateFile)) await rm(stateFile, { force: true });
 	return null;
 }
 
-async function waitForExit(pid, timeoutMs) {
+export async function waitForManagedRuntimeExit(pid, timeoutMs) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		if (!isProcessAlive(pid)) return true;
+		if (!isManagedRuntimeAlive(pid)) return true;
 		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
-	return !isProcessAlive(pid);
+	return !isManagedRuntimeAlive(pid);
 }
 
-function signalProcessTree(pid, signal) {
+export function signalProcessTree(pid, signal) {
 	if (process.platform === "win32") {
 		const args = ["/pid", String(pid), "/t"];
 		if (signal === "SIGKILL") args.push("/f");
@@ -149,23 +165,27 @@ async function stop() {
 
 	console.log(`Stopping Aloom (PID ${state.pid})...`);
 	signalProcessTree(state.pid, "SIGTERM");
-	if (!(await waitForExit(state.pid, 30_000))) {
+	if (!(await waitForManagedRuntimeExit(state.pid, 30_000))) {
 		signalProcessTree(state.pid, "SIGKILL");
-		await waitForExit(state.pid, 5_000);
+		if (!(await waitForManagedRuntimeExit(state.pid, 5_000))) {
+			throw new Error(`Failed to stop the Aloom process group ${state.pid}.`);
+		}
 	}
 	await rm(stateFile, { force: true });
 	console.log("Aloom stopped.");
 }
 
-const command = process.argv[2] ?? "status";
-const commands = { start, status, stop };
-const handler = commands[command];
-if (!handler) {
-	console.error("Usage: node scripts/local-daemon.mjs <start|status|stop>");
-	process.exit(1);
-}
+if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {
+	const command = process.argv[2] ?? "status";
+	const commands = { start, status, stop };
+	const handler = commands[command];
+	if (!handler) {
+		console.error("Usage: node scripts/local-daemon.mjs <start|status|stop>");
+		process.exit(1);
+	}
 
-handler().catch((error) => {
-	console.error(error instanceof Error ? error.message : String(error));
-	process.exit(1);
-});
+	handler().catch((error) => {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exit(1);
+	});
+}
