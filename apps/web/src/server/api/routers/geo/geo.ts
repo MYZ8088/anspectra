@@ -24,6 +24,7 @@ import {
 	previewDetection,
 	requestHumanChallengeWindow,
 	resumeHumanChallenge,
+	retryGeoAnalysis,
 	retryGeoSamples,
 	runProviderSmoke,
 	saveBrandProfile,
@@ -281,6 +282,18 @@ export const geoRouter = createTRPCRouter({
 				workspaceId: ctx.workspaceId,
 				userId: ctx.user.id,
 				seriesId: input.seriesId,
+				checkpointIds: input.checkpointIds,
+			}),
+		),
+	retryAnalysis: authorizedWorkspaceProcedure
+		.input(
+			z.object({
+				checkpointIds: z.array(z.string().uuid()).min(1).max(100),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			retryGeoAnalysis({
+				workspaceId: ctx.workspaceId,
 				checkpointIds: input.checkpointIds,
 			}),
 		),

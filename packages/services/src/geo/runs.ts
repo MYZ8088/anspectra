@@ -12,7 +12,18 @@ import type {
 } from "@aloom/types";
 import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
 import { formatDateToClickHouse } from "@aloom/utils";
-import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gte,
+	inArray,
+	isNull,
+	lte,
+	sql,
+} from "drizzle-orm";
 import { readAuthenticatedRuntimeProviders } from "../agent/auth.js";
 import {
 	buildProviderCancelKey,
@@ -24,10 +35,12 @@ import { clearProviderChallenge } from "../agent/progress.js";
 import { getProviderQueue } from "../agent/queue.js";
 import { redis, waitForRedis } from "../agent/redis.js";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
+import { classifyAnalysisFailureCode } from "./analysisFailure.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
 import { getProfileCompleteness } from "./promptLibrary.js";
 import { assertPromptSetLocales } from "./promptSetLocale.js";
+import { STALE_RUN_DEFAULTS, decideStaleRunRecovery } from "./runRecovery.js";
 import { getNextRetestObservation } from "./runState.js";
 
 export const GEO_WEB_PROVIDERS = [
@@ -333,6 +346,10 @@ export async function recordGeoSampleAttempt(args: SampleAttemptEvent) {
 			updatedAt: now,
 		})
 		.where(eq(schema.sampleCheckpoints.id, checkpoint.id));
+	await db
+		.update(schema.collectionRuns)
+		.set({ updatedAt: now })
+		.where(eq(schema.collectionRuns.id, args.runId));
 	const run = await db.query.collectionRuns.findFirst({
 		where: eq(schema.collectionRuns.id, args.runId),
 	});
@@ -353,7 +370,7 @@ export async function markGeoAnalysisRunning(runId: string) {
 			and(
 				eq(schema.sampleCheckpoints.runId, runId),
 				eq(schema.sampleCheckpoints.status, "completed"),
-				inArray(schema.sampleCheckpoints.analysisStatus, ["pending", "failed"]),
+				eq(schema.sampleCheckpoints.analysisStatus, "pending"),
 			),
 		);
 }
@@ -394,16 +411,313 @@ export async function completeGeoAnalysis(args: {
 			.update(schema.sampleCheckpoints)
 			.set({
 				analysisStatus: error ? "failed" : "completed",
-				analysisErrorCode: error
-					? /invalid json|parse|schema/i.test(error)
-						? "analysis_invalid_json"
-						: "analysis_upstream_error"
-					: null,
+				analysisErrorCode: error ? classifyAnalysisFailureCode(error) : null,
 				analysisErrorMessage: error ?? null,
 				updatedAt: new Date(),
 			})
 			.where(eq(schema.sampleCheckpoints.id, checkpoint.id));
 	}
+}
+
+export async function retryGeoAnalysis(args: {
+	workspaceId: string;
+	checkpointIds: string[];
+}) {
+	const requestedIds = [...new Set(args.checkpointIds)];
+	if (requestedIds.length === 0) return { requeued: 0, skipped: 0 };
+	const checkpoints = await db.query.sampleCheckpoints.findMany({
+		where: inArray(schema.sampleCheckpoints.id, requestedIds),
+	});
+	const runIds = [
+		...new Set(checkpoints.map((checkpoint) => checkpoint.runId)),
+	];
+	const runs = runIds.length
+		? await db.query.collectionRuns.findMany({
+				where: and(
+					inArray(schema.collectionRuns.id, runIds),
+					eq(schema.collectionRuns.workspaceId, args.workspaceId),
+				),
+			})
+		: [];
+	const allowedRuns = new Set(runs.map((run) => run.id));
+	const retryableIds = checkpoints
+		.filter(
+			(checkpoint) =>
+				allowedRuns.has(checkpoint.runId) &&
+				checkpoint.status === "completed" &&
+				checkpoint.analysisStatus === "failed" &&
+				Boolean(checkpoint.analyticsSampleId),
+		)
+		.map((checkpoint) => checkpoint.id);
+	if (retryableIds.length > 0) {
+		await db
+			.update(schema.sampleCheckpoints)
+			.set({
+				analysisStatus: "pending",
+				analysisErrorCode: null,
+				analysisErrorMessage: null,
+				updatedAt: new Date(),
+			})
+			.where(inArray(schema.sampleCheckpoints.id, retryableIds));
+	}
+	return {
+		requeued: retryableIds.length,
+		skipped: requestedIds.length - retryableIds.length,
+	};
+}
+
+export type RecoverableGeoAnalysisRun = {
+	collectionRunId: string;
+	workspaceId: string;
+	userId: string;
+	provider: Provider;
+};
+
+export async function listRecoverableGeoAnalysisRuns(
+	limit = 100,
+): Promise<RecoverableGeoAnalysisRun[]> {
+	const checkpoints = await db.query.sampleCheckpoints.findMany({
+		where: and(
+			eq(schema.sampleCheckpoints.status, "completed"),
+			inArray(schema.sampleCheckpoints.analysisStatus, ["pending", "running"]),
+		),
+		orderBy: [asc(schema.sampleCheckpoints.updatedAt)],
+		limit: Math.max(1, Math.min(limit, 500)),
+	});
+	const usable = checkpoints.filter(
+		(checkpoint) => checkpoint.analyticsSampleId,
+	);
+	const runIds = [...new Set(usable.map((checkpoint) => checkpoint.runId))];
+	if (runIds.length === 0) return [];
+	const runs = await db.query.collectionRuns.findMany({
+		where: inArray(schema.collectionRuns.id, runIds),
+	});
+	const runById = new Map(runs.map((run) => [run.id, run]));
+	const queued = new Map<string, RecoverableGeoAnalysisRun>();
+	for (const checkpoint of usable) {
+		const run = runById.get(checkpoint.runId);
+		const provider = checkpoint.provider as Provider;
+		if (!run || !GEO_WEB_PROVIDERS.includes(provider as never)) continue;
+		const metadata = (run.metadata ?? {}) as { userId?: string };
+		queued.set(run.id, {
+			collectionRunId: run.id,
+			workspaceId: run.workspaceId,
+			userId: metadata.userId ?? "analysis-recovery",
+			provider,
+		});
+	}
+	return [...queued.values()];
+}
+
+async function hasLiveQueueJob(
+	runId: string,
+	providers: Provider[],
+): Promise<boolean> {
+	try {
+		for (const provider of providers) {
+			const jobs = await getProviderQueue(provider).getJobs(
+				["active", "waiting", "delayed", "paused"],
+				0,
+				1000,
+				true,
+			);
+			if (
+				jobs.some(
+					(job) =>
+						job.data?.collectionRunId === runId ||
+						job.data?.jobGroupId === runId,
+				)
+			) {
+				return true;
+			}
+		}
+		return false;
+	} catch {
+		// Queue uncertainty must never cause a live collection to be expired.
+		return true;
+	}
+}
+
+export async function reconcileStaleGeoCollectionRuns(args?: {
+	now?: Date;
+	staleAfterMs?: number;
+	expireAfterMs?: number;
+	limit?: number;
+}): Promise<{
+	examined: number;
+	requeued: number;
+	expired: number;
+	finalized: number;
+	keptLive: number;
+}> {
+	const now = args?.now ?? new Date();
+	const staleAfterMs = args?.staleAfterMs ?? STALE_RUN_DEFAULTS.staleAfterMs;
+	const expireAfterMs = args?.expireAfterMs ?? STALE_RUN_DEFAULTS.expireAfterMs;
+	const candidates = await db.query.collectionRuns.findMany({
+		where: and(
+			inArray(schema.collectionRuns.status, ["running", "waiting_runner"]),
+			lte(
+				schema.collectionRuns.updatedAt,
+				new Date(now.getTime() - staleAfterMs),
+			),
+			isNull(schema.collectionRuns.collectorNodeId),
+		),
+		orderBy: [asc(schema.collectionRuns.updatedAt)],
+		limit: Math.max(1, Math.min(args?.limit ?? 100, 500)),
+	});
+	const summary = {
+		examined: candidates.length,
+		requeued: 0,
+		expired: 0,
+		finalized: 0,
+		keptLive: 0,
+	};
+
+	for (const run of candidates) {
+		const checkpoints = await db.query.sampleCheckpoints.findMany({
+			where: eq(schema.sampleCheckpoints.runId, run.id),
+		});
+		const open = checkpoints.filter((checkpoint) =>
+			["queued", "running", "retrying"].includes(checkpoint.status),
+		);
+		const completed = checkpoints.filter(
+			(checkpoint) => checkpoint.status === "completed",
+		).length;
+		const failed = checkpoints.filter((checkpoint) =>
+			["failed", "not_attempted", "cancelled"].includes(checkpoint.status),
+		).length;
+
+		if (open.length === 0 && checkpoints.length > 0) {
+			await db
+				.update(schema.collectionRuns)
+				.set({
+					status:
+						completed === checkpoints.length
+							? "completed"
+							: completed > 0
+								? "partial"
+								: "failed",
+					completedSamples: completed,
+					failedSamples: failed,
+					completedAt: now,
+					updatedAt: now,
+				})
+				.where(eq(schema.collectionRuns.id, run.id));
+			await refreshCollectionSeries(run.seriesId);
+			summary.finalized += 1;
+			continue;
+		}
+
+		const providers = [
+			...new Set(
+				open
+					.map((checkpoint) => checkpoint.provider as Provider)
+					.filter((provider) => GEO_WEB_PROVIDERS.includes(provider as never)),
+			),
+		];
+		const liveQueueJob = await hasLiveQueueJob(run.id, providers);
+		const action = decideStaleRunRecovery({
+			nowMs: now.getTime(),
+			updatedAtMs: run.updatedAt.getTime(),
+			hasOpenCheckpoints: open.length > 0,
+			hasLiveQueueJob: liveQueueJob,
+			staleAfterMs,
+			expireAfterMs,
+		});
+		if (action === "keep_live") {
+			await db
+				.update(schema.collectionRuns)
+				.set({ updatedAt: now })
+				.where(eq(schema.collectionRuns.id, run.id));
+			summary.keptLive += 1;
+			continue;
+		}
+		if (action === "ignore") continue;
+
+		if (action === "requeue") {
+			await db.transaction(async (tx) => {
+				await tx
+					.update(schema.sampleCheckpoints)
+					.set({
+						status: "queued",
+						phase: "queued",
+						failureCategory: null,
+						errorCode: null,
+						errorMessage: null,
+						retryable: null,
+						warningCode: "runtime_recovered",
+						completedAt: null,
+						lastEventAt: now,
+						updatedAt: now,
+					})
+					.where(
+						inArray(
+							schema.sampleCheckpoints.id,
+							open.map((checkpoint) => checkpoint.id),
+						),
+					);
+				await tx
+					.update(schema.collectionRuns)
+					.set({
+						status: "queued",
+						scheduledAt: now,
+						completedAt: null,
+						updatedAt: now,
+					})
+					.where(eq(schema.collectionRuns.id, run.id));
+			});
+			await refreshCollectionSeries(run.seriesId);
+			summary.requeued += 1;
+			continue;
+		}
+
+		await db
+			.update(schema.sampleCheckpoints)
+			.set({
+				status: "failed",
+				phase: "recovery",
+				failureCategory: "runtime",
+				errorCode: "stale_run_expired",
+				errorMessage:
+					"Collection did not report progress and no live provider job remained within the recovery window",
+				retryable: true,
+				completedAt: now,
+				lastEventAt: now,
+				updatedAt: now,
+			})
+			.where(
+				inArray(
+					schema.sampleCheckpoints.id,
+					open.map((checkpoint) => checkpoint.id),
+				),
+			);
+		const terminalCheckpoints = await db.query.sampleCheckpoints.findMany({
+			where: eq(schema.sampleCheckpoints.runId, run.id),
+		});
+		const terminalCompleted = terminalCheckpoints.filter(
+			(checkpoint) => checkpoint.status === "completed",
+		).length;
+		const terminalFailed = terminalCheckpoints.length - terminalCompleted;
+		const terminalStatus = terminalCompleted > 0 ? "partial" : "failed";
+		await db
+			.update(schema.collectionRuns)
+			.set({
+				status: terminalStatus,
+				completedSamples: terminalCompleted,
+				failedSamples: terminalFailed,
+				completedAt: now,
+				updatedAt: now,
+			})
+			.where(eq(schema.collectionRuns.id, run.id));
+		await refreshCollectionSeries(run.seriesId);
+		await persistTerminalFailuresToAnalytics({
+			run: { ...run, status: terminalStatus, updatedAt: now, completedAt: now },
+			checkpoints: terminalCheckpoints,
+		}).catch(() => {});
+		summary.expired += 1;
+	}
+
+	return summary;
 }
 
 export async function startGeoCollectionRun(args: {

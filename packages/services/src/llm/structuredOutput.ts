@@ -1,4 +1,8 @@
-import { ValidationError, toErrorMessage } from "@aloom/errors";
+import {
+	ExternalServiceError,
+	ValidationError,
+	toErrorMessage,
+} from "@aloom/errors";
 import { jsonrepair } from "jsonrepair";
 import type OpenAI from "openai";
 import type { ZodTypeAny, output } from "zod";
@@ -67,6 +71,14 @@ type ParseDiagnostic = {
 
 function compactError(error: unknown): string {
 	return toErrorMessage(error).slice(0, MAX_RECORDED_ERROR_LENGTH);
+}
+
+function errorStatus(error: unknown): number {
+	if (typeof error !== "object" || !error || !("status" in error)) return 502;
+	const status = Number((error as { status?: unknown }).status);
+	return Number.isInteger(status) && status >= 400 && status <= 599
+		? status
+		: 502;
 }
 
 function zodErrorMessage(error: {
@@ -400,15 +412,26 @@ export async function generateStructuredOutput<
 		if (repaired) return repaired;
 	}
 
+	const failureMetadata = {
+		rawOutputs,
+		models: [...new Set(attempts.map((attempt) => attempt.model))],
+		attemptCount: attempts.length,
+		attempts,
+	};
+	if (rawOutputs.length === 0 && lastError) {
+		throw new ExternalServiceError(
+			attempts.at(-1)?.provider ?? "Structured output provider",
+			compactError(lastError),
+			errorStatus(lastError),
+			failureMetadata,
+			lastError,
+		);
+	}
+
 	throw new ValidationError(
 		args.errorMessage ??
 			"The model could not produce a response matching the required JSON schema.",
-		{
-			rawOutputs,
-			models: [...new Set(attempts.map((attempt) => attempt.model))],
-			attemptCount: attempts.length,
-			attempts,
-		},
+		failureMetadata,
 		lastError,
 	);
 }

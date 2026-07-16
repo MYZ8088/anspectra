@@ -26,6 +26,7 @@
 		"lint": "turbo lint",
 		"typecheck": "turbo typecheck",
 		"test": "vitest run",
+		"test:soak:72h": "node --env-file=.env scripts/run-reliability-soak.mjs",
 		"check:english": "node scripts/check-user-facing-english.mjs",
 		"check:privacy": "node scripts/check-repository-privacy.mjs",
 		"clean": "turbo clean && rm -rf node_modules",

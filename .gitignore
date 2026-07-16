@@ -62,5 +62,11 @@ llm_results.json
 
 .aloom-storage/
 
+# Local-only project notes and repository policy drafts
+/CHANGELOG.md
+/CLAUDE.md
+/CODE_OF_CONDUCT.md
+/CONTRIBUTING.md
+
 # Local reference repositories
 external/

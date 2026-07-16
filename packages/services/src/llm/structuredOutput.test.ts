@@ -1,4 +1,4 @@
-import { ValidationError } from "@aloom/errors";
+import { ExternalServiceError, ValidationError } from "@aloom/errors";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
@@ -117,9 +117,7 @@ describe("generateStructuredOutput", () => {
 			model: "fallback",
 			generate: async ({ stage }) => ({
 				text:
-					stage === "repair"
-						? '{"name":"Aloom","score":0}'
-						: '{"score":42}',
+					stage === "repair" ? '{"name":"Aloom","score":0}' : '{"score":42}',
 			}),
 		});
 		const result = await generateStructuredOutput({
@@ -160,5 +158,27 @@ describe("generateStructuredOutput", () => {
 		expect(error.meta?.models).toEqual(["primary", "fallback"]);
 		expect(error.meta?.attemptCount).toBe(3);
 		expect(error.meta?.attempts).toHaveLength(3);
+	});
+
+	it("preserves upstream quota failures instead of reporting invalid JSON", async () => {
+		const quotaError = Object.assign(new Error("Usage limit exhausted"), {
+			status: 401,
+		});
+		const primary = model({
+			model: "primary",
+			generate: async () => {
+				throw quotaError;
+			},
+		});
+		let caught: unknown;
+		try {
+			await generateStructuredOutput({ ...request, generators: [primary] });
+		} catch (error) {
+			caught = error;
+		}
+		expect(caught).toBeInstanceOf(ExternalServiceError);
+		expect((caught as Error).message).toContain("Usage limit exhausted");
+		expect((caught as ExternalServiceError).status).toBe(401);
+		expect((caught as ExternalServiceError).meta?.rawOutputs).toEqual([]);
 	});
 });

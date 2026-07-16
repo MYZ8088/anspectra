@@ -3,6 +3,7 @@ import {
 	dispatchDueDetectionSchedules,
 	dispatchScheduledGeoRuns,
 	getQueueName,
+	reconcileStaleGeoCollectionRuns,
 	redis,
 	waitForRedis,
 } from "@aloom/services";
@@ -36,6 +37,15 @@ async function startWorkers() {
 		);
 	};
 	await writeHeartbeat();
+	const recovery = await reconcileStaleGeoCollectionRuns().catch(() => null);
+	if (
+		recovery &&
+		(recovery.requeued > 0 || recovery.expired > 0 || recovery.finalized > 0)
+	) {
+		logger.log(
+			`[agent] collection recovery: requeued=${recovery.requeued}, expired=${recovery.expired}, finalized=${recovery.finalized}`,
+		);
+	}
 	setInterval(() => void writeHeartbeat().catch(() => null), 30_000).unref();
 	await dispatchDueDetectionSchedules().catch(() => 0);
 	await dispatchScheduledGeoRuns().catch(() => 0);
@@ -45,6 +55,11 @@ async function startWorkers() {
 			.then(() => dispatchScheduledGeoRuns())
 			.catch(() => 0);
 	}, 60_000).unref();
+	setInterval(() => {
+		void reconcileStaleGeoCollectionRuns().catch((error) => {
+			logger.error("[agent] collection recovery failed", error);
+		});
+	}, 5 * 60_000).unref();
 	const stopSubscriber = redis.duplicate();
 	await stopSubscriber.connect();
 	await stopSubscriber.subscribe(PROVIDER_STOP_CHANNEL);

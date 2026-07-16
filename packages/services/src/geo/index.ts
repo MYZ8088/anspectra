@@ -43,17 +43,28 @@ export {
 	getGeoProviderCheckpointState,
 	getGeoOverview,
 	getGeoRunDetail,
+	listRecoverableGeoAnalysisRuns,
 	listGeoRuns,
 	listOpenHumanChallenges,
 	markGeoAnalysisRunning,
 	persistGeoHumanChallenge,
 	persistGeoSampleCheckpoint,
 	recordGeoSampleAttempt,
+	reconcileStaleGeoCollectionRuns,
 	requestHumanChallengeWindow,
 	resumeHumanChallenge,
+	retryGeoAnalysis,
 	retryGeoSamples,
 	startGeoCollectionRun,
 } from "./runs.js";
+export type { RecoverableGeoAnalysisRun } from "./runs.js";
+export { classifyAnalysisFailureCode } from "./analysisFailure.js";
+export type { AnalysisFailureCode } from "./analysisFailure.js";
+export {
+	STALE_RUN_DEFAULTS,
+	decideStaleRunRecovery,
+} from "./runRecovery.js";
+export type { StaleRunRecoveryAction } from "./runRecovery.js";
 export * from "./scorecard.js";
 export { assertRunTransition, canTransitionRun } from "./runState.js";
 export * from "./collectors.js";

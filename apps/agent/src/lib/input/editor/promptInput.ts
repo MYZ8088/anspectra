@@ -12,16 +12,17 @@ import { findActiveEditorCandidate } from "./findEditor.js";
 
 export function normalizePromptValue(text: string): string {
 	return text
-		.replace(/\r\n/g, "\n")
+		.replace(/\r\n?|\u2028|\u2029/g, "\n")
 		.replace(/\u00a0/g, " ")
 		.replace(/\u200b|\u200c|\u200d|\ufeff/g, "")
+		.replace(/[\t ]+/g, " ")
+		.replace(/ *\n */g, "\n")
+		.replace(/\n{2,}/g, "\n")
 		.trim();
 }
 
 async function focusEditorTarget(page: Page, input: Locator): Promise<void> {
-	await input
-		.scrollIntoViewIfNeeded({ timeout: 3_000 })
-		.catch(() => null);
+	await input.scrollIntoViewIfNeeded({ timeout: 3_000 }).catch(() => null);
 	await clickLocatorLikeUser(page, input, {
 		timeout: 3000,
 		delay: randomBetween(25, 80),
@@ -134,9 +135,7 @@ async function waitForPromptValue(
 		}
 
 		await page.waitForTimeout(randomBetween(80, 140));
-		lastValue = await input
-			.readInputValue({ timeout: 3_000 })
-			.catch(() => "");
+		lastValue = await input.readInputValue({ timeout: 3_000 }).catch(() => "");
 	}
 
 	return lastValue;

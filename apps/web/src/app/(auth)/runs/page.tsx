@@ -151,6 +151,15 @@ export default function RunsPage() {
 		},
 		onError: (error) => toast.error(error.message),
 	});
+	const retryAnalysis = api.geo.retryAnalysis.useMutation({
+		onSuccess: async (result) => {
+			await utils.geo.runDetail.invalidate();
+			toast.success(
+				`${result.requeued} analysis ${result.requeued === 1 ? "retry" : "retries"} queued`,
+			);
+		},
+		onError: (error) => toast.error(error.message),
+	});
 
 	const samples = useMemo(() => {
 		return (detail.data?.samples ?? []).filter((sample) => {
@@ -517,6 +526,9 @@ export default function RunsPage() {
 											"not_attempted",
 											"cancelled",
 										].includes(sample.status);
+										const analysisRetryable =
+											sample.status === "completed" &&
+											sample.analysisStatus === "failed";
 										const isExpanded = expanded.has(sample.id);
 										return [
 											<tr key={sample.id}>
@@ -586,6 +598,26 @@ export default function RunsPage() {
 																}
 															>
 																<RotateCw className="size-4" />
+															</Button>
+														) : null}
+														{analysisRetryable ? (
+															<Button
+																variant="ghost"
+																size="icon"
+																title="Retry analysis without collecting the prompt again"
+																disabled={retryAnalysis.isPending}
+																onClick={() =>
+																	retryAnalysis.mutate({
+																		workspaceId,
+																		checkpointIds: [sample.id],
+																	})
+																}
+															>
+																{retryAnalysis.isPending ? (
+																	<Loader2 className="size-4 animate-spin" />
+																) : (
+																	<RotateCw className="size-4" />
+																)}
 															</Button>
 														) : null}
 														<Button
