@@ -64,6 +64,34 @@ const detectionFilterSchema = z
 		regions: z.array(z.string().trim().min(1)).optional(),
 	})
 	.optional();
+const detectionRecurrenceSchema = z.object({
+	cadence: z.enum(DETECTION_SCHEDULE_CADENCE_LIST),
+	timezone: z.string().trim().min(1),
+	localTime: z.string().regex(/^\d{2}:\d{2}$/),
+	dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
+	dayOfMonth: z.number().int().min(1).max(28).nullable().optional(),
+});
+const detectionRunPlanSchema = detectionRecurrenceSchema
+	.extend({
+		totalRuns: z.number().int().min(1).max(30),
+	})
+	.superRefine((plan, context) => {
+		if (plan.totalRuns <= 1) return;
+		if (plan.cadence === "weekly" && plan.dayOfWeek == null) {
+			context.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["dayOfWeek"],
+				message: "Select a weekday",
+			});
+		}
+		if (plan.cadence === "monthly" && plan.dayOfMonth == null) {
+			context.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["dayOfMonth"],
+				message: "Select a day of month",
+			});
+		}
+	});
 
 export const geoRouter = createTRPCRouter({
 	overview: authorizedWorkspaceProcedure.query(({ ctx }) =>
@@ -224,7 +252,6 @@ export const geoRouter = createTRPCRouter({
 		.input(
 			z.object({
 				suiteKey: suiteSchema,
-				samplingDepth: z.enum(SAMPLING_DEPTH_LIST),
 				locales: z.array(z.enum(["zh-CN", "en-US"])).min(1),
 				filters: detectionFilterSchema,
 				providers: z.array(z.enum(GEO_WEB_PROVIDERS)).min(1),
@@ -236,6 +263,7 @@ export const geoRouter = createTRPCRouter({
 						qwen: z.enum(PROVIDER_MODE_LIST).optional(),
 					})
 					.optional(),
+				runPlan: detectionRunPlanSchema,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -246,7 +274,18 @@ export const geoRouter = createTRPCRouter({
 			const promptSet = await createDetectionSet({
 				workspaceId: ctx.workspaceId,
 				suiteKey: input.suiteKey,
-				samplingDepth: input.samplingDepth,
+				samplingDepth: "single",
+				runPlan: {
+					...input.runPlan,
+					dayOfWeek:
+						input.runPlan.cadence === "weekly"
+							? (input.runPlan.dayOfWeek ?? null)
+							: null,
+					dayOfMonth:
+						input.runPlan.cadence === "monthly"
+							? (input.runPlan.dayOfMonth ?? null)
+							: null,
+				},
 				locales: input.locales,
 				filters: input.filters,
 			});
@@ -355,11 +394,7 @@ export const geoRouter = createTRPCRouter({
 						qwen: z.enum(PROVIDER_MODE_LIST).optional(),
 					})
 					.optional(),
-				cadence: z.enum(DETECTION_SCHEDULE_CADENCE_LIST),
-				timezone: z.string().trim().min(1),
-				localTime: z.string().regex(/^\d{2}:\d{2}$/),
-				dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
-				dayOfMonth: z.number().int().min(1).max(28).nullable().optional(),
+				...detectionRecurrenceSchema.shape,
 			}),
 		)
 		.mutation(({ ctx, input }) =>

@@ -26,10 +26,6 @@ export default function SettingsPage() {
 		{ workspaceId },
 		{ enabled: Boolean(workspaceId) },
 	);
-	const schedules = api.geo.detectionSchedules.useQuery(
-		{ workspaceId },
-		{ enabled: Boolean(workspaceId) },
-	);
 	const [name, setName] = useState("");
 	const [domain, setDomain] = useState("");
 	useEffect(() => {
@@ -129,10 +125,6 @@ export default function SettingsPage() {
 									}
 								</dd>
 							</div>
-							<div className="flex justify-between">
-								<dt className="text-stone-500">Schedules</dt>
-								<dd>{schedules.data?.length ?? 0}</dd>
-							</div>
 						</dl>
 					</aside>
 				</section>
@@ -144,12 +136,6 @@ export default function SettingsPage() {
 							className={`${formSecondaryButtonClassName} inline-flex items-center gap-2`}
 						>
 							<ExternalLink className="size-4" /> Provider profiles
-						</Link>
-						<Link
-							href={`/schedule?workspace=${workspaceId}`}
-							className={`${formSecondaryButtonClassName} inline-flex items-center gap-2`}
-						>
-							<ExternalLink className="size-4" /> Detection schedules
 						</Link>
 					</div>
 				</section>

@@ -5,6 +5,7 @@ import type {
 	DetectedAnswerLanguage,
 	DetectionMetricRate,
 	DetectionReport,
+	DetectionRunPlan,
 	DetectionSliceKey,
 	DetectionSliceMetrics,
 	DetectionSuiteKey,
@@ -592,6 +593,7 @@ export async function getDetectionReport(args: {
 	const promptManifest = (promptSet.manifest ?? {}) as {
 		suiteKey?: DetectionSuiteKey;
 		samplingDepth?: SamplingDepth;
+		runPlan?: DetectionRunPlan | null;
 	};
 	const suiteKey = promptManifest.suiteKey ?? "full_matrix";
 	const samplingDepth =
@@ -634,11 +636,13 @@ export async function getDetectionReport(args: {
 		provisional: slices.overall[0]?.weightedScore.provisional ?? true,
 		suiteKey,
 		samplingDepth,
+		runPlan: promptManifest.runPlan ?? null,
 		createdAt: series.createdAt,
 		methodology: {
 			analysisUnit: "single_answer",
 			answersPerAnalysisCall: 1,
 			aggregation: "deterministic_structured_rollup",
+			roundCount: series.roundCount,
 			plannedSamples: series.plannedSamples,
 			checkpointSamples: rows.length,
 			uniquePromptHashes: new Set(

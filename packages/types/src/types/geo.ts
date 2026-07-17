@@ -135,11 +135,13 @@ export type DetectionReport = {
 	provisional: boolean;
 	suiteKey: DetectionSuiteKey;
 	samplingDepth: SamplingDepth;
+	runPlan: DetectionRunPlan | null;
 	createdAt: Date;
 	methodology: {
 		analysisUnit: "single_answer";
 		answersPerAnalysisCall: 1;
 		aggregation: "deterministic_structured_rollup";
+		roundCount: number;
 		plannedSamples: number;
 		checkpointSamples: number;
 		uniquePromptHashes: number;
@@ -202,6 +204,15 @@ export const DETECTION_SCHEDULE_CADENCE_LIST = [
 ] as const;
 export type DetectionScheduleCadence =
 	(typeof DETECTION_SCHEDULE_CADENCE_LIST)[number];
+
+export type DetectionRunPlan = {
+	totalRuns: number;
+	cadence: DetectionScheduleCadence;
+	timezone: string;
+	localTime: string;
+	dayOfWeek: number | null;
+	dayOfMonth: number | null;
+};
 
 export type DetectionSchedule = {
 	id: string;

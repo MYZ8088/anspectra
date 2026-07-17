@@ -56,10 +56,6 @@ function getPageHeader(pathname: string | null): string | null {
 		return "Sources";
 	}
 
-	if (pathname.startsWith("/schedule")) {
-		return "Schedules";
-	}
-
 	if (pathname.startsWith("/people")) {
 		return "People";
 	}

@@ -1,4 +1,4 @@
-import SchedulePageClient from "./schedule-page-client";
+import { redirect } from "next/navigation";
 
 export default async function SchedulePage({
 	searchParams,
@@ -6,6 +6,8 @@ export default async function SchedulePage({
 	searchParams?: Promise<{ workspace?: string }>;
 }) {
 	const params = await searchParams;
-
-	return <SchedulePageClient workspaceId={params?.workspace ?? ""} />;
+	const workspace = params?.workspace
+		? `?workspace=${encodeURIComponent(params.workspace)}`
+		: "";
+	redirect(`/monitor${workspace}`);
 }

@@ -29,7 +29,6 @@ import {
 import { cn, getFaviconUrls } from "@aloom/utils";
 import {
 	BookOpenText,
-	CalendarClock,
 	Check,
 	ChevronDown,
 	ChevronUp,
@@ -122,11 +121,6 @@ export function AppSidebar({
 			title: "Runs",
 			url: `/runs?workspace=${activeWorkspace?.id ?? ""}`,
 			icon: ListChecks,
-		},
-		{
-			title: "Schedules",
-			url: `/schedule?workspace=${activeWorkspace?.id ?? ""}`,
-			icon: CalendarClock,
 		},
 	];
 

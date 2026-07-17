@@ -558,11 +558,11 @@ function provisionalReason(
 		(layer) => layer.score === null,
 	);
 	if (
-		report.samplingDepth === "single" &&
+		report.methodology.roundCount <= 1 &&
 		missingLayers.length === 1 &&
 		missingLayers[0]?.key === "stability"
 	) {
-		return "Collection is complete. Stability is not assessed because Single sampling has only one round; use Reliable or Stability sampling to measure answer consistency.";
+		return "Collection is complete. Stability requires at least two planned runs. Increase Total runs in New Detection to measure answer consistency.";
 	}
 	if (missingLayers.length) {
 		return `Collection is complete, but ${missingLayers.map((layer) => layer.label).join(" and ")} cannot yet be assessed from the available evidence.`;
@@ -725,7 +725,9 @@ export default function Dashboard() {
 				<header className="flex flex-wrap items-end justify-between gap-5 border-b border-stone-200 pb-6 dark:border-neutral-800">
 					<div>
 						<p className="text-xs font-medium text-stone-500">
-							{SUITE_LABELS[report.data.suiteKey]} / {report.data.samplingDepth}
+							{SUITE_LABELS[report.data.suiteKey]} ·{" "}
+							{report.data.methodology.roundCount} planned{" "}
+							{report.data.methodology.roundCount === 1 ? "run" : "runs"}
 						</p>
 						<h1 className="mt-2 text-2xl font-semibold">
 							{selectedRun?.promptSet?.name ?? "GEO detection report"}

@@ -352,7 +352,7 @@ export default function RunsPage() {
 							</p>
 						</div>
 						<div className="bg-white px-4 py-4 dark:bg-neutral-950">
-							<p className="text-xs text-stone-500">Rounds</p>
+							<p className="text-xs text-stone-500">Planned runs</p>
 							<p className="mt-1 text-xl font-semibold tabular-nums">
 								{detail.data.series.roundCount}
 							</p>

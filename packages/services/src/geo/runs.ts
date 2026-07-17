@@ -38,6 +38,10 @@ import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 import { classifyAnalysisFailureCode } from "./analysisFailure.js";
 import { buildCollectorRestartCheckpointPatch } from "./collectorRestart.js";
 import { findConflictingConversationPrompt } from "./conversationIsolation.js";
+import {
+	nextDetectionRunAt,
+	parseDetectionRunPlan,
+} from "./detectionRunPlan.js";
 import { calculateDifferenceInDifferences } from "./experimentCohorts.js";
 import { selectFinalizableCheckpointIds } from "./finalizationScope.js";
 import { samplingDepthRoundCount } from "./promptEngine.js";
@@ -922,7 +926,9 @@ export async function startGeoCollectionRun(args: {
 		DAILY_PROVIDER_SAMPLE_LIMIT,
 	);
 	const samplingDepth = promptSetSamplingDepth(promptSet);
-	const roundCount = samplingDepthRoundCount(samplingDepth);
+	const runPlan = parseDetectionRunPlan(promptSet.manifest?.runPlan);
+	const roundCount =
+		runPlan?.totalRuns ?? samplingDepthRoundCount(samplingDepth);
 	const now = new Date();
 	const plannedSamples = promptRows.length * providers.length * roundCount;
 	const created = await db.transaction(async (tx) => {
@@ -946,6 +952,7 @@ export async function startGeoCollectionRun(args: {
 				manifest: {
 					promptSetManifest: promptSet.manifest,
 					samplingDepth,
+					runPlan,
 					expectedPromptHashes: promptRows.map((prompt) => prompt.promptHash),
 					conversationIsolation: "fresh",
 					sampleSource: "official_web",
@@ -960,13 +967,20 @@ export async function startGeoCollectionRun(args: {
 			}
 		> = [];
 		let scheduleOffsetHours = firstDayDelayHours;
+		let plannedRoundStart = new Date(
+			now.getTime() + firstDayDelayHours * 60 * 60 * 1000,
+		);
 		for (let roundIndex = 1; roundIndex <= roundCount; roundIndex++) {
 			const chunks = roundIndex === 1 ? firstRoundChunks : regularRoundChunks;
 			for (const [batchIndex, batchRows] of chunks.entries()) {
-				const scheduledAt = new Date(
-					now.getTime() +
-						(scheduleOffsetHours + batchIndex * 24) * 60 * 60 * 1000,
-				);
+				const scheduledAt = runPlan
+					? new Date(
+							plannedRoundStart.getTime() + batchIndex * 24 * 60 * 60 * 1000,
+						)
+					: new Date(
+							now.getTime() +
+								(scheduleOffsetHours + batchIndex * 24) * 60 * 60 * 1000,
+						);
 				const [run] = await tx
 					.insert(schema.collectionRuns)
 					.values({
@@ -1012,10 +1026,18 @@ export async function startGeoCollectionRun(args: {
 				);
 				runs.push({ ...run, promptRows: batchRows });
 			}
-			const lastBatchOffset =
-				scheduleOffsetHours + Math.max(0, chunks.length - 1) * 24;
-			scheduleOffsetHours =
-				lastBatchOffset + (samplingDepth === "reliable" ? 6 : 24);
+			if (runPlan && roundIndex < roundCount) {
+				const lastBatchAt = new Date(
+					plannedRoundStart.getTime() +
+						Math.max(0, chunks.length - 1) * 24 * 60 * 60 * 1000,
+				);
+				plannedRoundStart = nextDetectionRunAt(runPlan, lastBatchAt);
+			} else if (!runPlan) {
+				const lastBatchOffset =
+					scheduleOffsetHours + Math.max(0, chunks.length - 1) * 24;
+				scheduleOffsetHours =
+					lastBatchOffset + (samplingDepth === "reliable" ? 6 : 24);
+			}
 		}
 		return { series, runs };
 	});

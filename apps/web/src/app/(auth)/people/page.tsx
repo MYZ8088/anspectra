@@ -654,7 +654,7 @@ export default function PeoplePage() {
 							icon={Users}
 							eyebrow="First Teammate"
 							title="Invite Your First Teammate"
-							description="Share prompts, schedules, and analysis in one workspace."
+							description="Share prompt packs, run plans, and reports in one workspace."
 							action={
 								<Button
 									variant="outline"

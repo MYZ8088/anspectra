@@ -1,6 +1,10 @@
 "use client";
 
 import {
+	type DetectionRunPlanDraft,
+	DetectionRunPlanEditor,
+} from "@/components/detection-run-plan";
+import {
 	formPrimaryButtonClassName,
 	formSecondaryButtonClassName,
 } from "@/components/forms/auth-form-chrome";
@@ -11,7 +15,6 @@ import type {
 	GeoDecisionStage,
 	GeoIntent,
 	ProviderMode,
-	SamplingDepth,
 } from "@aloom/types";
 import {
 	GEO_DECISION_STAGE_LIST,
@@ -55,12 +58,6 @@ const PROVIDERS = [
 ] as const;
 type GeoProvider = (typeof PROVIDERS)[number][0];
 type PromptLocale = "zh-CN" | "en-US";
-
-const SAMPLING_DEPTH_LABELS: Record<SamplingDepth, string> = {
-	single: "Single",
-	reliable: "Reliable",
-	stability: "Stability",
-};
 
 const INTENT_LABELS: Record<GeoIntent, string> = {
 	information: "Information",
@@ -192,7 +189,6 @@ export default function NewDetectionPage() {
 	const [evidenceRequirement, setEvidenceRequirement] = useState("");
 	const [locales, setLocales] = useState<PromptLocale[]>(["zh-CN"]);
 	const [suiteKey, setSuiteKey] = useState<SelectableSuite>("quick_scan");
-	const [samplingDepth, setSamplingDepth] = useState<SamplingDepth>("single");
 	const [providers, setProviders] = useState<GeoProvider[]>(
 		PROVIDERS.map(([key]) => key),
 	);
@@ -214,6 +210,17 @@ export default function NewDetectionPage() {
 	const [audienceFilter, setAudienceFilter] = useState<string[]>([]);
 	const [regionFilter, setRegionFilter] = useState<string[]>([]);
 	const [promptSearch, setPromptSearch] = useState("");
+	const [runPlan, setRunPlan] = useState<DetectionRunPlanDraft>(() => {
+		const now = new Date();
+		return {
+			totalRuns: 1,
+			cadence: "daily",
+			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+			localTime: "09:00",
+			dayOfWeek: now.getDay(),
+			dayOfMonth: Math.min(now.getDate(), 28),
+		};
+	});
 	useEffect(() => {
 		const profile = profileQuery.data;
 		if (!profile) return;
@@ -264,7 +271,7 @@ export default function NewDetectionPage() {
 		{
 			workspaceId,
 			suiteKey,
-			samplingDepth,
+			samplingDepth: "single",
 			locales,
 			filters: filterInput,
 			providerCount: providers.length || 1,
@@ -305,7 +312,7 @@ export default function NewDetectionPage() {
 	});
 	const start = api.geo.startDetection.useMutation({
 		onSuccess: (result) => {
-			toast.success("Detection started");
+			toast.success("Detection plan started");
 			router.push(`/runs?workspace=${workspaceId}&series=${result.seriesId}`);
 		},
 		onError: (error) => toast.error(error.message),
@@ -329,7 +336,17 @@ export default function NewDetectionPage() {
 				? "Resolve the prompt coverage gaps before running."
 				: providers.length === 0
 					? "Select at least one Web provider."
-					: null;
+					: runPlan.totalRuns > 1 && !runPlan.localTime
+						? "Select a local time for future runs."
+						: runPlan.totalRuns > 1 &&
+								runPlan.cadence === "monthly" &&
+								(!Number.isInteger(runPlan.dayOfMonth) ||
+									(runPlan.dayOfMonth ?? 0) < 1 ||
+									(runPlan.dayOfMonth ?? 0) > 28)
+							? "Select a day from 1 to 28 for monthly runs."
+							: runPlan.totalRuns > 1 && !runPlan.timezone.trim()
+								? "Enter a timezone for future runs."
+								: null;
 
 	const saveProfile = () =>
 		save.mutate({
@@ -580,50 +597,32 @@ export default function NewDetectionPage() {
 							<button
 								key={suite.key}
 								type="button"
+								aria-pressed={suiteKey === suite.key}
 								onClick={() => {
 									setSuiteKey(suite.key);
 									setIntentFilter([]);
 									setStageFilter([]);
 								}}
 								className={cn(
-									"rounded-md border p-4 text-left transition-colors",
+									"rounded-md border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:ring-offset-2",
 									suiteKey === suite.key
 										? "border-cyan-600 bg-cyan-50 dark:bg-cyan-950/20"
 										: "border-stone-200 hover:border-stone-400 dark:border-neutral-800",
 								)}
 							>
-								<span className="font-medium">{suite.label}</span>
+								<span className="flex items-center justify-between gap-3 font-medium">
+									{suite.label}
+									{suiteKey === suite.key ? (
+										<CheckCircle2 className="size-4 shrink-0 text-cyan-700 dark:text-cyan-300" />
+									) : null}
+								</span>
 								<span className="mt-2 block text-xs text-stone-500">
 									{suite.corePromptCount} core prompts
 								</span>
 							</button>
 						))}
 					</div>
-					<div className="grid gap-5 lg:grid-cols-2">
-						<div>
-							<p className="mb-2 text-xs font-semibold uppercase text-stone-500">
-								Sampling depth
-							</p>
-							<div className="grid grid-cols-3 border border-stone-200 dark:border-neutral-800">
-								{(["single", "reliable", "stability"] as SamplingDepth[]).map(
-									(depth) => (
-										<button
-											key={depth}
-											type="button"
-											onClick={() => setSamplingDepth(depth)}
-											className={cn(
-												"h-10 border-r border-stone-200 text-sm capitalize last:border-r-0 dark:border-neutral-800",
-												samplingDepth === depth
-													? "bg-stone-900 text-white dark:bg-white dark:text-black"
-													: "hover:bg-stone-50 dark:hover:bg-neutral-900",
-											)}
-										>
-											{SAMPLING_DEPTH_LABELS[depth]}
-										</button>
-									),
-								)}
-							</div>
-						</div>
+					<div className="border-y border-stone-200 py-5 dark:border-neutral-800">
 						<ToggleGroup
 							label="Web providers"
 							values={PROVIDERS.map(([key]) => key)}
@@ -800,7 +799,7 @@ export default function NewDetectionPage() {
 								) : null}
 							</div>
 						</div>
-						<aside className="self-start rounded-md border border-stone-200 p-4 dark:border-neutral-800">
+						<aside className="self-start rounded-md border border-stone-200 p-5 xl:sticky xl:top-24 dark:border-neutral-800">
 							<p className="font-medium">Detection plan</p>
 							<dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
 								<div>
@@ -810,21 +809,21 @@ export default function NewDetectionPage() {
 									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-stone-500">Rounds</dt>
+									<dt className="text-xs text-stone-500">Providers</dt>
 									<dd className="mt-1 font-semibold">
-										{previewQuery.data?.roundCount ?? "-"}
+										{providers.length || "-"}
 									</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-stone-500">Samples</dt>
-									<dd className="mt-1 font-semibold">
-										{previewQuery.data?.plannedSamples ?? "-"}
-									</dd>
+									<dt className="text-xs text-stone-500">Total runs</dt>
+									<dd className="mt-1 font-semibold">{runPlan.totalRuns}</dd>
 								</div>
 								<div>
-									<dt className="text-xs text-stone-500">Minimum days</dt>
+									<dt className="text-xs text-stone-500">Total samples</dt>
 									<dd className="mt-1 font-semibold">
-										{previewQuery.data?.estimatedMinimumDays ?? "-"}
+										{previewQuery.data
+											? previewQuery.data.plannedSamples * runPlan.totalRuns
+											: "-"}
 									</dd>
 								</div>
 							</dl>
@@ -840,6 +839,7 @@ export default function NewDetectionPage() {
 									Running confirms the saved product profile.
 								</p>
 							) : null}
+							<DetectionRunPlanEditor value={runPlan} onChange={setRunPlan} />
 							{runBlockReason ? (
 								<p className="mt-4 text-xs leading-5 text-red-700 dark:text-red-300">
 									{runBlockReason}
@@ -856,7 +856,6 @@ export default function NewDetectionPage() {
 									start.mutate({
 										workspaceId,
 										suiteKey,
-										samplingDepth,
 										locales,
 										filters: filterInput,
 										providers: providers as Array<
@@ -868,6 +867,16 @@ export default function NewDetectionPage() {
 												providerModes[provider],
 											]),
 										),
+										runPlan: {
+											...runPlan,
+											timezone: runPlan.timezone.trim(),
+											dayOfWeek:
+												runPlan.cadence === "weekly" ? runPlan.dayOfWeek : null,
+											dayOfMonth:
+												runPlan.cadence === "monthly"
+													? runPlan.dayOfMonth
+													: null,
+										},
 									})
 								}
 							>
@@ -876,7 +885,7 @@ export default function NewDetectionPage() {
 								) : (
 									<Play className="size-4" />
 								)}{" "}
-								{start.isPending ? "Starting detection" : "Run detection"}
+								{start.isPending ? "Starting detection" : "Start detection"}
 							</Button>
 						</aside>
 					</div>

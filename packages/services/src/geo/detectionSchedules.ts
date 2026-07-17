@@ -6,9 +6,17 @@ import {
 	type Provider,
 	type ProviderMode,
 } from "@aloom/types";
-import { CronExpressionParser } from "cron-parser";
 import { and, asc, eq, lte } from "drizzle-orm";
+import {
+	nextDetectionScheduleAfterInitialRun,
+	nextDetectionScheduleAt,
+} from "./detectionRunPlan.js";
 import { GEO_WEB_PROVIDERS, startGeoCollectionRun } from "./runs.js";
+
+export {
+	nextDetectionScheduleAfterInitialRun,
+	nextDetectionScheduleAt,
+} from "./detectionRunPlan.js";
 
 export function resolveDetectionScheduleModes(
 	providers: Provider[],
@@ -29,63 +37,6 @@ export function resolveDetectionScheduleModes(
 			return [provider, mode];
 		}),
 	) as Partial<Record<Provider, ProviderMode>>;
-}
-
-function validateTimezone(timezone: string): void {
-	try {
-		new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
-	} catch {
-		throw new ValidationError("Select a valid IANA timezone");
-	}
-}
-
-function scheduleExpression(args: {
-	cadence: DetectionScheduleCadence;
-	localTime: string;
-	dayOfWeek?: number | null;
-	dayOfMonth?: number | null;
-}): string {
-	const match = /^(\d{2}):(\d{2})$/.exec(args.localTime);
-	const hour = Number(match?.[1]);
-	const minute = Number(match?.[2]);
-	if (!match || hour > 23 || minute > 59) {
-		throw new ValidationError("Local time must use the HH:mm format");
-	}
-	if (args.cadence === "daily") {
-		return `${minute} ${hour} * * *`;
-	}
-	if (args.cadence === "weekly") {
-		const day = args.dayOfWeek ?? 1;
-		if (!Number.isInteger(day) || day < 0 || day > 6) {
-			throw new ValidationError(
-				"Weekly schedules require a weekday from 0 to 6",
-			);
-		}
-		return `${minute} ${hour} * * ${day}`;
-	}
-	const day = args.dayOfMonth ?? 1;
-	if (!Number.isInteger(day) || day < 1 || day > 28) {
-		throw new ValidationError("Monthly schedules require a day from 1 to 28");
-	}
-	return `${minute} ${hour} ${day} * *`;
-}
-
-export function nextDetectionScheduleAt(args: {
-	cadence: DetectionScheduleCadence;
-	timezone: string;
-	localTime: string;
-	dayOfWeek?: number | null;
-	dayOfMonth?: number | null;
-	from?: Date;
-}): Date {
-	validateTimezone(args.timezone);
-	const expression = scheduleExpression(args);
-	return CronExpressionParser.parse(expression, {
-		currentDate: args.from ?? new Date(),
-		tz: args.timezone,
-	})
-		.next()
-		.toDate();
 }
 
 export async function listDetectionSchedules(workspaceId: string) {

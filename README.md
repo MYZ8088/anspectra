@@ -63,10 +63,10 @@ Every provider report includes its own weighted score, layer breakdown, Answer P
 1. Scan the official product website.
 2. Confirm the brand, category, products, audiences, regions, and competitors.
 3. Select a detection suite, language, providers, official-Web modes, and sampling depth.
-4. Review every rendered prompt, sample count, and estimated duration, then click **Run detection**.
+4. Review every rendered prompt, total sample count, run count, and cadence, then click **Start detection**.
 5. Aloom records the selected configuration and runs each prompt in a fresh official-Web conversation.
 6. Inspect the report by provider, mode, locale, intent, stage, exposure, entity, or individual prompt.
-7. Schedule the same versioned detection configuration daily, weekly, or monthly for comparable trends.
+7. Choose the total run count and a daily, weekly, or monthly cadence in New Detection. Every planned run stays in the same comparable series.
 
 Formal detection does not accept arbitrary custom prompts. Historical custom and legacy prompts remain linked to their original samples but are excluded from new formal series and reports.
 
@@ -85,11 +85,7 @@ The built-in pack contains 54 fixed templates per language: nine intents across 
 
 Advanced dimensions can narrow a suite by language, intent, decision stage, brand exposure, product, competitor, audience, or region. Entity assignment is deterministic, and the coverage planner adds only the minimum missing questions. It never creates a Cartesian product.
 
-Sampling depth is independent from prompt coverage:
-
-- `Single`: one sample for every prompt/provider pair.
-- `Reliable`: two rounds separated by at least six hours.
-- `Stability`: three rounds spread across three calendar days.
+The run plan is independent from prompt coverage. Choose 1–30 total runs and, when more than one run is needed, a daily, weekly, or monthly cadence. The first run is queued immediately; later runs remain in the same series so the report can measure answer stability without splitting the result across unrelated detections.
 
 ### Official-Web modes
 

@@ -3,6 +3,7 @@ import { clickhouse, db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import type {
 	DetectionDimensionFilter,
+	DetectionRunPlan,
 	DetectionSuiteKey,
 	GeoDecisionStage,
 	GeoIntent,
@@ -498,6 +499,7 @@ export async function createDetectionSet(args: {
 	workspaceId: string;
 	suiteKey: Exclude<DetectionSuiteKey, "filtered">;
 	samplingDepth: SamplingDepth;
+	runPlan?: DetectionRunPlan;
 	locales?: string[];
 	filters?: Omit<DetectionDimensionFilter, "locales">;
 	name?: string;
@@ -543,9 +545,10 @@ export async function createDetectionSet(args: {
 		suiteKey: preview.suiteKey,
 		requestedSuiteKey: preview.requestedSuiteKey,
 		samplingDepth: preview.samplingDepth,
+		runPlan: args.runPlan ?? null,
 		filters: preview.filters,
 		profileVersion: profile.version,
-		roundCount: preview.roundCount,
+		roundCount: args.runPlan?.totalRuns ?? preview.roundCount,
 		coreAndExpansionCount: generated.length,
 		customPromptCount: 0,
 		expectedPromptHashes: allRows.map((row) => row.promptHash),
@@ -569,7 +572,7 @@ export async function createDetectionSet(args: {
 						preview.suites.find(
 							(suite) => suite.key === preview.requestedSuiteKey,
 						)?.label ?? "GEO Detection"
-					} · ${preview.samplingDepth}`,
+					}`,
 				tier: legacyTier,
 				status: "active",
 				purpose: "baseline",
