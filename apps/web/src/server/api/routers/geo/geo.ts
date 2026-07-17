@@ -33,6 +33,7 @@ import {
 	suggestProfileFromSite,
 } from "@aloom/services";
 import {
+	DETECTION_SCHEDULE_CADENCE_LIST,
 	GEO_DECISION_STAGE_LIST,
 	GEO_INTENT_LIST,
 	PROVIDER_MODE_LIST,
@@ -354,7 +355,7 @@ export const geoRouter = createTRPCRouter({
 						qwen: z.enum(PROVIDER_MODE_LIST).optional(),
 					})
 					.optional(),
-				cadence: z.enum(["weekly", "monthly"]),
+				cadence: z.enum(DETECTION_SCHEDULE_CADENCE_LIST),
 				timezone: z.string().trim().min(1),
 				localTime: z.string().regex(/^\d{2}:\d{2}$/),
 				dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),

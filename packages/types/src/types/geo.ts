@@ -195,13 +195,21 @@ export type DetectionReport = {
 	}>;
 };
 
+export const DETECTION_SCHEDULE_CADENCE_LIST = [
+	"daily",
+	"weekly",
+	"monthly",
+] as const;
+export type DetectionScheduleCadence =
+	(typeof DETECTION_SCHEDULE_CADENCE_LIST)[number];
+
 export type DetectionSchedule = {
 	id: string;
 	workspaceId: string;
 	promptSetId: string;
 	providers: string[];
 	providerModes: Partial<Record<Provider, ProviderMode>>;
-	cadence: "weekly" | "monthly";
+	cadence: DetectionScheduleCadence;
 	timezone: string;
 	localTime: string;
 	dayOfWeek: number | null;

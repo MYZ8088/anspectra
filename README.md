@@ -66,7 +66,7 @@ Every provider report includes its own weighted score, layer breakdown, Answer P
 4. Review every rendered prompt, sample count, and estimated duration, then click **Run detection**.
 5. Aloom records the selected configuration and runs each prompt in a fresh official-Web conversation.
 6. Inspect the report by provider, mode, locale, intent, stage, exposure, entity, or individual prompt.
-7. Schedule the same versioned detection configuration weekly or monthly for comparable trends.
+7. Schedule the same versioned detection configuration daily, weekly, or monthly for comparable trends.
 
 Formal detection does not accept arbitrary custom prompts. Historical custom and legacy prompts remain linked to their original samples but are excluded from new formal series and reports.
 

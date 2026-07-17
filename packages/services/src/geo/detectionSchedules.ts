@@ -1,6 +1,7 @@
 import { db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import {
+	type DetectionScheduleCadence,
 	GEO_PROVIDER_MODE_CAPABILITIES,
 	type Provider,
 	type ProviderMode,
@@ -8,8 +9,6 @@ import {
 import { CronExpressionParser } from "cron-parser";
 import { and, asc, eq, lte } from "drizzle-orm";
 import { GEO_WEB_PROVIDERS, startGeoCollectionRun } from "./runs.js";
-
-type ScheduleCadence = "weekly" | "monthly";
 
 export function resolveDetectionScheduleModes(
 	providers: Provider[],
@@ -41,7 +40,7 @@ function validateTimezone(timezone: string): void {
 }
 
 function scheduleExpression(args: {
-	cadence: ScheduleCadence;
+	cadence: DetectionScheduleCadence;
 	localTime: string;
 	dayOfWeek?: number | null;
 	dayOfMonth?: number | null;
@@ -52,10 +51,15 @@ function scheduleExpression(args: {
 	if (!match || hour > 23 || minute > 59) {
 		throw new ValidationError("Local time must use the HH:mm format");
 	}
+	if (args.cadence === "daily") {
+		return `${minute} ${hour} * * *`;
+	}
 	if (args.cadence === "weekly") {
 		const day = args.dayOfWeek ?? 1;
 		if (!Number.isInteger(day) || day < 0 || day > 6) {
-			throw new ValidationError("Weekly schedules require a weekday from 0 to 6");
+			throw new ValidationError(
+				"Weekly schedules require a weekday from 0 to 6",
+			);
 		}
 		return `${minute} ${hour} * * ${day}`;
 	}
@@ -67,7 +71,7 @@ function scheduleExpression(args: {
 }
 
 export function nextDetectionScheduleAt(args: {
-	cadence: ScheduleCadence;
+	cadence: DetectionScheduleCadence;
 	timezone: string;
 	localTime: string;
 	dayOfWeek?: number | null;
@@ -79,7 +83,9 @@ export function nextDetectionScheduleAt(args: {
 	return CronExpressionParser.parse(expression, {
 		currentDate: args.from ?? new Date(),
 		tz: args.timezone,
-	}).next().toDate();
+	})
+		.next()
+		.toDate();
 }
 
 export async function listDetectionSchedules(workspaceId: string) {
@@ -96,6 +102,7 @@ export async function listDetectionSchedules(workspaceId: string) {
 	const promptSetById = new Map(promptSets.map((item) => [item.id, item]));
 	return schedules.map((schedule) => ({
 		...schedule,
+		cadence: schedule.cadence as DetectionScheduleCadence,
 		promptSet: promptSetById.get(schedule.promptSetId) ?? null,
 	}));
 }
@@ -106,7 +113,7 @@ export async function saveDetectionSchedule(args: {
 	promptSetId: string;
 	providers: Provider[];
 	providerModes?: Partial<Record<Provider, ProviderMode>>;
-	cadence: ScheduleCadence;
+	cadence: DetectionScheduleCadence;
 	timezone: string;
 	localTime: string;
 	dayOfWeek?: number | null;
@@ -197,7 +204,7 @@ export async function pauseDetectionSchedule(args: {
 	if (!current) throw new NotFoundError("Detection schedule not found");
 	const nextRunAt = args.enabled
 		? nextDetectionScheduleAt({
-				cadence: current.cadence as ScheduleCadence,
+				cadence: current.cadence as DetectionScheduleCadence,
 				timezone: current.timezone,
 				localTime: current.localTime,
 				dayOfWeek: current.dayOfWeek,
@@ -242,7 +249,7 @@ export async function dispatchDueDetectionSchedules(): Promise<number> {
 	let dispatched = 0;
 	for (const schedule of due) {
 		const nextRunAt = nextDetectionScheduleAt({
-			cadence: schedule.cadence as ScheduleCadence,
+			cadence: schedule.cadence as DetectionScheduleCadence,
 			timezone: schedule.timezone,
 			localTime: schedule.localTime,
 			dayOfWeek: schedule.dayOfWeek,

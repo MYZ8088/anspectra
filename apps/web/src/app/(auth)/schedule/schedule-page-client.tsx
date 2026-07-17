@@ -6,6 +6,7 @@ import {
 } from "@/components/forms/auth-form-chrome";
 import { api } from "@/trpc/react";
 import {
+	type DetectionScheduleCadence,
 	GEO_PROVIDER_MODE_CAPABILITIES,
 	type ProviderMode,
 	getProviderModeLabel,
@@ -27,6 +28,36 @@ const PROVIDERS = [
 	["hunyuan", "Yuanbao"],
 	["qwen", "Qwen"],
 ] as const;
+
+const WEEKDAYS = [
+	"Sunday",
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+] as const;
+
+function cadenceLabel(schedule: {
+	cadence: DetectionScheduleCadence;
+	dayOfWeek: number | null;
+	dayOfMonth: number | null;
+}): string {
+	if (schedule.cadence === "daily") return "Daily";
+	if (schedule.cadence === "weekly") {
+		return `Every ${WEEKDAYS[schedule.dayOfWeek ?? 1] ?? "Monday"}`;
+	}
+	return `Day ${schedule.dayOfMonth ?? 1} of each month`;
+}
+
+function formatScheduledDate(value: Date | string, timezone: string): string {
+	return new Intl.DateTimeFormat(undefined, {
+		dateStyle: "medium",
+		timeStyle: "short",
+		timeZone: timezone,
+	}).format(new Date(value));
+}
 
 export default function SchedulePageClient({
 	workspaceId,
@@ -56,7 +87,7 @@ export default function SchedulePageClient({
 		hunyuan: "default",
 		qwen: "default",
 	});
-	const [cadence, setCadence] = useState<"weekly" | "monthly">("weekly");
+	const [cadence, setCadence] = useState<DetectionScheduleCadence>("weekly");
 	const [timezone, setTimezone] = useState(
 		() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 	);
@@ -179,10 +210,11 @@ export default function SchedulePageClient({
 								<select
 									value={cadence}
 									onChange={(event) =>
-										setCadence(event.target.value as "weekly" | "monthly")
+										setCadence(event.target.value as DetectionScheduleCadence)
 									}
 									className="h-10 rounded-md border border-stone-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-950"
 								>
+									<option value="daily">Daily</option>
 									<option value="weekly">Weekly</option>
 									<option value="monthly">Monthly</option>
 								</select>
@@ -209,22 +241,14 @@ export default function SchedulePageClient({
 										}
 										className="h-10 rounded-md border border-stone-200 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-950"
 									>
-										{[
-											"Sunday",
-											"Monday",
-											"Tuesday",
-											"Wednesday",
-											"Thursday",
-											"Friday",
-											"Saturday",
-										].map((label, index) => (
+										{WEEKDAYS.map((label, index) => (
 											<option key={label} value={index}>
 												{label}
 											</option>
 										))}
 									</select>
 								</label>
-							) : (
+							) : cadence === "monthly" ? (
 								<label
 									htmlFor="schedule-day-of-month"
 									className="grid gap-1.5 text-sm"
@@ -241,7 +265,7 @@ export default function SchedulePageClient({
 										}
 									/>
 								</label>
-							)}
+							) : null}
 							<label
 								htmlFor="schedule-timezone"
 								className="grid gap-1.5 text-sm"
@@ -328,7 +352,7 @@ export default function SchedulePageClient({
 										</span>
 									</div>
 									<p className="mt-1 text-xs text-stone-500">
-										{schedule.cadence} · {schedule.localTime} ·{" "}
+										{cadenceLabel(schedule)} · {schedule.localTime} ·{" "}
 										{schedule.timezone} ·{" "}
 										{(schedule.providers ?? [])
 											.map(
@@ -351,7 +375,10 @@ export default function SchedulePageClient({
 									<p className="mt-1 text-xs text-stone-500">
 										Next:{" "}
 										{schedule.nextRunAt
-											? new Date(schedule.nextRunAt).toLocaleString()
+											? formatScheduledDate(
+													schedule.nextRunAt,
+													schedule.timezone,
+												)
 											: "Paused"}
 										{schedule.lastError
 											? ` · Last error: ${schedule.lastError}`

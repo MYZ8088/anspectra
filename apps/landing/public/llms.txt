@@ -12,4 +12,4 @@ Doubao, DeepSeek, Yuanbao, and Qwen.
 
 Product flow: scan the official site, confirm the product profile, preview all
 prompts and hashes, start a formal series, inspect hierarchical results, and
-schedule the same versioned detection configuration weekly or monthly.
+schedule the same versioned detection configuration daily, weekly, or monthly.

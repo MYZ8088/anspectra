@@ -8,6 +8,26 @@ const { nextDetectionScheduleAt, resolveDetectionScheduleModes } = await import(
 );
 
 describe("nextDetectionScheduleAt", () => {
+	it("calculates daily occurrences in the selected timezone", () => {
+		const next = nextDetectionScheduleAt({
+			cadence: "daily",
+			timezone: "Asia/Shanghai",
+			localTime: "09:00",
+			from: new Date("2026-07-12T00:00:00.000Z"),
+		});
+		expect(next.toISOString()).toBe("2026-07-12T01:00:00.000Z");
+	});
+
+	it("moves a daily occurrence to tomorrow after today's time has passed", () => {
+		const next = nextDetectionScheduleAt({
+			cadence: "daily",
+			timezone: "Asia/Shanghai",
+			localTime: "09:00",
+			from: new Date("2026-07-12T02:00:00.000Z"),
+		});
+		expect(next.toISOString()).toBe("2026-07-13T01:00:00.000Z");
+	});
+
 	it("calculates weekly occurrences in the selected timezone", () => {
 		const next = nextDetectionScheduleAt({
 			cadence: "weekly",
