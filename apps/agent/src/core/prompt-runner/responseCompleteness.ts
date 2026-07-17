@@ -59,10 +59,14 @@ export function getIncompleteResponseReason(
 	const requested = requestedPointCount(prompt);
 	if (!requested || requested < 2) return null;
 	const numberedItems = lines.filter((line) =>
-		/^(?:\d{1,2}[.)、]|[一二三四五六七八九十]+[.)、])\s*/u.test(line),
+		/^(?:\*\*|__)?\s*(?:\d{1,2}\\?[.)、]|[一二三四五六七八九十]+\\?[.)、])\s*/u.test(
+			line,
+		),
 	).length;
 	const subheadings = lines.filter((line) => /^#{2,6}\s+\S/.test(line)).length;
-	const bullets = lines.filter((line) => /^[-*+]\s+\S/.test(line)).length;
+	const bullets = lines.filter(
+		(line) => !/^\s*(?:[-*_]\s*){3,}$/.test(line) && /^[-*+]\s+\S/.test(line),
+	).length;
 	const explicitSections = Math.max(numberedItems, subheadings, bullets);
 
 	if (explicitSections > 0 && explicitSections < requested) {

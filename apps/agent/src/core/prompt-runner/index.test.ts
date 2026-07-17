@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	startFreshConversation: vi.fn(),
+	applyMode: vi.fn(),
 	executePromptWithRetry: vi.fn(),
 	saveRuntimeProviderAuthSession: vi.fn(),
 }));
@@ -18,8 +19,9 @@ vi.mock("../../lib/browser/providerDiagnostics.js", () => ({
 vi.mock("../providers/index.js", () => ({
 	PROVIDER_CONFIGS: {
 		doubao: {
-			supportedModes: ["default"],
+			supportedModes: ["default", "web_search"],
 			startFreshConversation: mocks.startFreshConversation,
+			applyMode: mocks.applyMode,
 		},
 	},
 }));
@@ -49,6 +51,7 @@ import { runPrompts } from "./index.js";
 describe("runPrompts terminal sample failures", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.applyMode.mockImplementation(async (_page, mode) => mode);
 	});
 
 	it("records a CAPTCHA failure and continues with the next prompt", async () => {
@@ -172,5 +175,52 @@ describe("runPrompts terminal sample failures", () => {
 				}),
 			]),
 		);
+	});
+
+	it("reapplies the requested provider mode before a fresh-conversation resubmission", async () => {
+		mocks.startFreshConversation.mockResolvedValue(undefined);
+		mocks.executePromptWithRetry.mockImplementationOnce(async (...args) => {
+			const freshConversationRetry = args[11] as
+				| (() => Promise<void>)
+				| undefined;
+			await freshConversationRetry?.();
+			return {
+				result: {
+					userId: "user-1",
+					workspaceId: "workspace-1",
+					promptId: "prompt-1",
+					prompt: "Prompt one",
+					response: "A complete answer after one controlled resubmission.",
+					sources: [],
+				},
+				proxyNowProven: false,
+			};
+		});
+		const page = {
+			context: () => ({
+				storageState: vi.fn().mockResolvedValue({ cookies: [], origins: [] }),
+			}),
+			url: () => "https://www.doubao.com/chat/current",
+			waitForLoadState: vi.fn().mockResolvedValue(undefined),
+			waitForTimeout: vi.fn().mockResolvedValue(undefined),
+		};
+
+		const [result] = await runPrompts(
+			{
+				user_id: "user-1",
+				workspace_id: "workspace-1",
+				created_at: new Date(0).toISOString(),
+				providerMode: "web_search",
+				prompts: [{ id: "prompt-1", prompt: "Prompt one" }],
+			},
+			page as never,
+			"doubao",
+		);
+
+		expect(mocks.startFreshConversation).toHaveBeenCalledTimes(2);
+		expect(mocks.applyMode).toHaveBeenCalledTimes(2);
+		expect(mocks.applyMode).toHaveBeenNthCalledWith(1, page, "web_search");
+		expect(mocks.applyMode).toHaveBeenNthCalledWith(2, page, "web_search");
+		expect(result?.actualMode).toBe("web_search");
 	});
 });

@@ -176,6 +176,7 @@ pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 - 结构化分析使用独立的后台有限并发通道，由 `COLLECTOR_ANALYSIS_CONCURRENCY` 控制（默认 `2`），不会阻塞官方 Web 采集。
 - 浏览器重启后继续使用同一个持久身份和 profile。
 - Prompt 回显、登录页、验证页、平台错误页和空回答会被拒绝。
+- 已提交的回答会先在原会话重新读取；若结构仍不完整，Aloom 最多在已验证的新会话中重发一次。单纯抽取失败不会触发无上限或盲目重发。
 - 采集状态与分析状态分开保存。
 - 结构化分析使用严格 JSON Schema、平衡 JSON 提取、本地修复、Zod 校验、备用模型和一次定向修复。
 - 趋势只比较 Prompt hash、平台、模式、语言和采样定义完全一致的 series。

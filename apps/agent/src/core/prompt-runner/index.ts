@@ -224,6 +224,18 @@ export async function runPrompts(
 								actualMode,
 							})
 					: undefined,
+				config.startFreshConversation
+					? async () => {
+							await config.startFreshConversation?.(page);
+							if (config.applyMode) {
+								actualMode = await config.applyMode(page, requestedMode);
+							} else if (requestedMode !== "default") {
+								throw new Error(
+									`${provider} cannot apply official Web mode "${requestedMode}"`,
+								);
+							}
+						}
+					: undefined,
 			);
 		} catch (err) {
 			if (err instanceof IPRefreshNeededError) throw err;

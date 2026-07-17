@@ -86,14 +86,17 @@ export async function executePromptWithRetry(
 	remainingPrompts: PromptPayload["prompts"],
 	proxyProven: boolean,
 	onAttemptUpdate?: (update: PromptAttemptUpdate) => Promise<void>,
+	onFreshConversationRetry?: () => Promise<void>,
 ): Promise<{ result: AskPromptResult; proxyNowProven: boolean }> {
 	const config = PROVIDER_CONFIGS[provider];
 	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ALOOM_APP_MODE));
-	const maxAttempts = useProxy ? MAX_RETRIES : 2;
+	let maxAttempts = useProxy ? MAX_RETRIES : 2;
 	let lastError: unknown = null;
 	let recoverSubmitted = false;
+	let freshConversationRetryUsed = false;
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+		const recoveringSubmittedAnswer = recoverSubmitted;
 		if (attempt > 1) {
 			const backoffDelay = exponentialBackoff(
 				attempt - 2,
@@ -111,6 +114,15 @@ export async function executePromptWithRetry(
 			status: "started",
 			phase: recoverSubmitted ? "extraction" : "submission",
 			pageUrl: page.url(),
+			diagnostics: {
+				retryStrategy: recoveringSubmittedAnswer
+					? "recover_submitted_answer"
+					: freshConversationRetryUsed
+						? "fresh_conversation_resubmission"
+						: attempt > 1
+							? "standard_resubmission"
+							: "initial_submission",
+			},
 		}).catch(() => {});
 
 		try {
@@ -154,11 +166,21 @@ export async function executePromptWithRetry(
 		} catch (err) {
 			lastError = err;
 			const failureType = classifyError(err);
+			const details = describePromptFailure(err);
 			const failedAfterSubmission =
 				failureType === "extraction_failed" ||
 				/fetchPromptResponses.*timed out/i.test(toErrorMessage(err));
 			if (failedAfterSubmission) recoverSubmitted = true;
-			const details = describePromptFailure(err);
+			const shouldRetryIncompleteInFreshConversation =
+				details.code === "incomplete_response" &&
+				recoveringSubmittedAnswer &&
+				!freshConversationRetryUsed &&
+				Boolean(onFreshConversationRetry);
+			if (shouldRetryIncompleteInFreshConversation) {
+				// Local collection normally has two attempts. Grant exactly one extra
+				// attempt only after the submitted answer was re-read and remained partial.
+				maxAttempts = Math.max(maxAttempts, attempt + 1);
+			}
 			await onAttemptUpdate?.({
 				promptId: promptEntry.id,
 				attemptIndex: attempt,
@@ -173,6 +195,15 @@ export async function executePromptWithRetry(
 					failureType !== "human_challenge" &&
 					failureType !== "logged_out",
 				pageUrl: page.url(),
+				diagnostics: {
+					retryStrategy: recoveringSubmittedAnswer
+						? shouldRetryIncompleteInFreshConversation
+							? "fresh_conversation_resubmission"
+							: "recover_submitted_answer"
+						: recoverSubmitted
+							? "recover_submitted_answer"
+							: "standard_retry",
+				},
 			}).catch(() => {});
 			if (failureType === "human_challenge") {
 				logger.warn(
@@ -193,6 +224,38 @@ export async function executePromptWithRetry(
 					`browser context closed for prompt ${promptIndex + 1} — handing control to the persistent-session retry cycle`,
 				);
 				throw err;
+			}
+
+			if (shouldRetryIncompleteInFreshConversation) {
+				logger.warn(
+					`[${provider}] submitted answer remained incomplete after recovery; opening one fresh conversation for a controlled resubmission`,
+				);
+				try {
+					await onFreshConversationRetry?.();
+				} catch (freshConversationError) {
+					const freshFailure = describePromptFailure(freshConversationError);
+					await onAttemptUpdate?.({
+						promptId: promptEntry.id,
+						attemptIndex: attempt + 1,
+						status: "failed",
+						phase: "fresh_conversation",
+						failureCategory: freshFailure.category,
+						failureCode:
+							freshFailure.code === "unknown"
+								? "fresh_conversation_failed"
+								: freshFailure.code,
+						failureMessage: toErrorMessage(freshConversationError),
+						retryable: false,
+						pageUrl: page.url(),
+						diagnostics: {
+							retryStrategy: "fresh_conversation_resubmission",
+						},
+					}).catch(() => {});
+					throw freshConversationError;
+				}
+				freshConversationRetryUsed = true;
+				recoverSubmitted = false;
+				continue;
 			}
 
 			logger.error(

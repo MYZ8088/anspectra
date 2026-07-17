@@ -176,6 +176,7 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 - Structured analysis runs in a separate bounded background lane controlled by `COLLECTOR_ANALYSIS_CONCURRENCY` (default `2`) and never blocks official-Web collection.
 - Browser restarts reuse the same persistent identity and profile.
 - Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
+- A submitted answer is re-read before any resend. If it remains structurally incomplete, Aloom may retry it once in a verified fresh conversation; extraction failures never trigger an unbounded or blind resend loop.
 - Collection and analysis statuses are stored independently.
 - Strict JSON Schema, balanced JSON extraction, local repair, Zod validation, a fallback model, and one targeted repair pass stabilize structured analysis.
 - Trends compare only matching prompt hashes, providers, modes, languages, and sampling definitions.

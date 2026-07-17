@@ -46,4 +46,20 @@ describe("response completeness", () => {
 			),
 		).toBeNull();
 	});
+
+	it("accepts Qwen bold escaped numbered sections and ignores a thematic break", () => {
+		expect(
+			getIncompleteResponseReason(
+				[
+					"企业应重点评估以下三个核心因素：",
+					"**1\\. 核心功能与业务场景的契合度** 第一项的完整说明。",
+					"**2\\. 技术集成能力与数据合规性** 第二项的完整说明。",
+					"**3\\. 总体拥有成本与团队易用性** 第三项的完整说明。",
+					"* * *",
+					"_以上内容为一般性参考。_",
+				].join("\n\n"),
+				"请用三点说明企业选择产品分析工具时应评估哪些因素。",
+			),
+		).toBeNull();
+	});
 });

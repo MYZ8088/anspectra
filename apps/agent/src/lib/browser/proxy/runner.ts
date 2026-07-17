@@ -23,8 +23,9 @@ const AGENT_SETUP_TIMEOUT_MS = 2 * 60 * 1000; // 2 min
 
 // Per-prompt budget for actual prompt execution (type → submit → wait → extract).
 // Browser launch/warmup are NOT included — they are covered by AGENT_SETUP_TIMEOUT_MS.
-// Scale by prompt count in runWithRetryCycles.
-const PROVIDER_TIMEOUT_PER_PROMPT_MS = 5 * 60 * 1000; // 5 min per prompt
+// The response waiter can consume five minutes before the prompt-level retry
+// starts, so the outer budget includes two minutes for a normal recovery.
+const PROVIDER_TIMEOUT_PER_PROMPT_MS = 7 * 60 * 1000; // 7 min per prompt
 const ATTEMPTS_PER_CYCLE = 10;
 const MAX_CYCLES = 3;
 const INITIAL_BACKOFF = 5_000;
@@ -66,6 +67,18 @@ export type AttemptExecutor = (
 	attempt: BrowserAttempt,
 	payload: PromptPayload,
 ) => Promise<AskPromptResult[]>;
+
+export function calculatePromptExecutionTimeoutMs(
+	payload: Pick<PromptPayload, "prompts" | "sampling">,
+): number {
+	const promptCount = Math.max(1, payload.prompts.length);
+	const samplingBudgetMs =
+		Math.max(0, promptCount - 1) *
+		Math.max(0, payload.sampling?.maxPromptDelayMs ?? 0);
+	return (
+		promptCount * PROVIDER_TIMEOUT_PER_PROMPT_MS + samplingBudgetMs + 60_000
+	);
+}
 
 type Refs = {
 	browser: Browser | null;
@@ -444,12 +457,7 @@ export async function runWithRetryCycles(
 
 	// Scale execution timeout by prompt count so multi-prompt jobs don't time out mid-run.
 	// Setup (launch + warmup + nav) is bounded separately by AGENT_SETUP_TIMEOUT_MS.
-	const promptCount = Math.max(1, payload.prompts.length);
-	const samplingBudgetMs =
-		Math.max(0, promptCount - 1) *
-		Math.max(0, payload.sampling?.maxPromptDelayMs ?? 0);
-	const timeoutMs =
-		promptCount * PROVIDER_TIMEOUT_PER_PROMPT_MS + samplingBudgetMs + 60_000;
+	const timeoutMs = calculatePromptExecutionTimeoutMs(payload);
 	plog.log(
 		`setup budget: ${AGENT_SETUP_TIMEOUT_MS / 1000}s | execution budget: ${timeoutMs / 60000}min (${payload.prompts.length} prompt(s))`,
 	);

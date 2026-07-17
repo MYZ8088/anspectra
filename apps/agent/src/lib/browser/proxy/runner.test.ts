@@ -9,7 +9,10 @@ vi.mock("../../../core/runAgents.js", () => ({
 	runAgents: runAgentsMock,
 }));
 
-import { runWithRetryCycles } from "./runner.js";
+import {
+	calculatePromptExecutionTimeoutMs,
+	runWithRetryCycles,
+} from "./runner.js";
 
 function sample(promptId: string): AskPromptResult {
 	return {
@@ -26,6 +29,26 @@ describe("persistent provider retry checkpoints", () => {
 	beforeEach(() => {
 		process.env.ALOOM_APP_MODE = "local";
 		runAgentsMock.mockReset();
+	});
+
+	it("reserves prompt-level recovery time in the outer execution budget", () => {
+		expect(
+			calculatePromptExecutionTimeoutMs({
+				prompts: [{ id: "prompt-1", prompt: "Prompt one" }],
+			}),
+		).toBe(8 * 60_000);
+		expect(
+			calculatePromptExecutionTimeoutMs({
+				prompts: [
+					{ id: "prompt-1", prompt: "Prompt one" },
+					{ id: "prompt-2", prompt: "Prompt two" },
+				],
+				sampling: {
+					minPromptDelayMs: 3 * 60_000,
+					maxPromptDelayMs: 8 * 60_000,
+				},
+			}),
+		).toBe(23 * 60_000);
 	});
 
 	it("retries only unfinished prompts after a browser crash", async () => {

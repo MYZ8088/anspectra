@@ -71,4 +71,104 @@ describe("executePromptWithRetry", () => {
 			]),
 		);
 	});
+
+	it("uses one fresh conversation when the recovered answer is still incomplete", async () => {
+		mocks.executePrompt
+			.mockRejectedValueOnce(
+				new Error(
+					"[hunyuan] Extracted response is incomplete: requested_3_sections_received_1",
+				),
+			)
+			.mockResolvedValueOnce({
+				response: "First factor. Second factor. Third factor.",
+				sources: [],
+			});
+		mocks.recoverSubmittedPrompt.mockRejectedValueOnce(
+			new Error(
+				"[hunyuan] Extracted response is incomplete: requested_3_sections_received_1",
+			),
+		);
+		let pageUrl = "https://yuanbao.tencent.com/chat/partial";
+		const page = {
+			url: () => pageUrl,
+			waitForTimeout: vi.fn().mockResolvedValue(undefined),
+		};
+		const startFreshConversation = vi.fn(async () => {
+			pageUrl = "https://yuanbao.tencent.com/chat/retry";
+		});
+		const updates: Array<{
+			attemptIndex: number;
+			status: string;
+			pageUrl?: string;
+			diagnostics?: Record<string, unknown>;
+		}> = [];
+
+		const result = await executePromptWithRetry(
+			page as never,
+			{ id: "prompt-1", prompt: "List three evaluation factors." },
+			"hunyuan",
+			"user-1",
+			"workspace-1",
+			0,
+			1,
+			[],
+			[],
+			false,
+			async (update) => {
+				updates.push(update);
+			},
+			startFreshConversation,
+		);
+
+		expect(result.result.response).toContain("Third factor");
+		expect(mocks.executePrompt).toHaveBeenCalledTimes(2);
+		expect(mocks.recoverSubmittedPrompt).toHaveBeenCalledTimes(1);
+		expect(startFreshConversation).toHaveBeenCalledTimes(1);
+		expect(updates).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					attemptIndex: 3,
+					status: "started",
+					pageUrl: "https://yuanbao.tencent.com/chat/retry",
+					diagnostics: {
+						retryStrategy: "fresh_conversation_resubmission",
+					},
+				}),
+			]),
+		);
+	});
+
+	it("does not resubmit more than once when the fresh answer is also incomplete", async () => {
+		const incomplete = new Error(
+			"[hunyuan] Extracted response is incomplete: requested_3_sections_received_1",
+		);
+		mocks.executePrompt.mockRejectedValue(incomplete);
+		mocks.recoverSubmittedPrompt.mockRejectedValueOnce(incomplete);
+		const page = {
+			url: () => "https://yuanbao.tencent.com/chat/conversation",
+			waitForTimeout: vi.fn().mockResolvedValue(undefined),
+		};
+		const startFreshConversation = vi.fn().mockResolvedValue(undefined);
+
+		await expect(
+			executePromptWithRetry(
+				page as never,
+				{ id: "prompt-1", prompt: "List three evaluation factors." },
+				"hunyuan",
+				"user-1",
+				"workspace-1",
+				0,
+				1,
+				[],
+				[],
+				false,
+				undefined,
+				startFreshConversation,
+			),
+		).rejects.toThrow("incomplete");
+
+		expect(mocks.executePrompt).toHaveBeenCalledTimes(2);
+		expect(mocks.recoverSubmittedPrompt).toHaveBeenCalledTimes(1);
+		expect(startFreshConversation).toHaveBeenCalledTimes(1);
+	});
 });
