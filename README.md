@@ -164,6 +164,7 @@ pnpm collector        # start only the local collector
 pnpm test             # unit and fixture tests
 pnpm typecheck        # workspace TypeScript checks
 pnpm build            # language/privacy gates plus production builds
+pnpm test:soak:same-day -- --workspace=<id> --user=<id> # scheduled acceptance smoke
 ```
 
 Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. Interrupted BullMQ jobs use PostgreSQL checkpoints to skip terminal samples and resume only unfinished prompts.
@@ -179,6 +180,7 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 - Strict JSON Schema, balanced JSON extraction, local repair, Zod validation, a fallback model, and one targeted repair pass stabilize structured analysis.
 - Trends compare only matching prompt hashes, providers, modes, languages, and sampling definitions.
 - Offline collectors leave work in `waiting_runner` instead of dropping the series.
+- Release acceptance uses a same-day two-round smoke: one immediate or seeded round and one timer-triggered round. The optional `pnpm test:soak:72h` profile is reserved for extended observation and does not block routine releases.
 
 ### Project lineage and licenses
 

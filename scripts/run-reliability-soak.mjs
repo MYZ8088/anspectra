@@ -6,6 +6,12 @@ import {
 	getGeoRunDetail,
 	runProviderSmoke,
 } from "../packages/services/dist/index.js";
+import {
+	createSoakObservations,
+	getStateIntervalMinutes,
+	resolveReliabilitySoakPlan,
+	summarizeSoakOutcome,
+} from "./lib/reliability-soak-plan.mjs";
 
 const DEFAULT_PROVIDERS = ["doubao", "deepseek", "hunyuan", "qwen"];
 const TERMINAL_STATUSES = new Set([
@@ -59,35 +65,28 @@ function createState({
 	workspaceId,
 	userId,
 	providers,
+	profile,
 	roundCount,
-	intervalHours,
+	intervalMinutes,
 	seedRunId,
 	seedSeriesId,
 }) {
 	const startedAt = new Date();
-	const observations = Array.from({ length: roundCount }, (_, index) => ({
-		round: index + 1,
-		dueAt: new Date(
-			startedAt.getTime() + index * intervalHours * 60 * 60 * 1000,
-		).toISOString(),
-		status: "scheduled",
-	}));
-	if (seedRunId && seedSeriesId) {
-		observations[0] = {
-			...observations[0],
-			startedAt: startedAt.toISOString(),
-			runId: seedRunId,
-			seriesId: seedSeriesId,
-			status: "running",
-		};
-	}
+	const observations = createSoakObservations({
+		startedAt,
+		roundCount,
+		intervalMinutes,
+		seedRunId,
+		seedSeriesId,
+	});
 	return {
-		version: 1,
+		version: 2,
 		workspaceId,
 		userId,
 		providers,
+		profile,
 		startedAt: startedAt.toISOString(),
-		intervalHours,
+		intervalMinutes,
 		roundCount,
 		observations,
 	};
@@ -98,7 +97,7 @@ function validateState(state, expected) {
 		state.workspaceId !== expected.workspaceId ||
 		state.userId !== expected.userId ||
 		state.roundCount !== expected.roundCount ||
-		state.intervalHours !== expected.intervalHours ||
+		getStateIntervalMinutes(state) !== expected.intervalMinutes ||
 		JSON.stringify(state.providers) !== JSON.stringify(expected.providers)
 	) {
 		throw new Error(
@@ -131,7 +130,7 @@ async function main() {
 	const userId = readArg("user");
 	if (!workspaceId || !userId) {
 		throw new Error(
-			"Usage: pnpm test:soak:72h -- --workspace=<id> --user=<id> [--providers=doubao,deepseek,hunyuan,qwen]",
+			"Usage: pnpm test:soak:same-day -- --workspace=<id> --user=<id> [--providers=doubao,deepseek,hunyuan,qwen]",
 		);
 	}
 
@@ -141,12 +140,13 @@ async function main() {
 		.filter(Boolean);
 	if (providers.length === 0)
 		throw new Error("At least one provider is required");
-	const roundCount = positiveNumber(readArg("rounds"), 4, "rounds");
-	const intervalHours = positiveNumber(
-		readArg("interval-hours"),
-		24,
-		"interval-hours",
-	);
+	const plan = resolveReliabilitySoakPlan({
+		profile: readArg("profile"),
+		rounds: readArg("rounds"),
+		intervalMinutes: readArg("interval-minutes"),
+		intervalHours: readArg("interval-hours"),
+	});
+	const { profile, roundCount, intervalMinutes } = plan;
 	const pollSeconds = positiveNumber(
 		readArg("poll-seconds"),
 		60,
@@ -155,18 +155,26 @@ async function main() {
 	const singlePass = process.argv.includes("--single-pass");
 	const statePath = path.resolve(
 		readArg("state") ??
-			`.aloom-storage/soak/reliability-72h-${workspaceId}.json`,
+			`.aloom-storage/soak/reliability-${profile}-${workspaceId}.json`,
 	);
 	const expected = {
 		workspaceId,
 		userId,
 		providers,
+		profile,
 		roundCount,
-		intervalHours,
+		intervalMinutes,
 	};
 	let state = await readState(statePath);
 	if (state) {
 		validateState(state, expected);
+		if (
+			state.completedAt &&
+			(!state.scheduleOutcome || !state.collectionOutcome)
+		) {
+			Object.assign(state, summarizeSoakOutcome(state.observations));
+			await writeState(statePath, state);
+		}
 	} else {
 		state = createState({
 			...expected,
@@ -178,7 +186,7 @@ async function main() {
 
 	console.log(`[soak] state: ${statePath}`);
 	console.log(
-		`[soak] ${roundCount} rounds, ${intervalHours}h interval, providers: ${providers.join(", ")}`,
+		`[soak] ${profile} profile: ${roundCount} rounds, ${intervalMinutes}m interval, providers: ${providers.join(", ")}`,
 	);
 
 	while (!state.completedAt) {
@@ -208,8 +216,13 @@ async function main() {
 			try {
 				console.log(`[soak] starting round ${due.round}/${roundCount}`);
 				const run = await runProviderSmoke({ workspaceId, userId, providers });
+				const startedAt = nowIso();
 				Object.assign(due, {
-					startedAt: nowIso(),
+					startedAt,
+					triggerDelayMs: Math.max(
+						0,
+						Date.parse(startedAt) - Date.parse(due.dueAt),
+					),
 					runId: run.id,
 					seriesId: run.seriesId,
 					status: run.status,
@@ -230,12 +243,10 @@ async function main() {
 		);
 		if (terminal) {
 			state.completedAt = nowIso();
-			state.outcome = state.observations.every(
-				(observation) => observation.status === "completed",
-			)
-				? "passed"
-				: "completed_with_failures";
-			console.log(`[soak] finished: ${state.outcome}`);
+			Object.assign(state, summarizeSoakOutcome(state.observations));
+			console.log(
+				`[soak] schedule: ${state.scheduleOutcome}; collection: ${state.collectionOutcome}`,
+			);
 		}
 		await writeState(statePath, state);
 		if (!state.completedAt && singlePass) {
@@ -253,7 +264,10 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
-	console.error(error instanceof Error ? error.message : error);
-	process.exitCode = 1;
-});
+main().then(
+	() => process.exit(0),
+	(error) => {
+		console.error(error instanceof Error ? error.message : error);
+		process.exit(1);
+	},
+);

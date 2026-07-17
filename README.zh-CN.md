@@ -164,6 +164,7 @@ pnpm collector        # 只启动本机采集器
 pnpm test             # 运行单元测试和 fixture 测试
 pnpm typecheck        # 检查工作区 TypeScript 类型
 pnpm build            # 执行语言、隐私检查与生产构建
+pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 ```
 
 后台日志保存在 `.aloom-storage/logs/local-daemon.log`。BullMQ 任务意外中断后会依据 PostgreSQL checkpoint 跳过已经终结的样本，只恢复未完成 Prompt。
@@ -179,6 +180,7 @@ pnpm build            # 执行语言、隐私检查与生产构建
 - 结构化分析使用严格 JSON Schema、平衡 JSON 提取、本地修复、Zod 校验、备用模型和一次定向修复。
 - 趋势只比较 Prompt hash、平台、模式、语言和采样定义完全一致的 series。
 - 采集器离线时任务进入 `waiting_runner`，不会丢弃整个 series。
+- 发布验收使用当天完成的两轮 smoke：第一轮立即执行或复用已完成样本，第二轮必须由定时器自动触发。`pnpm test:soak:72h` 仅用于可选的长期观察，不再阻塞日常发布。
 
 ### 项目来源与许可证
 
