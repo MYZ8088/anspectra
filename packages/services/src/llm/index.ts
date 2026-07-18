@@ -1,82 +1,57 @@
 import { EnvError } from "@aloom/errors";
-import Anthropic from "@anthropic-ai/sdk";
 import ChatGptClient from "openai";
 import { env } from "../env.js";
 
-let openaiClient: ChatGptClient | null = null;
-let anthropicClient: Anthropic | null = null;
-let aihubmixClient: ChatGptClient | null = null;
+let client: ChatGptClient | null = null;
 
-function initOpenai(): ChatGptClient {
-	if (openaiClient) return openaiClient;
-
-	const apiKey = env.OPENAI_API_KEY;
-	if (!apiKey) {
+export function getLlmModel(): string {
+	if (!env.LLM_MODEL) {
 		throw new EnvError(
-			"OPENAI_API_KEY",
-			"Missing ChatGPT API key. Please set OPENAI_API_KEY in your environment.",
+			"LLM_MODEL",
+			"Missing model name. Please set LLM_MODEL in your environment.",
 		);
 	}
-
-	openaiClient = new ChatGptClient({ apiKey });
-	return openaiClient;
+	return env.LLM_MODEL;
 }
 
-function initAnthropic(): Anthropic {
-	if (anthropicClient) return anthropicClient;
-
-	const apiKey = env.ANTHROPIC_API_KEY;
-	if (!apiKey) {
-		throw new EnvError(
-			"ANTHROPIC_API_KEY",
-			"Missing Anthropic API key. Please set ANTHROPIC_API_KEY in your environment.",
-		);
-	}
-
-	anthropicClient = new Anthropic({ apiKey });
-	return anthropicClient;
+export function supportsStrictLlmSchema(model: string): boolean {
+	return !model.toLowerCase().includes("deepseek-v4");
 }
 
-function initAihubmix(): ChatGptClient {
-	if (aihubmixClient) return aihubmixClient;
+export function llmRequestOverrides(
+	model: string,
+): Record<string, unknown> | undefined {
+	return model.toLowerCase().includes("deepseek-v4")
+		? { thinking: { type: "disabled" } }
+		: undefined;
+}
 
-	const apiKey = env.AIHUBMIX_API_KEY ?? env.aihubmix_api_key;
-	if (!apiKey) {
+function initClient(): ChatGptClient {
+	if (client) return client;
+	if (!env.LLM_BASE_URL) {
 		throw new EnvError(
-			"AIHUBMIX_API_KEY",
-			"Missing AIHubMix API key. Please set AIHUBMIX_API_KEY or aihubmix_api_key in your environment.",
+			"LLM_BASE_URL",
+			"Missing API base URL. Please set LLM_BASE_URL in your environment.",
+		);
+	}
+	if (!env.LLM_API_KEY) {
+		throw new EnvError(
+			"LLM_API_KEY",
+			"Missing API key. Please set LLM_API_KEY in your environment.",
 		);
 	}
 
-	aihubmixClient = new ChatGptClient({
-		apiKey,
-		baseURL: env.AIHUBMIX_BASE_URL,
+	client = new ChatGptClient({
+		apiKey: env.LLM_API_KEY,
+		baseURL: env.LLM_BASE_URL,
 	});
-	return aihubmixClient;
+	return client;
 }
 
-/**
- * Proxy defers client creation until first actual usage
- */
-export const chatgpt = new Proxy({} as ChatGptClient, {
+/** Defers client creation until the first model request. */
+export const llm = new Proxy({} as ChatGptClient, {
 	get(_target, prop) {
-		const instance = initOpenai();
-		// @ts-expect-error – dynamic proxy passthrough
-		return instance[prop];
-	},
-});
-
-export const claude = new Proxy({} as Anthropic, {
-	get(_target, prop) {
-		const instance = initAnthropic();
-		// @ts-expect-error – dynamic proxy passthrough
-		return instance[prop];
-	},
-});
-
-export const aihubmix = new Proxy({} as ChatGptClient, {
-	get(_target, prop) {
-		const instance = initAihubmix();
+		const instance = initClient();
 		// @ts-expect-error – dynamic proxy passthrough
 		return instance[prop];
 	},

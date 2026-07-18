@@ -2,8 +2,12 @@ import { db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { env } from "../env.js";
-import { aihubmix } from "../llm/index.js";
+import {
+	getLlmModel,
+	llm,
+	llmRequestOverrides,
+	supportsStrictLlmSchema,
+} from "../llm/index.js";
 import {
 	type StructuredOutputResult,
 	createOpenAiCompatibleGenerator,
@@ -70,21 +74,18 @@ export type ContentQualityReport = {
 async function generateContentJson(
 	prompt: string,
 ): Promise<StructuredOutputResult<ContentDraft>> {
-	const models = [
-		env.AIHUBMIX_ANALYSIS_MODEL,
-		env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-	]
-		.map((model) => model.trim())
-		.filter((model, index, values) => model && values.indexOf(model) === index);
-	const generators = models.map((model) =>
+	const model = getLlmModel();
+	const generators = [
 		createOpenAiCompatibleGenerator({
-			client: aihubmix,
-			provider: "AIHubMix",
+			client: llm,
+			provider: "Configured API",
 			model,
 			maxTokens: 8192,
 			timeoutMs: 180_000,
+			strictSchema: supportsStrictLlmSchema(model),
+			extraBody: llmRequestOverrides(model),
 		}),
-	);
+	];
 	return generateStructuredOutput({
 		schema: ContentDraftSchema,
 		schemaName: "geo_content_draft",

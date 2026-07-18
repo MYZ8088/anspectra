@@ -14,8 +14,12 @@ import type {
 } from "@aloom/types";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { env } from "../env.js";
-import { aihubmix } from "../llm/index.js";
+import {
+	getLlmModel,
+	llm,
+	llmRequestOverrides,
+	supportsStrictLlmSchema,
+} from "../llm/index.js";
 import {
 	createOpenAiCompatibleGenerator,
 	generateStructuredOutput,
@@ -167,23 +171,18 @@ export async function classifyCustomPromptDimensions(args: {
 		})),
 	});
 	try {
-		const models = [
-			env.AIHUBMIX_ANALYSIS_MODEL,
-			env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-		]
-			.map((model) => model.trim())
-			.filter(
-				(model, index, values) => model && values.indexOf(model) === index,
-			);
-		const generators = models.map((model) =>
+		const model = getLlmModel();
+		const generators = [
 			createOpenAiCompatibleGenerator({
-				client: aihubmix,
-				provider: "AIHubMix",
+				client: llm,
+				provider: "Configured API",
 				model,
 				maxTokens: 4096,
 				timeoutMs: 120_000,
+				strictSchema: supportsStrictLlmSchema(model),
+				extraBody: llmRequestOverrides(model),
 			}),
-		);
+		];
 		const execution = await generateStructuredOutput({
 			schema: ClassificationResponseSchema,
 			schemaName: "geo_prompt_classification",
@@ -211,7 +210,7 @@ export async function classifyCustomPromptDimensions(args: {
 			items.push(item);
 		}
 		return {
-			mode: "aihubmix" as const,
+			mode: "configured_model" as const,
 			items,
 		};
 	} catch {
