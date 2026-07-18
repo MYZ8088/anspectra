@@ -20,15 +20,11 @@ description: Current Aloom control-plane, analysis, and local-collector configur
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ANALYSIS_LLM_PROVIDER` | `aihubmix` | `aihubmix`, `openai`, or `claude` |
-| `AIHUBMIX_API_KEY` | none | Default structured answer analysis |
-| `AIHUBMIX_BASE_URL` | `https://aihubmix.com/v1` | OpenAI-compatible AIHubMix endpoint |
-| `AIHUBMIX_ANALYSIS_MODEL` | configured model | Primary analysis model |
-| `AIHUBMIX_ANALYSIS_FALLBACK_MODEL` | configured model | Schema-recovery fallback |
-| `OPENAI_API_KEY` | none | Optional OpenAI analysis backend |
-| `ANTHROPIC_API_KEY` | none | Optional Anthropic analysis backend |
+| `MODEL_CREDENTIAL_ENCRYPTION_KEY` | `BETTER_AUTH_SECRET` | Optional dedicated key for encrypting workspace model credentials |
 
-Analysis keys are not used to collect official Web samples.
+The workspace owner enters the API base URL, model ID, and API key in Settings.
+The key is encrypted in PostgreSQL and is never returned to the browser after
+saving. Model credentials are not used to collect official Web samples.
 
 ## Local collector
 

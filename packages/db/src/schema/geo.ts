@@ -746,6 +746,24 @@ export const publisherConnections = pgTable(
 	}),
 );
 
+export const analysisModelConfigs = pgTable(
+	"analysis_model_configs",
+	{
+		workspaceId: text("workspace_id")
+			.primaryKey()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		baseUrl: text("base_url").notNull(),
+		model: varchar("model", { length: 200 }).notNull(),
+		encryptedApiKey: text("encrypted_api_key").notNull(),
+		...timestamps,
+	},
+	(table) => ({
+		workspaceIdx: index("analysis_model_configs_workspace_idx").on(
+			table.workspaceId,
+		),
+	}),
+);
+
 export const interventions = pgTable(
 	"geo_interventions",
 	{

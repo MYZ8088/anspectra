@@ -2,11 +2,12 @@ import { db, schema } from "@aloom/db";
 import { NotFoundError, ValidationError } from "@aloom/errors";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { env } from "../env.js";
-import { aihubmix } from "../llm/index.js";
+import {
+	createAnalysisModelGenerators,
+	loadAnalysisModelConnection,
+} from "../llm/modelConfig.js";
 import {
 	type StructuredOutputResult,
-	createOpenAiCompatibleGenerator,
 	generateStructuredOutput,
 } from "../llm/structuredOutput.js";
 
@@ -68,23 +69,11 @@ export type ContentQualityReport = {
 };
 
 async function generateContentJson(
+	workspaceId: string,
 	prompt: string,
 ): Promise<StructuredOutputResult<ContentDraft>> {
-	const models = [
-		env.AIHUBMIX_ANALYSIS_MODEL,
-		env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL,
-	]
-		.map((model) => model.trim())
-		.filter((model, index, values) => model && values.indexOf(model) === index);
-	const generators = models.map((model) =>
-		createOpenAiCompatibleGenerator({
-			client: aihubmix,
-			provider: "AIHubMix",
-			model,
-			maxTokens: 8192,
-			timeoutMs: 180_000,
-		}),
-	);
+	const connection = await loadAnalysisModelConnection(workspaceId);
+	const generators = createAnalysisModelGenerators(connection);
 	return generateStructuredOutput({
 		schema: ContentDraftSchema,
 		schemaName: "geo_content_draft",
@@ -336,6 +325,7 @@ export async function createContentDraft(args: {
 		.filter((fact) => !eligibleFact(fact))
 		.map((fact) => `${fact.subject} — ${fact.predicate}: ${fact.value}`);
 	const generation = await generateContentJson(
+		args.workspaceId,
 		JSON.stringify({
 			opportunity: {
 				type: opportunity.type,

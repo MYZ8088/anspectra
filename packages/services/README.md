@@ -18,7 +18,7 @@ This package is the domain boundary between app routers/components and raw data/
 - `src/prompt/*`: prompt storage, response storage, source/response fetch.
 - `src/analysis/*`: analysis run, prompt analysis records, fetch APIs.
 - `src/agent/*`: queue naming, queue access, Redis client, job-group submission.
-- `src/llm/*`: ChatGPT client initialization.
+- `src/llm/*`: encrypted workspace model configuration and structured output.
 
 ## Public Exports
 
@@ -45,7 +45,7 @@ Validated in `src/env.ts`:
 - `REDIS_PASSWORD`
 - `API_BASE_URL`
 - `INTERNAL_CRON_SECRET`
-- `OPENAI_API_KEY`
+- `MODEL_CREDENTIAL_ENCRYPTION_KEY` (optional; falls back to `BETTER_AUTH_SECRET`)
 
 ## Usage Pattern
 

@@ -7,7 +7,19 @@ import {
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
 import { Button, Input, toast } from "@aloom/ui";
-import { Database, ExternalLink, Loader2, Save, Settings } from "lucide-react";
+import {
+	CheckCircle2,
+	Database,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	KeyRound,
+	Loader2,
+	PlugZap,
+	Save,
+	Settings,
+	Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -26,13 +38,27 @@ export default function SettingsPage() {
 		{ workspaceId },
 		{ enabled: Boolean(workspaceId) },
 	);
+	const modelConfig = api.analysis.modelConfig.useQuery(
+		{ workspaceId },
+		{ enabled: Boolean(workspaceId) },
+	);
 	const [name, setName] = useState("");
 	const [domain, setDomain] = useState("");
+	const [apiBaseUrl, setApiBaseUrl] = useState("");
+	const [modelId, setModelId] = useState("");
+	const [apiKey, setApiKey] = useState("");
+	const [showApiKey, setShowApiKey] = useState(false);
 	useEffect(() => {
 		if (!workspace.data) return;
 		setName(workspace.data.name);
 		setDomain(workspace.data.domain ?? "");
 	}, [workspace.data]);
+	useEffect(() => {
+		if (!modelConfig.data) return;
+		setApiBaseUrl(modelConfig.data.baseUrl);
+		setModelId(modelConfig.data.model);
+		setApiKey("");
+	}, [modelConfig.data]);
 	const update = api.workspace.updateDetails.useMutation({
 		onSuccess: async () => {
 			await Promise.all([
@@ -43,6 +69,35 @@ export default function SettingsPage() {
 		},
 		onError: (error) => toast.error(error.message),
 	});
+	const saveModelConfig = api.analysis.saveModelConfig.useMutation({
+		onSuccess: async () => {
+			setApiKey("");
+			await utils.analysis.modelConfig.invalidate({ workspaceId });
+			toast.success("Analysis model settings saved");
+		},
+		onError: (error) => toast.error(error.message),
+	});
+	const testModelConfig = api.analysis.testModelConfig.useMutation({
+		onSuccess: (result) =>
+			toast.success(
+				`Connection verified with ${result.model} (${result.parseMode.replaceAll("_", " ")})`,
+			),
+		onError: (error) => toast.error(error.message),
+	});
+	const deleteModelConfig = api.analysis.deleteModelConfig.useMutation({
+		onSuccess: async () => {
+			setApiBaseUrl("");
+			setModelId("");
+			setApiKey("");
+			await utils.analysis.modelConfig.invalidate({ workspaceId });
+			toast.success("Analysis model connection removed");
+		},
+		onError: (error) => toast.error(error.message),
+	});
+	const canSaveModel =
+		apiBaseUrl.trim().length > 0 &&
+		modelId.trim().length > 0 &&
+		(apiKey.trim().length > 0 || modelConfig.data?.hasApiKey === true);
 
 	return (
 		<div className="web-page-wide">
@@ -127,6 +182,130 @@ export default function SettingsPage() {
 							</div>
 						</dl>
 					</aside>
+				</section>
+				<section className="border-t border-stone-200 pt-6 dark:border-neutral-800">
+					<div className="flex flex-wrap items-start justify-between gap-4">
+						<div>
+							<div className="flex items-center gap-2">
+								<KeyRound className="size-4 text-stone-500" />
+								<h2 className="text-base font-semibold">Analysis model</h2>
+							</div>
+							<p className="mt-1 max-w-2xl text-sm text-stone-500 dark:text-neutral-400">
+								Connect any OpenAI-compatible chat completions API. The selected
+								model converts captured Web answers into validated GEO metrics.
+							</p>
+						</div>
+						{modelConfig.data?.configured ? (
+							<span className="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-700 dark:text-cyan-300">
+								<CheckCircle2 className="size-4" /> Configured
+							</span>
+						) : null}
+					</div>
+					<div className="mt-5 grid gap-4 md:grid-cols-2">
+						<label htmlFor="analysis-api-url" className="grid gap-1.5 text-sm">
+							<span className="font-medium">API base URL</span>
+							<Input
+								id="analysis-api-url"
+								type="url"
+								placeholder="https://gateway.example.com/v1"
+								value={apiBaseUrl}
+								onChange={(event) => setApiBaseUrl(event.target.value)}
+								autoComplete="url"
+							/>
+						</label>
+						<label htmlFor="analysis-model-id" className="grid gap-1.5 text-sm">
+							<span className="font-medium">Model ID</span>
+							<Input
+								id="analysis-model-id"
+								placeholder="your-model-id"
+								value={modelId}
+								onChange={(event) => setModelId(event.target.value)}
+								autoComplete="off"
+							/>
+						</label>
+						<label
+							htmlFor="analysis-api-key"
+							className="grid gap-1.5 text-sm md:col-span-2"
+						>
+							<span className="font-medium">API key</span>
+							<div className="relative">
+								<Input
+									id="analysis-api-key"
+									type={showApiKey ? "text" : "password"}
+									placeholder={
+										modelConfig.data?.hasApiKey
+											? "Saved securely; enter a new key to replace it"
+											: "Enter API key"
+									}
+									value={apiKey}
+									onChange={(event) => setApiKey(event.target.value)}
+									autoComplete="new-password"
+									className="pr-11"
+								/>
+								<button
+									type="button"
+									aria-label={showApiKey ? "Hide API key" : "Show API key"}
+									className="absolute inset-y-0 right-0 grid w-10 place-items-center text-stone-500 hover:text-stone-900 dark:hover:text-white"
+									onClick={() => setShowApiKey((current) => !current)}
+								>
+									{showApiKey ? (
+										<EyeOff className="size-4" />
+									) : (
+										<Eye className="size-4" />
+									)}
+								</button>
+							</div>
+							<span className="text-xs text-stone-500 dark:text-neutral-400">
+								Encrypted at rest and never returned to the browser after
+								saving.
+							</span>
+						</label>
+					</div>
+					<div className="mt-5 flex flex-wrap items-center gap-2">
+						<Button
+							className={formPrimaryButtonClassName}
+							disabled={!canSaveModel || saveModelConfig.isPending}
+							onClick={() =>
+								saveModelConfig.mutate({
+									workspaceId,
+									baseUrl: apiBaseUrl.trim(),
+									model: modelId.trim(),
+									apiKey: apiKey.trim() || undefined,
+								})
+							}
+						>
+							{saveModelConfig.isPending ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<Save className="size-4" />
+							)}{" "}
+							Save connection
+						</Button>
+						<Button
+							variant="outline"
+							disabled={
+								!modelConfig.data?.configured || testModelConfig.isPending
+							}
+							onClick={() => testModelConfig.mutate({ workspaceId })}
+						>
+							{testModelConfig.isPending ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<PlugZap className="size-4" />
+							)}{" "}
+							Test connection
+						</Button>
+						{modelConfig.data?.configured ? (
+							<Button
+								variant="ghost"
+								className="text-red-700 hover:text-red-800 dark:text-red-400"
+								disabled={deleteModelConfig.isPending}
+								onClick={() => deleteModelConfig.mutate({ workspaceId })}
+							>
+								<Trash2 className="size-4" /> Remove
+							</Button>
+						) : null}
+					</div>
 				</section>
 				<section className="border-t border-stone-200 pt-6 dark:border-neutral-800">
 					<h2 className="text-base font-semibold">Collection controls</h2>

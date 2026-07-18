@@ -7,13 +7,6 @@ import { calculateBaselineScorecard } from "./scorecard.js";
 
 vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
-vi.mock("../env.js", () => ({
-	env: {
-		AIHUBMIX_ANALYSIS_MODEL: "test",
-		AIHUBMIX_ANALYSIS_FALLBACK_MODEL: "",
-	},
-}));
-vi.mock("../llm/index.js", () => ({ aihubmix: {} }));
 
 function visibleAnalysis(): BrandAnalysisResult {
 	return {

@@ -26,9 +26,6 @@ read -rp "Install directory [/home/$USER/aloom]: " INSTALL_DIR
 INSTALL_DIR="${INSTALL_DIR:-/home/$USER/aloom}"
 read -rp "Repository URL [https://github.com/MYZ8088/aloom.git]: " REPOSITORY_URL
 REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/MYZ8088/aloom.git}"
-read -rsp "AIHubMix API key: " AIHUBMIX_KEY
-echo ""
-[[ -z "$AIHUBMIX_KEY" ]] && fatal "AIHubMix API key is required."
 
 header "1 / 5 - Dependencies"
 if ! require_cmd docker; then
@@ -67,8 +64,6 @@ set_env() {
 set_env "APP_URL" "https://${DOMAIN}"
 set_env "API_BASE_URL" "https://${DOMAIN}"
 set_env "ALOOM_APP_MODE" "self-host"
-set_env "ANALYSIS_LLM_PROVIDER" "aihubmix"
-set_env "AIHUBMIX_API_KEY" "$AIHUBMIX_KEY"
 set_env "BETTER_AUTH_SECRET" "$(openssl rand -hex 32)"
 set_env "INTERNAL_CRON_SECRET" "$(openssl rand -hex 32)"
 
@@ -115,8 +110,9 @@ fi
 success "Control plane ready at https://${DOMAIN}"
 echo ""
 echo "Next steps on a macOS or Windows collector machine:"
-echo "  1. Open Providers and create a collector pairing."
-echo "  2. Set COLLECTOR_API_URL=https://${DOMAIN} and the one-time token."
-echo "  3. Run pnpm camoufox:setup, pnpm camoufox:doctor, and pnpm collector."
+echo "  1. Open Settings and configure the analysis API base URL, model ID, and API key."
+echo "  2. Open Providers and create a collector pairing."
+echo "  3. Set COLLECTOR_API_URL=https://${DOMAIN} and the one-time token."
+echo "  4. Run pnpm camoufox:setup, pnpm camoufox:doctor, and pnpm collector."
 echo ""
 echo "Provider cookies and browser profiles remain on that collector machine."
