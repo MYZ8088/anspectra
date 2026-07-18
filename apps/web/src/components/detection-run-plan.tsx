@@ -78,7 +78,7 @@ export function DetectionRunPlanEditor(props: {
 							max={MAX_RUNS}
 							value={props.value.totalRuns}
 							onChange={(event) => setRunCount(Number(event.target.value))}
-							className="h-10 rounded-none border-0 text-center font-semibold tabular-nums shadow-none focus-visible:ring-0"
+							className="h-10 appearance-none rounded-none border-0 text-center font-semibold tabular-nums shadow-none focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 						/>
 						<button
 							type="button"
