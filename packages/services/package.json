@@ -24,6 +24,7 @@
 		"@aloom/errors": "workspace:*",
 		"@aloom/types": "workspace:*",
 		"@aloom/utils": "workspace:*",
+		"@anthropic-ai/sdk": "^0.89.0",
 		"bullmq": "^5.67.0",
 		"cheerio": "^1.2.0",
 		"cron-parser": "^5.4.0",

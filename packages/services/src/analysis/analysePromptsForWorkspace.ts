@@ -3,10 +3,6 @@ import { BaseError, toErrorMessage } from "@aloom/errors";
 import type { PromptAnalysis, PromptResponse, Source } from "@aloom/types";
 import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
-import {
-	type AnalysisModelConnection,
-	loadAnalysisModelConnection,
-} from "../llm/modelConfig.js";
 import { ensureSourceKindSchema } from "../prompt/lib/ensureSourceKindSchema.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import { type AnalysisExecution, runAnalysisDetailed } from "./runAnalysis.js";
@@ -77,21 +73,17 @@ async function analysePromptResponse(args: {
 		evidenceGrade: "A" | "B" | "C" | "D" | null;
 		status: string;
 	}>;
-	modelConnection: AnalysisModelConnection;
 }): Promise<AnalysisExecution> {
-	const execution = await runAnalysisDetailed(
-		{
-			brandDomain: args.brandDomain,
-			brandName: args.brandName,
-			brandAliases: args.brandAliases,
-			products: args.products,
-			response: args.response,
-			prompt: args.prompt,
-			sources: args.sources,
-			facts: args.facts,
-		},
-		args.modelConnection,
-	);
+	const execution = await runAnalysisDetailed({
+		brandDomain: args.brandDomain,
+		brandName: args.brandName,
+		brandAliases: args.brandAliases,
+		products: args.products,
+		response: args.response,
+		prompt: args.prompt,
+		sources: args.sources,
+		facts: args.facts,
+	});
 
 	execution.result.metadata = {
 		...execution.result.metadata,
@@ -170,7 +162,6 @@ export async function analysePromptsForWorkspace(args: {
 		error: string;
 	}> = [];
 	const processedResponseIds = new Set<string>();
-	let modelConnection: AnalysisModelConnection | null = null;
 
 	// offset advances the cursor independently of ClickHouse mutation completion.
 	// ALTER TABLE UPDATE is async — without OFFSET, the same rows are returned
@@ -219,13 +210,11 @@ export async function analysePromptsForWorkspace(args: {
 		// Analyze each response
 		for (const resp of responses) {
 			try {
-				modelConnection ??= await loadAnalysisModelConnection(workspaceId);
 				const execution = await analysePromptResponse({
 					...analysisContext,
 					response: resp.response,
 					prompt: resp.prompt,
 					sources: sourcesByResponseId.get(resp.id) ?? resp.sources,
-					modelConnection,
 				});
 
 				const analysisId = uuidv4();

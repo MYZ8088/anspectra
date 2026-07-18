@@ -1,13 +1,13 @@
 import { ValidationError } from "@aloom/errors";
 import type { AnalysisInputSingle, BrandAnalysisResult } from "@aloom/types";
 import { z } from "zod";
+import { env } from "../env.js";
+import { aihubmix, chatgpt, claude } from "../llm/index.js";
 import {
-	type AnalysisModelConnection,
-	createAnalysisModelGenerators,
-} from "../llm/modelClient.js";
-import {
+	type StructuredModelGenerator,
 	type StructuredOutputAttempt,
 	type StructuredParseMode,
+	createOpenAiCompatibleGenerator,
 	generateStructuredOutput,
 	parseStructuredOutput,
 } from "../llm/structuredOutput.js";
@@ -20,6 +20,9 @@ const systemPrompt =
 	"Return only valid JSON matching the requested schema. " +
 	"Be precise, evidence-based, and conservative in your scoring. " +
 	"If the brand is not mentioned in the response, return zeroed-out scores and empty arrays rather than fabricating data.";
+
+const AIHUBMIX_ANALYSIS_TIMEOUT_MS = 180_000;
+const AIHUBMIX_ANALYSIS_MAX_TOKENS = 8192;
 
 export type AnalysisExecution = {
 	result: BrandAnalysisResult;
@@ -179,12 +182,105 @@ export function parseAnalysisOutput(text: string): BrandAnalysisResult {
 	}
 }
 
+function createClaudeGenerator(): StructuredModelGenerator {
+	return {
+		provider: "Anthropic",
+		model: "claude-sonnet-4-6",
+		strictSchema: false,
+		async generate(request) {
+			const response = await claude.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+				temperature: 0,
+				system: request.systemPrompt,
+				messages: [{ role: "user", content: request.userPrompt }],
+				tools: [
+					{
+						name: "submit_structured_analysis",
+						description:
+							"Return the completed brand analysis using the required schema.",
+						input_schema: request.jsonSchema as {
+							type: "object";
+							properties?: unknown;
+							required?: string[];
+						},
+						strict: true,
+					},
+				],
+				tool_choice: { type: "tool", name: "submit_structured_analysis" },
+			});
+			const toolBlock = response.content.find(
+				(block) =>
+					block.type === "tool_use" &&
+					block.name === "submit_structured_analysis",
+			);
+			const hasToolBlock = toolBlock?.type === "tool_use";
+			const text = hasToolBlock
+				? JSON.stringify(toolBlock.input)
+				: response.content
+						.filter((block) => block.type === "text")
+						.map((block) => block.text)
+						.join("\n");
+			return {
+				text,
+				finishReason: response.stop_reason,
+				responseFormat: hasToolBlock ? "tool" : "json_object",
+			};
+		},
+	};
+}
+
+export function supportsStrictAnalysisSchema(model: string): boolean {
+	return !model.toLowerCase().includes("deepseek-v4");
+}
+
+export function analysisModelRequestOverrides(
+	model: string,
+): Record<string, unknown> | undefined {
+	return model.toLowerCase().includes("deepseek-v4")
+		? { thinking: { type: "disabled" } }
+		: undefined;
+}
+
+function analysisGenerators(): StructuredModelGenerator[] {
+	switch (env.ANALYSIS_LLM_PROVIDER) {
+		case "claude":
+			return [createClaudeGenerator()];
+		case "aihubmix":
+			return [env.AIHUBMIX_ANALYSIS_MODEL, env.AIHUBMIX_ANALYSIS_FALLBACK_MODEL]
+				.map((model) => model.trim())
+				.filter(
+					(model, index, models) => model && models.indexOf(model) === index,
+				)
+				.map((model) =>
+					createOpenAiCompatibleGenerator({
+						client: aihubmix,
+						provider: "AIHubMix",
+						model,
+						maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+						timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
+						strictSchema: supportsStrictAnalysisSchema(model),
+						extraBody: analysisModelRequestOverrides(model),
+					}),
+				);
+		default:
+			return [
+				createOpenAiCompatibleGenerator({
+					client: chatgpt,
+					provider: "OpenAI",
+					model: "gpt-4.1",
+					maxTokens: AIHUBMIX_ANALYSIS_MAX_TOKENS,
+					timeoutMs: AIHUBMIX_ANALYSIS_TIMEOUT_MS,
+				}),
+			];
+	}
+}
+
 export async function runAnalysisDetailed(
 	input: AnalysisInputSingle,
-	connection: AnalysisModelConnection,
 ): Promise<AnalysisExecution> {
 	const prompt = analysisPrompt(input);
-	const generators = createAnalysisModelGenerators(connection);
+	const generators = analysisGenerators();
 	const execution = await generateStructuredOutput({
 		schema: analysisResultSchema,
 		schemaName: "brand_analysis",
@@ -211,12 +307,6 @@ export async function runAnalysisDetailed(
 
 export async function runAnalysis(
 	input: AnalysisInputSingle,
-	connection: AnalysisModelConnection,
 ): Promise<BrandAnalysisResult> {
-	return (await runAnalysisDetailed(input, connection)).result;
+	return (await runAnalysisDetailed(input)).result;
 }
-
-export {
-	analysisModelRequestOverrides,
-	supportsStrictAnalysisSchema,
-} from "../llm/modelClient.js";

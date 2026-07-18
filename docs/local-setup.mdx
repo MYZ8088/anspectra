@@ -20,9 +20,15 @@ cp .env.example .env
 pnpm install
 ```
 
-Model API credentials do not belong in `.env`. After the app starts, the
-workspace owner configures an OpenAI-compatible API base URL, model ID, and API
-key in Settings.
+Set an analysis provider in `.env`. AIHubMix is the default:
+
+```bash
+AIHUBMIX_API_KEY=replace-with-your-key
+ANALYSIS_LLM_PROVIDER=aihubmix
+```
+
+OpenAI and Anthropic remain optional analysis backends. They do not provide
+formal monitoring samples.
 
 ## 2. Provision Camoufox
 
@@ -42,9 +48,6 @@ pnpm local
 
 Open [http://localhost:3000](http://localhost:3000). `pnpm local` starts
 PostgreSQL, ClickHouse, Redis, the Next.js app, and the collector.
-
-Open Settings, save the analysis model connection, and run its connection test
-before starting a formal detection.
 
 ## 4. Connect providers
 

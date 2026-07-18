@@ -8,7 +8,7 @@ Key properties:
 - One fresh official Web conversation per prompt.
 - Headed, automatically minimized Camoufox with visible human-verification recovery.
 - Provider cookies and profiles remain on the local collector machine.
-- A workspace-configured model analyzes captured answers but never supplies monitoring samples.
+- AIHubMix analyzes captured answers but never supplies monitoring samples.
 - Each answer is analyzed independently, then aggregated deterministically.
 - Failed and blocked checkpoints remain in report denominators.
 

@@ -84,7 +84,7 @@ export const STORAGE_KEY = "aloom-landing-theme" as const;
 export const METHOD_POINTS = [
 	"Doubao, DeepSeek, Yuanbao, and Qwen are monitored through their official Web interfaces, never through model APIs.",
 	"You log in to each provider with your own account. Sessions are stored locally on your machine and never leave your infrastructure.",
-	"A workspace-configured model analyzes captured answers after collection; it is never used as the monitoring data source.",
+	"AIHubMix analyses captured answers after collection; it is never used as the monitoring data source.",
 	"UI responses can differ from API responses in ranking, wording, and citation behavior for the same prompt.",
 	"Every formal series freezes prompt hashes, providers, modes, sampling depth, and collection checkpoints.",
 ] as const;

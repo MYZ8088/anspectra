@@ -29,7 +29,7 @@ const FAQ_ITEMS: FaqItem[] = [
 	{
 		question: "Is Aloom free?",
 		answer:
-			"Yes. Aloom is Apache-2.0 licensed and free to run locally. You connect your own compatible analysis API and use your own provider accounts for official Web collection.",
+			"Yes. Aloom is Apache-2.0 licensed and free to run locally. You bring your own AIHubMix key for answer analysis and your own provider accounts for official Web collection.",
 	},
 	{
 		question: "Does Aloom store my data in the cloud?",

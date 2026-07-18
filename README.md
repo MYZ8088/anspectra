@@ -112,7 +112,7 @@ The local collector runs task-bound headless Camoufox with one persistent profil
 - Human handling opens the same persistent profile in a visible window; Aloom does not bypass verification.
 - Completed samples and checkpoints survive browser, collector, and challenge recovery.
 
-The workspace owner supplies an OpenAI-compatible API base URL, model ID, and API key in Settings. This configured model is used only after collection to structure observed answers. A Full Matrix never places 54 answers into one model context: each answer receives one schema-constrained analysis call, and reports aggregate validated records deterministically.
+AIHubMix is used only after collection to structure observed answers. A Full Matrix never places 54 answers into one model context: each answer receives one schema-constrained analysis call, and reports aggregate validated records deterministically.
 
 ### Architecture
 
@@ -127,7 +127,7 @@ flowchart LR
   C --> Y["Yuanbao Web"]
   C --> Q["Qwen Web"]
   C --> CH
-  CH --> A["Workspace-configured structured analysis"]
+  CH --> A["AIHubMix structured analysis"]
 ```
 
 ### Local setup
@@ -174,7 +174,7 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 - Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
 - A submitted answer is re-read before any resend. If it remains structurally incomplete, Aloom may retry it once in a verified fresh conversation; extraction failures never trigger an unbounded or blind resend loop.
 - Collection and analysis statuses are stored independently.
-- Strict JSON Schema, response-format fallback, balanced JSON extraction, local repair, Zod validation, and one targeted repair pass stabilize structured analysis.
+- Strict JSON Schema, balanced JSON extraction, local repair, Zod validation, a fallback model, and one targeted repair pass stabilize structured analysis.
 - Trends compare only matching prompt hashes, providers, modes, languages, and sampling definitions.
 - Offline collectors leave work in `waiting_runner` instead of dropping the series.
 - Release acceptance uses a same-day two-round smoke: one immediate or seeded round and one timer-triggered round. The optional `pnpm test:soak:72h` profile is reserved for extended observation and does not block routine releases.
