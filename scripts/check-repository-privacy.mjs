@@ -13,6 +13,7 @@ const listed = execFileSync(
 	.filter(Boolean);
 
 const forbiddenPaths = [
+	/^PRODUCT\.md$/i,
 	/(^|\/)\.(?:aloom|answerloom|oneglanse|prismetra)-storage(?:\/|$)/i,
 	/(^|\/)(?:cookies?|profiles?|sessions?|storage-state|storage_state)(?:\/|$)/i,
 	/(^|\/)(?:provider-adapter|provider-modes)(?:\/|$)/i,
