@@ -748,55 +748,57 @@ export default function NewDetectionPage() {
 						</div>
 					</details>
 
-					<div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-						<div className="min-w-0 overflow-hidden border-y border-stone-200 dark:border-neutral-800">
-							<div className="flex items-center gap-2 border-b border-stone-200 p-3 dark:border-neutral-800">
-								<Search className="size-4 text-stone-400" />
-								<Input
-									value={promptSearch}
-									onChange={(event) => setPromptSearch(event.target.value)}
-									placeholder="Filter the exact prompts"
-									className="border-0 shadow-none"
-								/>
-							</div>
-							<div className="max-h-[520px] overflow-auto">
-								<table className="w-full min-w-[760px] table-fixed text-left text-sm">
-									<thead className="sticky top-0 bg-white text-xs text-stone-500 dark:bg-neutral-950">
-										<tr>
-											<th className="w-32 px-3 py-3">Intent</th>
-											<th className="w-28 px-3 py-3">Stage</th>
-											<th className="w-20 px-3 py-3">Locale</th>
-											<th className="w-20 px-3 py-3">Exposure</th>
-											<th className="px-3 py-3">Prompt</th>
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
-										{visiblePrompts.map((prompt) => (
-											<tr key={prompt.promptHash} className="align-top">
-												<td className="px-3 py-3 text-xs font-medium">
-													{INTENT_LABELS[prompt.promptGroup]}
-												</td>
-												<td className="px-3 py-3 text-xs text-stone-500">
-													{STAGE_LABELS[prompt.decisionStage]}
-												</td>
-												<td className="px-3 py-3 text-xs text-stone-500">
-													{prompt.locale}
-												</td>
-												<td className="px-3 py-3 text-xs capitalize text-stone-500">
-													{prompt.brandExposure}
-												</td>
-												<td className="break-words px-3 py-3 leading-6">
-													{prompt.prompt}
-												</td>
+					<div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+						<div className="relative min-h-[520px] min-w-0 overflow-hidden border-y border-stone-200 dark:border-neutral-800">
+							<div className="absolute inset-0 flex min-h-0 flex-col">
+								<div className="flex shrink-0 items-center gap-2 border-b border-stone-200 p-3 dark:border-neutral-800">
+									<Search className="size-4 text-stone-400" />
+									<Input
+										value={promptSearch}
+										onChange={(event) => setPromptSearch(event.target.value)}
+										placeholder="Filter the exact prompts"
+										className="border-0 shadow-none"
+									/>
+								</div>
+								<div className="min-h-0 flex-1 overflow-auto">
+									<table className="w-full min-w-[760px] table-fixed text-left text-sm">
+										<thead className="sticky top-0 bg-white text-xs text-stone-500 dark:bg-neutral-950">
+											<tr>
+												<th className="w-32 px-3 py-3">Intent</th>
+												<th className="w-28 px-3 py-3">Stage</th>
+												<th className="w-20 px-3 py-3">Locale</th>
+												<th className="w-20 px-3 py-3">Exposure</th>
+												<th className="px-3 py-3">Prompt</th>
 											</tr>
-										))}
-									</tbody>
-								</table>
-								{previewQuery.isLoading ? (
-									<div className="flex h-40 items-center justify-center">
-										<Loader2 className="size-5 animate-spin" />
-									</div>
-								) : null}
+										</thead>
+										<tbody className="divide-y divide-stone-200 dark:divide-neutral-800">
+											{visiblePrompts.map((prompt) => (
+												<tr key={prompt.promptHash} className="align-top">
+													<td className="px-3 py-3 text-xs font-medium">
+														{INTENT_LABELS[prompt.promptGroup]}
+													</td>
+													<td className="px-3 py-3 text-xs text-stone-500">
+														{STAGE_LABELS[prompt.decisionStage]}
+													</td>
+													<td className="px-3 py-3 text-xs text-stone-500">
+														{prompt.locale}
+													</td>
+													<td className="px-3 py-3 text-xs capitalize text-stone-500">
+														{prompt.brandExposure}
+													</td>
+													<td className="break-words px-3 py-3 leading-6">
+														{prompt.prompt}
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+									{previewQuery.isLoading ? (
+										<div className="flex h-40 items-center justify-center">
+											<Loader2 className="size-5 animate-spin" />
+										</div>
+									) : null}
+								</div>
 							</div>
 						</div>
 						<aside className="self-start rounded-md border border-stone-200 p-5 xl:sticky xl:top-24 dark:border-neutral-800">
