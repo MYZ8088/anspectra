@@ -184,14 +184,11 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 Aloom is an independent project, not an official OneGlanse or Yao GEO Skills release.
 
 - Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Aloom substantially reworks that foundation into a detection-only product with persistent local collectors, versioned run manifests, mode-aware sampling, and report-level checkpoints.
-- Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) at commit `136eb92c90946ea56ec63f912d5025bcbc884f39`, copyright 2026 Yao, under the MIT License. Aloom is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
+- Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills), copyright 2026 Yao, under the MIT License. Aloom is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
 - Aloom itself is licensed under Apache-2.0 and is copyright 2026 MYZ8088.
 
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the complete notices.
 
-### Current limits
+### Contact
 
-- Provider UI changes may require adapter maintenance.
-- CAPTCHA and account verification require a person.
-- Official-Web sampling is designed for a user-operated macOS or Windows collector, not an unattended Linux VPS.
-- Results are observational measurements of provider output, not guarantees of visibility or causal effects.
+For questions, feedback, or collaboration, contact [z1250835369@gmail.com](mailto:z1250835369@gmail.com).

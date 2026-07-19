@@ -184,14 +184,11 @@ pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 Aloom 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
 
 - 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、版本化运行 manifest、模式分 cohort、样本 checkpoint 和完整报告。
-- Aloom 仅借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 固定提交 `136eb92c90946ea56ec63f912d5025bcbc884f39` 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Aloom 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
+- Aloom 借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Aloom 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
 - Aloom 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
 
 完整声明见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
 
-### 当前限制
+### 联系方式
 
-- 平台页面更新后可能需要维护适配器。
-- 验证码和账号安全确认必须由用户处理。
-- 官方 Web 采集面向有人使用的 macOS 或 Windows 本机，不支持无人值守 Linux VPS。
-- 检测结果是对平台输出的观察性测量，不承诺曝光结果，也不代表确定因果关系。
+如有问题、反馈或合作意向，请联系 [z1250835369@gmail.com](mailto:z1250835369@gmail.com)。
