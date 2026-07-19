@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth/auth";
 import { readProviderConnectionsState } from "@/lib/provider-connections/server";
-import { resetProviderAuthData, spawnProviderAuthLogin } from "@aloom/services";
+import {
+	resetProviderAuthData,
+	spawnProviderAuthLogin,
+} from "@aloom/services/agent-auth";
 import { AUTH_PROVIDER_LIST, resolveAppMode } from "@aloom/types";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";

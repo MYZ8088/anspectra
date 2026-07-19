@@ -5,7 +5,7 @@ import {
 	getAuthSessionFile,
 	getAuthStorageDiagnostics,
 	readProviderAuthStatuses,
-} from "@aloom/services";
+} from "@aloom/services/agent-auth";
 import type { AuthProvider, ProviderAuthStatus } from "@aloom/types";
 import type { ProviderConnectionsState } from "./types";
 

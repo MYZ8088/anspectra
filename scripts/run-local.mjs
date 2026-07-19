@@ -81,6 +81,7 @@ async function main() {
 			"exec",
 			"next",
 			"dev",
+			"--turbo",
 			"--hostname",
 			"localhost",
 			"--port",
