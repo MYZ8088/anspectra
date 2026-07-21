@@ -6,6 +6,7 @@ import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
 import { extractResponseFromDeepseek } from "../deepseek/lib/extractResponse.js";
 import { extractSourcesFromDeepseek } from "../deepseek/lib/extractSources.js";
+import { extractLatestDoubaoArtifact } from "../doubao/lib/extractArtifact.js";
 import { hunyuanConfig } from "../hunyuan/index.js";
 import {
 	extractLatestChineseChatResponse,
@@ -78,6 +79,81 @@ async function fixturePage(
 	} as unknown as Page;
 }
 
+async function doubaoArtifactFixturePage(): Promise<Page> {
+	const fixturePath = path.resolve(
+		process.cwd(),
+		"apps/agent/test-fixtures/providers/doubao-artifact.html",
+	);
+	const html = await readFile(fixturePath, "utf8");
+	const dom = new JSDOM(html, { url: "https://www.doubao.com/" });
+	const scroller = dom.window.document.querySelector(
+		".bear-web-x-container",
+	) as HTMLElement;
+	Object.defineProperties(scroller, {
+		scrollHeight: { configurable: true, value: 1_200 },
+		clientHeight: { configurable: true, value: 600 },
+		scrollTop: { configurable: true, value: 0, writable: true },
+	});
+	Object.defineProperty(dom.window.HTMLElement.prototype, "innerText", {
+		configurable: true,
+		get() {
+			return this.textContent ?? "";
+		},
+	});
+
+	async function evaluateInFixture<T>(
+		callback: (arg: unknown) => T,
+		arg: unknown,
+	): Promise<T> {
+		const globals = [
+			"window",
+			"document",
+			"HTMLElement",
+			"HTMLAnchorElement",
+			"Element",
+			"Node",
+		] as const;
+		const previous = new Map<string, unknown>();
+		for (const key of globals) {
+			previous.set(key, (globalThis as Record<string, unknown>)[key]);
+			(globalThis as Record<string, unknown>)[key] = dom.window[key];
+		}
+		try {
+			return await callback(arg);
+		} finally {
+			for (const key of globals) {
+				const value = previous.get(key);
+				if (value === undefined)
+					delete (globalThis as Record<string, unknown>)[key];
+				else (globalThis as Record<string, unknown>)[key] = value;
+			}
+		}
+	}
+
+	let opened = false;
+	const frame = {
+		url: () => "https://www.doubao.com/partner/ccm-docx/docx/doc-1?docId=doc-1",
+		waitForTimeout: async () => undefined,
+		evaluate: evaluateInFixture,
+	};
+	const card = {
+		count: async () => 1,
+		last: () => card,
+		isVisible: async () => true,
+		scrollIntoViewIfNeeded: async () => undefined,
+		click: async () => {
+			opened = true;
+		},
+	};
+
+	return {
+		url: () => "https://www.doubao.com/chat/artifact-fixture",
+		frames: () => (opened ? [frame] : []),
+		locator: () => card,
+		waitForTimeout: async () => undefined,
+	} as unknown as Page;
+}
+
 describe("redacted China provider DOM fixtures", () => {
 	it.each([
 		["doubao", [".message-list .markdown"]],
@@ -98,6 +174,8 @@ describe("redacted China provider DOM fixtures", () => {
 			if (provider === "doubao") {
 				expect(response).not.toContain("PostHog、Mixpanel 和 Amplitude 怎么选");
 				expect(response).not.toContain("还想了解部署模式吗");
+				expect(response).not.toContain("Product analytics source");
+				expect(response).toContain("产品分析工具评估");
 			}
 			expect(sources).toHaveLength(2);
 			expect(sources.map((source) => source.source_kind).sort()).toEqual([
@@ -132,5 +210,19 @@ describe("redacted China provider DOM fixtures", () => {
 			},
 		);
 		expect(result).toBe(true);
+	});
+
+	it("opens and extracts a completed Doubao document artifact", async () => {
+		const artifact = await extractLatestDoubaoArtifact(
+			await doubaoArtifactFixturePage(),
+		);
+		expect(artifact?.markdown).toContain("# Aloom 与 Profound 五维度对比");
+		expect(artifact?.markdown).toContain("明确标记无法核验的信息");
+		expect(artifact?.rawSources).toEqual([
+			expect.objectContaining({
+				rawHref: "https://github.com/example/aloom",
+				sourceKind: "answer_link",
+			}),
+		]);
 	});
 });

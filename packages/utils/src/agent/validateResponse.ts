@@ -26,6 +26,16 @@ type FalseResponseRule = {
 };
 
 const FALSE_RESPONSE_RULES: FalseResponseRule[] = [
+	{
+		pattern:
+			/^(?:我将|我会|接下来我(?:将|会)?)[\s\S]{0,300}(?:对比|比较|分析|说明|回答|整理)[\s\S]{0,240}(?:创建时间[:：]\s*\d{1,2}:\d{2}|需要我帮你)/u,
+		maxChars: 360,
+	},
+	{
+		pattern:
+			/^(?:我将|我会|接下来我(?:将|会)?).{0,260}(?:对比|比较|分析|说明|回答|整理).{0,180}(?:标注|整理|展开|说明|呈现|梳理|保证|输出).{0,120}[。！？.!?]?$/u,
+		maxChars: 320,
+	},
 	// Gemini terms / disclaimer footer
 	{ pattern: /google terms.*opens in a new window.*apply/i, maxChars: 2_000 },
 	{ pattern: /gemini is ai and can make mistakes/i, maxChars: 2_000 },

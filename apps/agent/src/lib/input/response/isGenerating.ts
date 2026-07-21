@@ -8,7 +8,10 @@ import { isProvisionalResponse } from "./provisionalResponse.js";
 
 const STRICT_RESPONSE_STATE_SELECTORS: Partial<Record<Provider, string[]>> = {
 	deepseek: [".ds-markdown:not(.ds-think-content *)"],
-	doubao: ['[data-message-id]:not([class*="justify-end"]) .md-box-root'],
+	doubao: [
+		'[data-message-id]:not([class*="justify-end"])',
+		'[data-message-id]:not([class*="justify-end"]) .md-box-root',
+	],
 	hunyuan: ["#chat-content .hyc-common-markdown", ".hyc-common-markdown"],
 	qwen: [
 		".qwen-chat-message-assistant .response-message-content.phase-answer",
@@ -97,7 +100,12 @@ export async function getResponseStateSignature(
 				}
 			}
 			if (!latest) {
-				return { signature: "", textLength: 0, text: "" };
+				return {
+					signature: "",
+					textLength: 0,
+					text: "",
+					artifactReady: false,
+				};
 			}
 
 			const text = (latest.innerText || "").replace(/\s+/g, " ").trim();
@@ -105,6 +113,11 @@ export async function getResponseStateSignature(
 				signature: `${text.length}:${latest.innerHTML.length}:${latest.childElementCount}:${text.slice(-120)}`,
 				textLength: text.length,
 				text,
+				artifactReady: Boolean(
+					latest.querySelector(
+						'[data-plugin-identifier*="artifact_block"] [data-status="finished"] [data-feishu-office-current-doc-old-card="true"]',
+					),
+				),
 			};
 		},
 		STRICT_RESPONSE_STATE_SELECTORS[provider] ??
@@ -114,6 +127,6 @@ export async function getResponseStateSignature(
 	return {
 		signature: state.signature,
 		textLength: state.textLength,
-		provisional: isProvisionalResponse(state.text),
+		provisional: !state.artifactReady && isProvisionalResponse(state.text),
 	};
 }

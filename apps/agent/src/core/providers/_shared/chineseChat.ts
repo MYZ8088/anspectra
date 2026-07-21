@@ -1,6 +1,7 @@
 import type { Provider } from "@aloom/types";
 import type { Page } from "playwright";
 import { turndown } from "../../../lib/input/markdown/converter.js";
+import { extractLatestDoubaoArtifact } from "../doubao/lib/extractArtifact.js";
 import {
 	type RawSource,
 	buildSources,
@@ -18,6 +19,11 @@ export async function extractLatestChineseChatResponse(
 	provider: Provider,
 	selectors: string[],
 ): Promise<string> {
+	if (provider === "doubao") {
+		const artifact = await extractLatestDoubaoArtifact(page);
+		if (artifact?.markdown) return artifact.markdown;
+	}
+
 	const html = await page.evaluate(
 		({ provider: currentProvider, responseSelectors }) => {
 			function isVisible(element: Element | null): element is HTMLElement {
@@ -60,6 +66,9 @@ export async function extractLatestChineseChatResponse(
 						"[class*='suggest' i]",
 						"[class*='recommend' i]",
 						"[class*='follow-up' i]",
+						"[data-plugin-identifier*='search' i]",
+						"[class*='search-result' i]",
+						"[class*='search-source' i]",
 					].join(", "),
 				)) {
 					removable.remove();
@@ -117,6 +126,7 @@ export async function extractLatestChineseChatResponse(
 
 				if (providerName === "doubao") {
 					return [
+						'[data-message-id]:not([class*="justify-end"])',
 						'[data-message-id]:not([class*="justify-end"]) .md-box-root',
 						".md-box-root",
 						'[class*="message-list" i] [class*="markdown" i]',
@@ -150,6 +160,12 @@ export async function extractLatestChineseChatResponse(
 				const signature = ancestrySignature(element);
 				const rect = element.getBoundingClientRect();
 				let score = priority + Math.min(text.length, 2000) + rect.y / 10;
+				if (
+					currentProvider === "doubao" &&
+					element.matches('[data-message-id]:not([class*="justify-end"])')
+				) {
+					score += 6_000;
+				}
 				if (
 					/assistant|response-message|phase-answer|answer|bot|agent/.test(
 						signature,
@@ -221,6 +237,9 @@ export async function extractSourcesFromChineseChat(
 	provider: Provider,
 	selectors: string[],
 ): Promise<ReturnType<typeof buildSources>> {
+	const artifact =
+		provider === "doubao" ? await extractLatestDoubaoArtifact(page) : null;
+
 	// Search-backed answers often keep their full source list behind a compact
 	// "searched N pages" control. Reveal that surface before reading the DOM.
 	try {
@@ -317,6 +336,7 @@ export async function extractSourcesFromChineseChat(
 				}
 				if (providerName === "doubao") {
 					return [
+						'[data-message-id]:not([class*="justify-end"])',
 						'[data-message-id]:not([class*="justify-end"]) .md-box-root',
 						".md-box-root",
 						'[class*="message-list" i] [class*="markdown" i]',
@@ -511,7 +531,9 @@ export async function extractSourcesFromChineseChat(
 	);
 	const rawSources = [
 		...((extraction.rawSources ?? []) as RawSource[]),
+		...(artifact?.rawSources ?? []),
 		...extractVisibleUrlCandidates(extraction.visibleText ?? "", "answer_link"),
+		...extractVisibleUrlCandidates(artifact?.markdown ?? "", "answer_link"),
 	];
 
 	return buildSources(rawSources, { provider });

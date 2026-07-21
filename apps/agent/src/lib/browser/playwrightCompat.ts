@@ -1,5 +1,6 @@
 import type {
 	BrowserContext as PlaywrightBrowserContext,
+	Frame as PlaywrightFrame,
 	Locator as PlaywrightLocator,
 	Page as PlaywrightPage,
 	Worker as PlaywrightWorker,
@@ -10,6 +11,7 @@ import type {
 	BrowserContext,
 	ConsoleMessage,
 	ElementEditableState,
+	Frame,
 	Locator,
 	Page,
 	PageViewportSize,
@@ -28,6 +30,26 @@ class PlaywrightWorkerCompat implements Worker {
 
 	async evaluate(script: string): Promise<unknown> {
 		return await this.worker.evaluate(script);
+	}
+}
+
+class PlaywrightFrameCompat implements Frame {
+	constructor(private readonly frame: PlaywrightFrame) {}
+
+	url(): string {
+		return this.frame.url();
+	}
+
+	async evaluate<T, Arg = unknown>(
+		pageFunction: (arg: Arg) => T | Promise<T>,
+		arg: Arg,
+	): Promise<T> {
+		const compatibleFrame = this.frame as unknown as CompatibleEvaluatePage;
+		return await compatibleFrame.evaluate(pageFunction, arg);
+	}
+
+	waitForTimeout(ms: number): Promise<void> {
+		return this.frame.waitForTimeout(ms);
 	}
 }
 
@@ -481,6 +503,10 @@ class PlaywrightPageCompat implements Page {
 
 	context(): BrowserContext {
 		return this.owner;
+	}
+
+	frames(): Frame[] {
+		return this.page.frames().map((frame) => new PlaywrightFrameCompat(frame));
 	}
 
 	viewportSize(): PageViewportSize | null {

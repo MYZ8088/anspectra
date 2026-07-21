@@ -62,6 +62,15 @@ export interface Worker {
 	evaluate(script: string): Promise<unknown>;
 }
 
+export interface Frame {
+	url(): string;
+	evaluate<T, Arg = unknown>(
+		pageFunction: (arg: Arg) => T | Promise<T>,
+		arg: Arg,
+	): Promise<T>;
+	waitForTimeout(ms: number): Promise<void>;
+}
+
 export interface Mouse {
 	move(x: number, y: number, options?: MouseMoveOptions): Promise<void>;
 	wheel(deltaX: number, deltaY: number): Promise<void>;
@@ -92,7 +101,9 @@ export interface Locator {
 	waitFor(options?: WaitForOptions): Promise<void>;
 	readInputValue(options?: { timeout?: number }): Promise<string>;
 	setInputValue(value: string, options?: { timeout?: number }): Promise<void>;
-	getEditableState(options?: { timeout?: number }): Promise<ElementEditableState>;
+	getEditableState(options?: {
+		timeout?: number;
+	}): Promise<ElementEditableState>;
 	dispatchClick(): Promise<void>;
 }
 
@@ -120,6 +131,7 @@ export interface Page {
 	on(event: "console", listener: (message: ConsoleMessage) => void): void;
 	on(event: "worker", listener: (worker: Worker) => void): void;
 	context(): BrowserContext;
+	frames(): Frame[];
 	viewportSize(): PageViewportSize | null;
 	runDomOp<T>(operation: string, params?: unknown): Promise<T>;
 	ping(): Promise<boolean>;

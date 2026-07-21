@@ -99,6 +99,42 @@ describe("Doubao generation state", () => {
 		expect(state.provisional).toBe(true);
 	});
 
+	it("tracks the complete Doubao assistant root after a planning block", async () => {
+		const page = pageFor(`
+			<div data-message-id="assistant" class="relative grid">
+				<div class="md-box-root" data-streaming="false">
+					我将先整理公开资料，再输出完整对比并标注来源。
+				</div>
+				<div class="flow-answer-content">
+					<h2>完整对比</h2><p>${"这是最终回答内容。".repeat(30)}</p>
+				</div>
+			</div>
+		`);
+		const state = await getResponseStateSignature(page, "doubao");
+		expect(state.textLength).toBeGreaterThan(200);
+		expect(state.provisional).toBe(false);
+	});
+
+	it("accepts a finished Doubao document artifact as ready for extraction", async () => {
+		const page = pageFor(`
+			<div data-message-id="assistant" class="relative grid">
+				<div class="md-box-root">
+					我将从功能、成本、数据、集成、实施难度五个维度系统对比 Aloom 与 Profound。
+				</div>
+				<div data-plugin-identifier="block_type:10030 | artifact_block.resource_type:10">
+					<div data-status="finished">
+						<div data-feishu-office-current-doc-old-card="true">
+							Aloom与Profound平台五维度对比分析 创建时间：23:04
+						</div>
+					</div>
+				</div>
+			</div>
+		`);
+		const state = await getResponseStateSignature(page, "doubao");
+		expect(state.textLength).toBeGreaterThan(20);
+		expect(state.provisional).toBe(false);
+	});
+
 	it("keeps waiting while Qwen announces the next search step", async () => {
 		const page = pageFor(`
 			<article class="qwen-chat-message-assistant">
