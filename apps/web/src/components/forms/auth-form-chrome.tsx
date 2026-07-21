@@ -7,8 +7,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FcGoogle } from "react-icons/fc";

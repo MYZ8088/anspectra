@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";
@@ -216,11 +216,11 @@ describe("redacted China provider DOM fixtures", () => {
 		const artifact = await extractLatestDoubaoArtifact(
 			await doubaoArtifactFixturePage(),
 		);
-		expect(artifact?.markdown).toContain("# Aloom 与 Profound 五维度对比");
+		expect(artifact?.markdown).toContain("# Anspectra 与 Profound 五维度对比");
 		expect(artifact?.markdown).toContain("明确标记无法核验的信息");
 		expect(artifact?.rawSources).toEqual([
 			expect.objectContaining({
-				rawHref: "https://github.com/example/aloom",
+				rawHref: "https://github.com/example/anspectra",
 				sourceKind: "answer_link",
 			}),
 		]);

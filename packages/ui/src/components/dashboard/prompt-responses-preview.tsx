@@ -5,8 +5,8 @@ import {
 	formatMarkdown,
 	getModelFavicon,
 	getProviderDisplayName,
-} from "@aloom/utils";
-import { cn } from "@aloom/utils";
+} from "@anspectra/utils";
+import { cn } from "@anspectra/utils";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { PositionMetricCell, SentimentMetricCell } from "../cell.js";

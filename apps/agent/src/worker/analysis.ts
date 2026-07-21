@@ -1,12 +1,12 @@
-import { toErrorMessage } from "@aloom/errors";
+import { toErrorMessage } from "@anspectra/errors";
 import {
 	analysePromptsForWorkspace,
 	completeGeoAnalysis,
 	listRecoverableGeoAnalysisRuns,
 	markGeoAnalysisRunning,
-} from "@aloom/services";
-import type { Provider } from "@aloom/types";
-import { createProviderLogger, logger } from "@aloom/utils";
+} from "@anspectra/services";
+import type { Provider } from "@anspectra/types";
+import { createProviderLogger, logger } from "@anspectra/utils";
 import { env } from "../env.js";
 import { createConcurrencyGate } from "./concurrency.js";
 

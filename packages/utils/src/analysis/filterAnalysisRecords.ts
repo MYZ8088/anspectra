@@ -1,4 +1,4 @@
-import type { AnalysisFilters, AnalysisRecord } from "@aloom/types";
+import type { AnalysisFilters, AnalysisRecord } from "@anspectra/types";
 import { isWithinRange } from "../format/dateFilter.js";
 
 export function filterAnalysisRecords(

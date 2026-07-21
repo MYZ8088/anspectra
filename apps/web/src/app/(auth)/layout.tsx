@@ -5,8 +5,8 @@ import { readProviderConnectionsState } from "@/lib/provider-connections/server"
 import { trackUserActive } from "@/lib/telemetry";
 import { getWorkspace } from "@/lib/workspace/getWorkspace";
 import { TRPCReactProvider } from "@/trpc/react";
-import { resolveAppMode } from "@aloom/types";
-import { SidebarProvider } from "@aloom/ui";
+import { resolveAppMode } from "@anspectra/types";
+import { SidebarProvider } from "@anspectra/ui";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { cookies, headers } from "next/headers";
@@ -14,7 +14,7 @@ import { redirect } from "next/navigation";
 import LayoutContent from "./layoutContent";
 
 export const metadata: Metadata = {
-	title: "Aloom",
+	title: "Anspectra",
 	description:
 		"Official Web GEO detection for Doubao, DeepSeek, Yuanbao, and Qwen.",
 	icons: appIcons,
@@ -30,11 +30,11 @@ export default async function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const appMode = resolveAppMode(process.env.ALOOM_APP_MODE);
+	const appMode = resolveAppMode(process.env.ANSPECTRA_APP_MODE);
 	const requestHeaders = await headers();
 	const isPublicLocalProvidersPage =
 		appMode === "local" &&
-		requestHeaders.get("x-aloom-public-providers") === "1";
+		requestHeaders.get("x-anspectra-public-providers") === "1";
 
 	if (isPublicLocalProvidersPage) {
 		return children;

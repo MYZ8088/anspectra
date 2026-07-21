@@ -8,7 +8,7 @@ import {
 	formPrimaryButtonClassName,
 } from "@/components/forms/auth-form-chrome";
 import { api } from "@/trpc/react";
-import { Button, Input, Label, toast } from "@aloom/ui";
+import { Button, Input, Label, toast } from "@anspectra/ui";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

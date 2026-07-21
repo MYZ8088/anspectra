@@ -1,4 +1,8 @@
-import type { AuthProvider, Provider, ProviderAuthStatus } from "@aloom/types";
+import type {
+	AuthProvider,
+	Provider,
+	ProviderAuthStatus,
+} from "@anspectra/types";
 
 export type ProviderConnectionAction = "connect" | "refresh";
 

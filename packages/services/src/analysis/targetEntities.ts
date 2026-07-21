@@ -1,4 +1,4 @@
-import type { AnalysisInputSingle, BrandAnalysisResult } from "@aloom/types";
+import type { AnalysisInputSingle, BrandAnalysisResult } from "@anspectra/types";
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
 	const seen = new Set<string>();
@@ -30,9 +30,10 @@ function textContainsEntity(text: string, entity: string): boolean {
 	if (/\p{Script=Han}/u.test(entity)) {
 		return text.toLocaleLowerCase().includes(entity.toLocaleLowerCase());
 	}
+	const isShortAcronym = /^[A-Z0-9]{2,4}$/.test(entity);
 	return new RegExp(
 		`(?<![\\p{L}\\p{N}])${escapeRegExp(entity)}(?![\\p{L}\\p{N}])`,
-		"iu",
+		isShortAcronym ? "u" : "iu",
 	).test(text);
 }
 

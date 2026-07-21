@@ -1,5 +1,5 @@
 import { downloadCsv, downloadJson } from "@/lib/export/download";
-import { buildDetailedAnalysisCsvRow } from "@aloom/utils";
+import { buildDetailedAnalysisCsvRow } from "@anspectra/utils";
 import type { DashboardMetrics } from "./types";
 
 function getThresholdObservations(metrics: DashboardMetrics): string[] {

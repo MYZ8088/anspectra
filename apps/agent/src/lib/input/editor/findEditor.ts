@@ -1,6 +1,6 @@
-import { NotFoundError } from "@aloom/errors";
-import type { Provider } from "@aloom/types";
-import { PROVIDER_EDITOR_SELECTORS } from "@aloom/utils";
+import { NotFoundError } from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
+import { PROVIDER_EDITOR_SELECTORS } from "@anspectra/utils";
 import type { Locator, Page } from "playwright";
 
 export type EditorCandidate = {

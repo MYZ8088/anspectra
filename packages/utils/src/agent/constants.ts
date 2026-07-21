@@ -1,4 +1,4 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 
 export const PROVIDER_NO_OUTPUT_TIMEOUT_MS = {
 	chatgpt: 90_000,

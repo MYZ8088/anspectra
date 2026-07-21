@@ -1,4 +1,4 @@
-import { HumanChallengeError } from "@aloom/errors";
+import { HumanChallengeError } from "@anspectra/errors";
 import { describe, expect, it } from "vitest";
 import { describePromptFailure } from "./failureDetails.js";
 

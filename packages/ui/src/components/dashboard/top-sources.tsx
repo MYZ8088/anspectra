@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCitationLabel, getFaviconUrls } from "@aloom/utils";
+import { formatCitationLabel, getFaviconUrls } from "@anspectra/utils";
 import { Card } from "../card.js";
 import type { DashboardSourceData } from "./types.js";
 

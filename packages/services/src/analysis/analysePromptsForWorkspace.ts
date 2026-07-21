@@ -1,6 +1,6 @@
-import { clickhouse, db, schema } from "@aloom/db";
-import { BaseError, toErrorMessage } from "@aloom/errors";
-import type { PromptAnalysis, PromptResponse, Source } from "@aloom/types";
+import { clickhouse, db, schema } from "@anspectra/db";
+import { BaseError, toErrorMessage } from "@anspectra/errors";
+import type { PromptAnalysis, PromptResponse, Source } from "@anspectra/types";
 import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { ensureSourceKindSchema } from "../prompt/lib/ensureSourceKindSchema.js";
@@ -239,7 +239,7 @@ export async function analysePromptsForWorkspace(args: {
 					model_provider: resp.model_provider,
 					analysis_json: analysisJson,
 					analysis_model: execution.model,
-					template_version: "aloom-six-layer-analysis-v1",
+					template_version: "anspectra-six-layer-analysis-v1",
 					raw_output: JSON.stringify({
 						rawOutputs: execution.rawOutputs,
 						attempts: execution.attempts,
@@ -273,7 +273,7 @@ export async function analysePromptsForWorkspace(args: {
 					model_provider: resp.model_provider,
 					analysis_json: "",
 					analysis_model: String(models.at(-1) ?? ""),
-					template_version: "aloom-six-layer-analysis-v1",
+					template_version: "anspectra-six-layer-analysis-v1",
 					raw_output: JSON.stringify({ rawOutputs, attempts }),
 					status: "failed",
 					error: errorMessage,

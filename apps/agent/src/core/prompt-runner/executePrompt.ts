@@ -1,7 +1,7 @@
-import { ExternalServiceError, ValidationError } from "@aloom/errors";
-import type { Provider, Source } from "@aloom/types";
-import type { SearchSourceCoverage } from "@aloom/types";
-import { logger, validateResponse, withTimeout } from "@aloom/utils";
+import { ExternalServiceError, ValidationError } from "@anspectra/errors";
+import type { Provider, Source } from "@anspectra/types";
+import type { SearchSourceCoverage } from "@anspectra/types";
+import { logger, validateResponse, withTimeout } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { detectBotPage } from "../../lib/input/response/detectBotPage.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";

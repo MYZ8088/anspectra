@@ -1,5 +1,5 @@
-import type { Provider } from "@aloom/types";
-import { PROVIDER_SUBMIT_BTN_SELECTORS } from "@aloom/utils";
+import type { Provider } from "@anspectra/types";
+import { PROVIDER_SUBMIT_BTN_SELECTORS } from "@anspectra/utils";
 import type { Locator, Page } from "playwright";
 
 export async function findEnabledSendButton(

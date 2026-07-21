@@ -8,7 +8,7 @@ import {
 	type DetectionWeightedScore,
 	type ProviderMode,
 	getProviderModeLabel,
-} from "@aloom/types";
+} from "@anspectra/types";
 import {
 	Button,
 	Dialog,
@@ -21,8 +21,8 @@ import {
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "@aloom/ui";
-import { formatMarkdown, normalizeProviderMarkdown } from "@aloom/utils";
+} from "@anspectra/ui";
+import { formatMarkdown, normalizeProviderMarkdown } from "@anspectra/utils";
 import {
 	AlertTriangle,
 	ArrowRight,
@@ -40,6 +40,7 @@ import { useMemo, useState } from "react";
 type ReportData = NonNullable<RouterOutputs["geo"]["detectionReport"]>;
 type ReportSlice = ReportData["slices"]["overall"][number];
 type ReportSource = ReportData["samples"][number]["sources"][number];
+type ReportCycle = ReportData["cycles"][number];
 
 const PROVIDER_LABELS: Record<string, string> = {
 	doubao: "Doubao",
@@ -313,6 +314,274 @@ function ProviderReport(props: { rows: ReportData["slices"]["provider"] }) {
 	);
 }
 
+function CycleStatus(props: { status: string }) {
+	const isComplete = props.status === "completed";
+	const isActive = ["running", "waiting_runner", "waiting_human"].includes(
+		props.status,
+	);
+	return (
+		<span
+			className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
+				isComplete
+					? "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200"
+					: isActive
+						? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+						: "border-stone-200 bg-stone-50 text-stone-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-stone-300"
+			}`}
+		>
+			{formatLabel(props.status)}
+		</span>
+	);
+}
+
+function CycleMetric(props: {
+	label: string;
+	value: string;
+	detail?: string;
+	accent?: boolean;
+}) {
+	return (
+		<div className="min-w-0 border-l border-stone-200 pl-4 dark:border-neutral-800">
+			<p className="text-xs font-medium text-stone-500">{props.label}</p>
+			<p
+				className={`mt-2 text-2xl font-semibold tabular-nums ${props.accent ? "text-cyan-700 dark:text-cyan-300" : ""}`}
+			>
+				{props.value}
+			</p>
+			{props.detail ? (
+				<p className="mt-1 text-xs text-stone-500">{props.detail}</p>
+			) : null}
+		</div>
+	);
+}
+
+function ComparableCycleReport(props: {
+	cycles: ReportCycle[];
+	selectedCycle: ReportCycle | undefined;
+	onSelectCycle: (runId: string) => void;
+}) {
+	const measuredCycles = props.cycles.filter(
+		(cycle) => cycle.overall.analysed > 0,
+	);
+	const trendLabels = measuredCycles.map(
+		(cycle) => `Cycle ${cycle.roundIndex}`,
+	);
+	const selected = props.selectedCycle;
+
+	return (
+		<section
+			aria-labelledby="comparable-cycle-trend"
+			className="border-y border-stone-200 py-8 dark:border-neutral-800"
+		>
+			<div className="flex flex-wrap items-start justify-between gap-4">
+				<div className="max-w-2xl">
+					<div className="flex flex-wrap items-center gap-3">
+						<h2 id="comparable-cycle-trend" className="text-lg font-semibold">
+							Comparable trend
+						</h2>
+						<span className="rounded-full border border-stone-200 px-2 py-0.5 text-xs font-medium text-stone-500 dark:border-neutral-800">
+							{measuredCycles.length} of {props.cycles.length} cycles measured
+						</span>
+					</div>
+					<p className="mt-2 text-sm leading-6 text-stone-500">
+						Each point uses the same frozen prompt set, providers, and provider
+						modes. Scheduled cycles remain visible below and enter the trend
+						after analysed answers are available.
+					</p>
+				</div>
+			</div>
+
+			<div className="mt-7">
+				<LineChart
+					ariaLabel="Mention and recommendation trend across planned detection cycles"
+					labels={measuredCycles.length > 1 ? trendLabels : []}
+					series={[
+						{
+							label: "Mention rate",
+							color: "#0891b2",
+							values: measuredCycles.map(
+								(cycle) => cycle.overall.mentionRate.value,
+							),
+						},
+						{
+							label: "Recommendation rate",
+							color: "#f97360",
+							values: measuredCycles.map(
+								(cycle) => cycle.overall.recommendationRate.value,
+							),
+						},
+					]}
+					emptyMessage="At least two cycles with analysed answers are needed to draw the comparable trend."
+				/>
+			</div>
+
+			<div className="mt-7 overflow-x-auto">
+				<table className="w-full min-w-[780px] border-collapse text-left text-sm">
+					<thead className="border-y border-stone-200 text-xs text-stone-500 dark:border-neutral-800">
+						<tr>
+							<th className="py-3 pr-5 font-medium">Cycle</th>
+							<th className="px-3 py-3 font-medium">Status</th>
+							<th className="px-3 py-3 font-medium">Completion</th>
+							<th className="px-3 py-3 font-medium">Mention</th>
+							<th className="px-3 py-3 font-medium">Recommendation</th>
+							<th className="px-3 py-3 font-medium">Average rank</th>
+							<th className="py-3 pl-3 text-right font-medium">Details</th>
+						</tr>
+					</thead>
+					<tbody className="divide-y divide-stone-100 dark:divide-neutral-900">
+						{props.cycles.map((cycle) => {
+							const isSelected = selected?.runId === cycle.runId;
+							const hasAnalysis = cycle.overall.analysed > 0;
+							return (
+								<tr
+									key={cycle.runId}
+									className={
+										isSelected ? "bg-cyan-50/70 dark:bg-cyan-950/20" : ""
+									}
+								>
+									<td className="py-3 pr-5">
+										<p className="font-semibold">Cycle {cycle.roundIndex}</p>
+										<p className="mt-1 text-xs text-stone-500">
+											{cycle.scheduledAt
+												? new Date(cycle.scheduledAt).toLocaleString()
+												: "Schedule unavailable"}
+										</p>
+									</td>
+									<td className="px-3 py-3">
+										<CycleStatus status={cycle.status} />
+									</td>
+									<td className="px-3 py-3 tabular-nums">
+										{cycle.overall.completed}/{cycle.overall.planned}
+										<span className="ml-1 text-xs text-stone-500">
+											({cycle.overall.completionRate}%)
+										</span>
+									</td>
+									<td className="px-3 py-3 tabular-nums">
+										{hasAnalysis ? `${cycle.overall.mentionRate.value}%` : "—"}
+									</td>
+									<td className="px-3 py-3 tabular-nums">
+										{hasAnalysis
+											? `${cycle.overall.recommendationRate.value}%`
+											: "—"}
+									</td>
+									<td className="px-3 py-3 tabular-nums">
+										{cycle.overall.averageRank ?? "—"}
+									</td>
+									<td className="py-3 pl-3 text-right">
+										<button
+											type="button"
+											onClick={() => props.onSelectCycle(cycle.runId)}
+											aria-current={isSelected ? "true" : undefined}
+											className="font-medium text-cyan-700 hover:text-cyan-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 dark:text-cyan-300"
+										>
+											{isSelected ? "Viewing" : "View cycle"}
+										</button>
+									</td>
+								</tr>
+							);
+						})}
+					</tbody>
+				</table>
+			</div>
+
+			{selected ? (
+				<div className="mt-8 border-t border-stone-200 pt-7 dark:border-neutral-800">
+					<div className="flex flex-wrap items-start justify-between gap-4">
+						<div>
+							<p className="text-xs font-medium uppercase tracking-[0.14em] text-stone-500">
+								Selected cycle
+							</p>
+							<h3 className="mt-2 text-base font-semibold">
+								Cycle {selected.roundIndex} details
+							</h3>
+							<p className="mt-1 text-sm text-stone-500">
+								{selected.completedAt
+									? `Completed ${new Date(selected.completedAt).toLocaleString()}`
+									: selected.startedAt
+										? `Started ${new Date(selected.startedAt).toLocaleString()}`
+										: "This cycle has not started yet."}
+							</p>
+						</div>
+						<CycleStatus status={selected.status} />
+					</div>
+
+					<div className="mt-7 grid gap-x-6 gap-y-7 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+						<CycleMetric
+							label="GEO score"
+							value={
+								selected.overall.analysed > 0
+									? `${selected.overall.weightedScore.overall}`
+									: "—"
+							}
+							detail={
+								selected.overall.analysed === 0
+									? "No analysed answers"
+									: selected.provisional
+										? "Provisional"
+										: "Measured"
+							}
+							accent
+						/>
+						<CycleMetric
+							label="Completion"
+							value={`${selected.overall.completionRate}%`}
+							detail={`${selected.overall.completed}/${selected.overall.planned} samples`}
+						/>
+						<CycleMetric
+							label="Mention"
+							value={
+								selected.overall.analysed > 0
+									? `${selected.overall.mentionRate.value}%`
+									: "—"
+							}
+						/>
+						<CycleMetric
+							label="Recommendation"
+							value={
+								selected.overall.analysed > 0
+									? `${selected.overall.recommendationRate.value}%`
+									: "—"
+							}
+						/>
+						<CycleMetric
+							label="Average rank"
+							value={selected.overall.averageRank?.toString() ?? "—"}
+						/>
+						<CycleMetric
+							label="Source exposure"
+							value={
+								selected.overall.completed > 0
+									? `${selected.overall.sourceExposureRate.value}%`
+									: "—"
+							}
+						/>
+						<CycleMetric
+							label="Stability"
+							value={selected.overall.stability?.toString() ?? "—"}
+						/>
+					</div>
+
+					<div className="mt-8">
+						<h4 className="text-sm font-semibold">Provider detail</h4>
+						<p className="mt-1 text-xs text-stone-500">
+							Metrics below use only samples from Cycle {selected.roundIndex}.
+						</p>
+						<div className="mt-4">
+							{selected.overall.analysed > 0 && selected.providers.length ? (
+								<ProviderReport rows={selected.providers} />
+							) : (
+								<p className="border-y border-stone-200 py-5 text-sm text-stone-500 dark:border-neutral-800">
+									Provider data will appear after this cycle starts.
+								</p>
+							)}
+						</div>
+					</div>
+				</div>
+			) : null}
+		</section>
+	);
+}
+
 function IntentStageHeatmap(props: {
 	intents: string[];
 	stages: string[];
@@ -575,6 +844,7 @@ export default function Dashboard() {
 	const workspaceId = searchParams.get("workspace") ?? "";
 	const requestedSeries = searchParams.get("series") ?? "";
 	const [selectedSeries, setSelectedSeries] = useState(requestedSeries);
+	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
 	const [sampleQuery, setSampleQuery] = useState("");
 	const [showAllSamples, setShowAllSamples] = useState(false);
 	const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
@@ -609,12 +879,22 @@ export default function Dashboard() {
 			enabled: Boolean(
 				workspaceId &&
 					effectiveSeries &&
-					report.data?.seriesId === effectiveSeries,
+					report.data?.seriesId === effectiveSeries &&
+					report.data.methodology.roundCount <= 1,
 			),
 			retry: false,
 		},
 	);
 	const selectedRun = formalRuns.find((run) => run.id === effectiveSeries);
+	const reportCycles = report.data?.cycles ?? [];
+	const isMultiCycle = (report.data?.methodology.roundCount ?? 0) > 1;
+	const latestMeasuredCycle = [...reportCycles]
+		.reverse()
+		.find((cycle) => cycle.overall.completed > 0);
+	const selectedCycle =
+		reportCycles.find((cycle) => cycle.runId === selectedCycleId) ??
+		latestMeasuredCycle ??
+		reportCycles[0];
 	const selectedSample =
 		report.data?.samples.find(
 			(sample) => sample.checkpointId === selectedSampleId,
@@ -729,9 +1009,16 @@ export default function Dashboard() {
 							{report.data.methodology.roundCount} planned{" "}
 							{report.data.methodology.roundCount === 1 ? "run" : "runs"}
 						</p>
-						<h1 className="mt-2 text-2xl font-semibold">
-							{selectedRun?.promptSet?.name ?? "GEO detection report"}
-						</h1>
+						<div className="mt-2 flex flex-wrap items-center gap-3">
+							<h1 className="text-2xl font-semibold">
+								{selectedRun?.promptSet?.name ?? "GEO detection report"}
+							</h1>
+							{report.data.dataOrigin === "synthetic_demo" ? (
+								<span className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[11px] font-semibold uppercase text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+									Demo data
+								</span>
+							) : null}
+						</div>
 						<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-500">
 							<span>{new Date(report.data.createdAt).toLocaleString()}</span>
 							<span className="capitalize">
@@ -746,7 +1033,11 @@ export default function Dashboard() {
 					</div>
 					<select
 						value={effectiveSeries}
-						onChange={(event) => setSelectedSeries(event.target.value)}
+						onChange={(event) => {
+							setSelectedSeries(event.target.value);
+							setSelectedCycleId(null);
+							setSelectedSampleId(null);
+						}}
 						className="h-10 max-w-full rounded-md border border-stone-200 bg-white px-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
 						aria-label="Detection series"
 					>
@@ -766,11 +1057,18 @@ export default function Dashboard() {
 					</div>
 				) : null}
 
+				{report.data.dataOrigin === "synthetic_demo" ? (
+					<div className="border-l-2 border-cyan-600 px-4 py-1 text-sm text-stone-600 dark:text-stone-300">
+						This report uses deterministic synthetic samples to demonstrate the
+						two-cycle layout. It is not evidence of live provider output.
+					</div>
+				) : null}
+
 				{overall ? (
 					<section className="grid gap-10 border-y border-stone-200 py-8 lg:grid-cols-[220px_minmax(0,1fr)] dark:border-neutral-800">
 						<div>
 							<p className="text-xs font-medium text-stone-500">
-								Aloom GEO Score v1
+								Anspectra GEO Score v1
 							</p>
 							<div className="mt-3 flex items-end gap-2">
 								<span className="text-6xl font-semibold tabular-nums text-cyan-700 dark:text-cyan-300">
@@ -815,7 +1113,17 @@ export default function Dashboard() {
 					</section>
 				) : null}
 
-				<section className="grid gap-10 xl:grid-cols-2">
+				{isMultiCycle ? (
+					<ComparableCycleReport
+						cycles={reportCycles}
+						selectedCycle={selectedCycle}
+						onSelectCycle={setSelectedCycleId}
+					/>
+				) : null}
+
+				<section
+					className={`grid gap-10 ${isMultiCycle ? "" : "xl:grid-cols-2"}`}
+				>
 					<div className="min-w-0">
 						<div className="mb-6">
 							<h2 className="text-lg font-semibold">Provider visibility</h2>
@@ -844,32 +1152,36 @@ export default function Dashboard() {
 							emptyMessage="No provider metrics are available."
 						/>
 					</div>
-					<div className="min-w-0">
-						<div className="mb-6">
-							<h2 className="text-lg font-semibold">Comparable trend</h2>
-							<p className="mt-1 text-sm text-stone-500">
-								Only series with the same frozen detection configuration are
-								compared.
-							</p>
+					{!isMultiCycle ? (
+						<div className="min-w-0">
+							<div className="mb-6">
+								<h2 className="text-lg font-semibold">Comparable trend</h2>
+								<p className="mt-1 text-sm text-stone-500">
+									Only series with the same frozen detection configuration are
+									compared.
+								</p>
+							</div>
+							<LineChart
+								ariaLabel="Comparable detection trend chart"
+								labels={trendPoints.length > 1 ? trendLabels : []}
+								series={[
+									{
+										label: "Mention rate",
+										color: "#0891b2",
+										values: trendPoints.map((point) => point.mentionRate),
+									},
+									{
+										label: "Recommendation rate",
+										color: "#f97360",
+										values: trendPoints.map(
+											(point) => point.recommendationRate,
+										),
+									},
+								]}
+								emptyMessage="Run the same detection set again to create a comparable trend."
+							/>
 						</div>
-						<LineChart
-							ariaLabel="Comparable detection trend chart"
-							labels={trendPoints.length > 1 ? trendLabels : []}
-							series={[
-								{
-									label: "Mention rate",
-									color: "#0891b2",
-									values: trendPoints.map((point) => point.mentionRate),
-								},
-								{
-									label: "Recommendation rate",
-									color: "#f97360",
-									values: trendPoints.map((point) => point.recommendationRate),
-								},
-							]}
-							emptyMessage="Run the same detection set again to create a comparable trend."
-						/>
-					</div>
+					) : null}
 				</section>
 
 				<section>
@@ -1340,6 +1652,8 @@ export default function Dashboard() {
 													<Link2 className="size-4" /> Open official
 													conversation
 												</a>
+											) : report.data.dataOrigin === "synthetic_demo" ? (
+												"Unavailable for synthetic demo samples"
 											) : (
 												"Not captured"
 											)}

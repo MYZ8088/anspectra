@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Aloom control-plane setup for Ubuntu 22.04 / 24.04.
+# Anspectra control-plane setup for Ubuntu 22.04 / 24.04.
 # Official Web collection remains on a paired macOS or Windows computer.
 set -euo pipefail
 
@@ -19,16 +19,20 @@ if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
   fatal "Run this script as a non-root user with sudo privileges."
 fi
 
-header "Aloom control-plane setup"
-read -rp "Public app domain (for example aloom.example.com): " DOMAIN
+header "Anspectra control-plane setup"
+read -rp "Public app domain (for example anspectra.example.com): " DOMAIN
 [[ -z "$DOMAIN" ]] && fatal "A public domain is required."
-read -rp "Install directory [/home/$USER/aloom]: " INSTALL_DIR
-INSTALL_DIR="${INSTALL_DIR:-/home/$USER/aloom}"
-read -rp "Repository URL [https://github.com/MYZ8088/aloom.git]: " REPOSITORY_URL
-REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/MYZ8088/aloom.git}"
-read -rsp "AIHubMix API key: " AIHUBMIX_KEY
+read -rp "Install directory [/home/$USER/anspectra]: " INSTALL_DIR
+INSTALL_DIR="${INSTALL_DIR:-/home/$USER/anspectra}"
+read -rp "Repository URL [https://github.com/MYZ8088/anspectra.git]: " REPOSITORY_URL
+REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/MYZ8088/anspectra.git}"
+read -rp "OpenAI-compatible base URL (include /v1): " LLM_BASE_URL
+[[ -z "$LLM_BASE_URL" ]] && fatal "An analysis base URL is required."
+read -rp "Analysis model name: " LLM_MODEL
+[[ -z "$LLM_MODEL" ]] && fatal "An analysis model name is required."
+read -rsp "Analysis API key: " LLM_API_KEY
 echo ""
-[[ -z "$AIHUBMIX_KEY" ]] && fatal "AIHubMix API key is required."
+[[ -z "$LLM_API_KEY" ]] && fatal "An analysis API key is required."
 
 header "1 / 5 - Dependencies"
 if ! require_cmd docker; then
@@ -66,9 +70,10 @@ set_env() {
 }
 set_env "APP_URL" "https://${DOMAIN}"
 set_env "API_BASE_URL" "https://${DOMAIN}"
-set_env "ALOOM_APP_MODE" "self-host"
-set_env "ANALYSIS_LLM_PROVIDER" "aihubmix"
-set_env "AIHUBMIX_API_KEY" "$AIHUBMIX_KEY"
+set_env "ANSPECTRA_APP_MODE" "self-host"
+set_env "LLM_BASE_URL" "$LLM_BASE_URL"
+set_env "LLM_API_KEY" "$LLM_API_KEY"
+set_env "LLM_MODEL" "$LLM_MODEL"
 set_env "BETTER_AUTH_SECRET" "$(openssl rand -hex 32)"
 set_env "INTERNAL_CRON_SECRET" "$(openssl rand -hex 32)"
 
@@ -76,15 +81,15 @@ header "4 / 5 - Control plane"
 pnpm self-host:build
 for attempt in $(seq 1 40); do
   if curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
-    success "Aloom is responding on 127.0.0.1:3000"
+    success "Anspectra is responding on 127.0.0.1:3000"
     break
   fi
   sleep 3
-  [[ "$attempt" -eq 40 ]] && fatal "Aloom did not become ready. Check docker compose logs."
+  [[ "$attempt" -eq 40 ]] && fatal "Anspectra did not become ready. Check docker compose logs."
 done
 
 header "5 / 5 - HTTPS"
-NGINX_CONF="/etc/nginx/sites-available/aloom"
+NGINX_CONF="/etc/nginx/sites-available/anspectra"
 sudo tee "$NGINX_CONF" >/dev/null <<EOF
 server {
     listen 80;
@@ -101,7 +106,7 @@ server {
     }
 }
 EOF
-sudo ln -sfn "$NGINX_CONF" /etc/nginx/sites-enabled/aloom
+sudo ln -sfn "$NGINX_CONF" /etc/nginx/sites-enabled/anspectra
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx

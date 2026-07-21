@@ -12,18 +12,18 @@ import {
 	saveReusableIdentitySessions,
 	saveRuntimeProviderAuthSession,
 	writeProviderAuthStatus,
-} from "@aloom/services";
+} from "@anspectra/services";
 import {
 	AUTH_PROVIDER_LIST,
 	type AuthProvider,
 	type Provider,
-} from "@aloom/types";
+} from "@anspectra/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getProviderDisplayName,
 	logger,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 import {
 	type Browser,
 	type BrowserContext,

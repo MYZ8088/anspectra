@@ -2,7 +2,7 @@ import {
 	ExternalServiceError,
 	ValidationError,
 	toErrorMessage,
-} from "@aloom/errors";
+} from "@anspectra/errors";
 import { jsonrepair } from "jsonrepair";
 import type OpenAI from "openai";
 import type { ZodTypeAny, output } from "zod";

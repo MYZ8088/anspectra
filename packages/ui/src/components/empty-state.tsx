@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type * as React from "react";
 
-import { cn } from "@aloom/utils";
+import { cn } from "@anspectra/utils";
 
 export const EMPTY_STATE_PANEL_WIDTH_CLASS =
 	"w-full max-w-[19rem] sm:max-w-[20.5rem] xl:max-w-[22rem]";

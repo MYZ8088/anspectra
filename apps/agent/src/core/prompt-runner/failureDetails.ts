@@ -1,9 +1,9 @@
-import { HumanChallengeError, classifyError, toErrorMessage } from "@aloom/errors";
+import { HumanChallengeError, classifyError, toErrorMessage } from "@anspectra/errors";
 import type {
 	CollectionPhase,
 	FailureCategory,
 	FailureCode,
-} from "@aloom/types";
+} from "@anspectra/types";
 
 export type PromptFailureDetails = {
 	phase: CollectionPhase;

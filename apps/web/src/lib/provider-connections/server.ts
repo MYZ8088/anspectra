@@ -5,8 +5,8 @@ import {
 	getAuthSessionFile,
 	getAuthStorageDiagnostics,
 	readProviderAuthStatuses,
-} from "@aloom/services/agent-auth";
-import type { AuthProvider, ProviderAuthStatus } from "@aloom/types";
+} from "@anspectra/services/agent-auth";
+import type { AuthProvider, ProviderAuthStatus } from "@anspectra/types";
 import type { ProviderConnectionsState } from "./types";
 
 function getDefaultProviderAuthStatus(

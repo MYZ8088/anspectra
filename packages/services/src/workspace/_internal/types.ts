@@ -1,4 +1,4 @@
-import type { Workspace } from "@aloom/db";
+import type { Workspace } from "@anspectra/db";
 
 // Grouping type — workspaces scoped to an organization (uses db Workspace, stays in services)
 export type OrganizationWorkspaceGroup = {

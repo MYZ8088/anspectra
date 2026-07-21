@@ -1,7 +1,7 @@
 import "server-only";
 
-import { schema } from "@aloom/db";
-import { AuthError, ValidationError } from "@aloom/errors";
+import { schema } from "@anspectra/db";
+import { AuthError, ValidationError } from "@anspectra/errors";
 import { t } from "../trpc";
 
 export const validWorkspace = t.middleware(async ({ ctx, input, next }) => {

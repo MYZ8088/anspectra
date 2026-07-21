@@ -3,11 +3,11 @@ import type {
 	DetectionDimensionFilter,
 	DetectionSuiteKey,
 	SamplingDepth,
-} from "@aloom/types";
-import enPackJson from "./presets/aloom-geo-detection-v1.1.en-US.json" with {
+} from "@anspectra/types";
+import enPackJson from "./presets/anspectra-geo-detection-v1.2.en-US.json" with {
 	type: "json",
 };
-import zhPackJson from "./presets/aloom-geo-detection-v1.1.zh-CN.json" with {
+import zhPackJson from "./presets/anspectra-geo-detection-v1.2.zh-CN.json" with {
 	type: "json",
 };
 
@@ -246,7 +246,7 @@ function asPresetPack(value: unknown): PresetPack {
 		pack.sourceCommit !== REFERENCE_SOURCE_COMMIT
 	) {
 		throw new Error(
-			"Aloom GEO Detection Pack is incomplete or has an unexpected source",
+			"Anspectra GEO Detection Pack is incomplete or has an unexpected source",
 		);
 	}
 	const cells = new Set(
@@ -254,7 +254,7 @@ function asPresetPack(value: unknown): PresetPack {
 	);
 	if (cells.size !== GEO_PROMPT_GROUPS.length * GEO_DECISION_STAGES.length) {
 		throw new Error(
-			"Aloom GEO Detection Pack must contain every intent-stage cell",
+			"Anspectra GEO Detection Pack must contain every intent-stage cell",
 		);
 	}
 	return pack;
@@ -734,8 +734,8 @@ export function listDetectionSuites() {
 
 export function getDetectionPromptCatalog() {
 	return {
-		name: "Aloom GEO Detection Pack",
-		version: "1.1.0",
+		name: "Anspectra GEO Detection Pack",
+		version: "1.2.0",
 		suites: listDetectionSuites(),
 		locales: [zhPack, enPack].map((pack) => ({
 			locale: pack.locale,

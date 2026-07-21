@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..", "..");
-export const edgeNetworkName = "aloom-edge";
+export const edgeNetworkName = "anspectra-edge";
 
 const rootEnvFile = path.join(repoRoot, ".env");
 const rootEnvExampleFile = path.join(repoRoot, ".env.example");
@@ -30,16 +30,16 @@ const CAMOUFOX_DEFAULT_PIP_SPEC = "cloverlabs-camoufox[geoip]==0.5.5";
 const CAMOUFOX_DEFAULT_BROWSER_CHANNEL = "official/stable/135.0.1-beta.24";
 const CAMOUFOX_RUNTIME_ROOT = path.join(
 	repoRoot,
-	".aloom-storage",
+	".anspectra-storage",
 	"camoufox-venv",
 );
 const CAMOUFOX_RUNTIME_MANIFEST = path.join(
 	CAMOUFOX_RUNTIME_ROOT,
-	"aloom-runtime.json",
+	"anspectra-runtime.json",
 );
 const CAMOUFOX_RUNTIME_LOCK = path.join(
 	repoRoot,
-	".aloom-storage",
+	".anspectra-storage",
 	"locks",
 	"camoufox-runtime.lock",
 );
@@ -199,12 +199,12 @@ export async function ensureEnvFiles() {
 }
 
 const LOCAL_BUILD_PACKAGES = [
-	"@aloom/types",
-	"@aloom/errors",
-	"@aloom/db",
-	"@aloom/utils",
-	"@aloom/services",
-	"@aloom/ui",
+	"@anspectra/types",
+	"@anspectra/errors",
+	"@anspectra/db",
+	"@anspectra/utils",
+	"@anspectra/services",
+	"@anspectra/ui",
 ];
 
 export const LOCAL_WATCH_PACKAGES = [...LOCAL_BUILD_PACKAGES];
@@ -290,7 +290,7 @@ function encodeSegment(value) {
 export function buildLocalRuntimeEnv(localAppUrl) {
 	const postgresUser = process.env.POSTGRES_USER || "postgres";
 	const postgresPassword = process.env.POSTGRES_PASSWORD || "postgres";
-	const postgresDatabase = process.env.POSTGRES_DB || "aloom";
+	const postgresDatabase = process.env.POSTGRES_DB || "anspectra";
 	const redisPort = process.env.REDIS_PORT || "6379";
 	const localLocale =
 		process.env.CAMOUFOX_LOCALE ||
@@ -298,7 +298,7 @@ export function buildLocalRuntimeEnv(localAppUrl) {
 		"en-US";
 	const localEnv = {
 		...process.env,
-		ALOOM_APP_MODE: "local",
+		ANSPECTRA_APP_MODE: "local",
 		APP_URL: localAppUrl,
 		API_BASE_URL: localAppUrl,
 		BETTER_AUTH_URL: localAppUrl,

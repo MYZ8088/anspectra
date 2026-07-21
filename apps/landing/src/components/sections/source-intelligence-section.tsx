@@ -1,5 +1,5 @@
 import { SourceIntelligencePreview } from "@/components/previews/source-intelligence-preview";
-import { SectionHeading } from "@aloom/ui";
+import { SectionHeading } from "@anspectra/ui";
 
 export function SourceIntelligenceSection(): React.JSX.Element {
 	return (

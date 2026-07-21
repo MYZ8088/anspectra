@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
-import { db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	AskPromptResult,
 	PromptAttemptUpdate,
 	Provider,
 	ProviderMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { storePromptResponses } from "../prompt/storePromptResponses.js";
 import {
@@ -17,7 +17,7 @@ import {
 	recordGeoSampleAttempt,
 } from "./runs.js";
 
-const COLLECTOR_TOKEN_PREFIX = "aloom_collector_";
+const COLLECTOR_TOKEN_PREFIX = "anspectra_collector_";
 const LEGACY_COLLECTOR_TOKEN_PREFIX = "ogl_collector_";
 
 function hashDeviceToken(token: string): string {

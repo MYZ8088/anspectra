@@ -1,4 +1,4 @@
-import { logger } from "@aloom/utils";
+import { logger } from "@anspectra/utils";
 import { env } from "./env.js";
 import { closeAllProviderSessions } from "./lib/browser/providerSessionManager.js";
 import { startGeoAnalysisRecovery } from "./worker/analysis.js";
@@ -24,7 +24,7 @@ async function startRuntime() {
 	}
 
 	const workerModule = await import("./worker.js");
-	const { redis } = await import("@aloom/services");
+	const { redis } = await import("@anspectra/services");
 	stopOutboxReplay = startPromptSampleOutboxReplay();
 	stopAnalysisRecovery = startGeoAnalysisRecovery();
 	stopRuntime = async () => {

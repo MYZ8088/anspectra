@@ -1,6 +1,6 @@
-# Aloom documentation
+# Anspectra documentation
 
-Aloom is an Apache-2.0 licensed GEO detection and recurring monitoring tool for
+Anspectra is an Apache-2.0 licensed GEO detection and recurring monitoring tool for
 the official Doubao, DeepSeek, Yuanbao, and Qwen Web interfaces.
 
 Key properties:
@@ -8,7 +8,7 @@ Key properties:
 - One fresh official Web conversation per prompt.
 - Headed, automatically minimized Camoufox with visible human-verification recovery.
 - Provider cookies and profiles remain on the local collector machine.
-- AIHubMix analyzes captured answers but never supplies monitoring samples.
+- A configured OpenAI-compatible model analyzes captured answers but never supplies monitoring samples.
 - Each answer is analyzed independently, then aggregated deterministically.
 - Failed and blocked checkpoints remain in report denominators.
 

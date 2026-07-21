@@ -1,4 +1,4 @@
-# @aloom/db
+# @anspectra/db
 
 Database package containing schema definitions, environment validation, and client instances for PostgreSQL and ClickHouse.
 
@@ -33,12 +33,12 @@ From `src/index.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @aloom/db build` | Compile TypeScript |
-| `pnpm --filter @aloom/db typecheck` | TypeScript checks |
-| `pnpm --filter @aloom/db db:generate` | Generate migration files |
-| `pnpm --filter @aloom/db db:migrate` | Run migrations |
-| `pnpm --filter @aloom/db db:push` | Push schema directly |
-| `pnpm --filter @aloom/db db:studio` | Open Drizzle Studio |
+| `pnpm --filter @anspectra/db build` | Compile TypeScript |
+| `pnpm --filter @anspectra/db typecheck` | TypeScript checks |
+| `pnpm --filter @anspectra/db db:generate` | Generate migration files |
+| `pnpm --filter @anspectra/db db:migrate` | Run migrations |
+| `pnpm --filter @anspectra/db db:push` | Push schema directly |
+| `pnpm --filter @anspectra/db db:studio` | Open Drizzle Studio |
 
 ## Environment Variables
 
@@ -55,7 +55,7 @@ Validated in `src/env.ts`:
 ## Usage
 
 ```ts
-import { db, clickhouse, schema } from "@aloom/db";
+import { db, clickhouse, schema } from "@anspectra/db";
 ```
 
 Use this package as the only DB boundary for app/service code.

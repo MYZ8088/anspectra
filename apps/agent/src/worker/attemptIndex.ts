@@ -1,4 +1,4 @@
-import type { PromptAttemptUpdate } from "@aloom/types";
+import type { PromptAttemptUpdate } from "@anspectra/types";
 
 export function offsetPromptAttempt(
 	update: PromptAttemptUpdate,

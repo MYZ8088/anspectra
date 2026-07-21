@@ -3,7 +3,7 @@
  * default so repeated smoke runs do not train on one trivial echo case.
  *
  * Usage:
- *   pnpm --filter @aloom/agent build
+ *   pnpm --filter @anspectra/agent build
  *   node apps/agent/dist/run-test.js deepseek --mode=web_search
  *   node apps/agent/dist/run-test.js qwen --prompt="..."
  *   node apps/agent/dist/run-test.js doubao --count=2
@@ -13,7 +13,7 @@ import {
 	PROVIDER_MODE_LIST,
 	type Provider,
 	type ProviderMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { createAgent } from "./core/createAgent.js";
 import { runPrompts } from "./core/prompt-runner/index.js";
 import { closeAllProviderSessions } from "./lib/browser/providerSessionManager.js";

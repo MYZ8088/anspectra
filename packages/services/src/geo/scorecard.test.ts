@@ -1,12 +1,12 @@
-import type { BrandAnalysisResult } from "@aloom/types";
+import type { BrandAnalysisResult } from "@anspectra/types";
 import { describe, expect, it, vi } from "vitest";
 import {
-	ALOOM_GEO_SCORE_WEIGHTS,
+	ANSPECTRA_GEO_SCORE_WEIGHTS,
 	calculateBaselineScorecard,
 	calculateWeightedDetectionScore,
 } from "./scorecard.js";
 
-vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
+vi.mock("@anspectra/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
 
 function analysis(
@@ -129,7 +129,7 @@ describe("calculateBaselineScorecard", () => {
 
 	it("publishes a transparent 100-point model without zeroing unavailable layers", () => {
 		expect(
-			Object.values(ALOOM_GEO_SCORE_WEIGHTS).reduce(
+			Object.values(ANSPECTRA_GEO_SCORE_WEIGHTS).reduce(
 				(total, weight) => total + weight,
 				0,
 			),

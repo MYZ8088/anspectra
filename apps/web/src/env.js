@@ -5,7 +5,7 @@ export const env = createEnv({
 	server: {
 		APP_URL: z.string().url().optional(),
 		API_BASE_URL: z.string().url().optional(),
-		ALOOM_APP_MODE: z.enum(["self-host", "local"]).optional(),
+		ANSPECTRA_APP_MODE: z.enum(["self-host", "local"]).optional(),
 		INTERNAL_CRON_SECRET: z.string().min(1).optional(),
 		BETTER_AUTH_SECRET: z.string().min(1).optional(),
 		GOOGLE_CLIENT_ID: z.string().min(1).optional(),
@@ -15,14 +15,15 @@ export const env = createEnv({
 			.default("development"),
 	},
 	client: {
-		NEXT_PUBLIC_ALOOM_APP_MODE: z.enum(["self-host", "local"]).optional(),
+		NEXT_PUBLIC_ANSPECTRA_APP_MODE: z.enum(["self-host", "local"]).optional(),
 	},
 	runtimeEnv: {
 		APP_URL: process.env.APP_URL,
 		API_BASE_URL: process.env.API_BASE_URL,
-		ALOOM_APP_MODE: process.env.ALOOM_APP_MODE,
-		NEXT_PUBLIC_ALOOM_APP_MODE:
-			process.env.NEXT_PUBLIC_ALOOM_APP_MODE ?? process.env.ALOOM_APP_MODE,
+		ANSPECTRA_APP_MODE: process.env.ANSPECTRA_APP_MODE,
+		NEXT_PUBLIC_ANSPECTRA_APP_MODE:
+			process.env.NEXT_PUBLIC_ANSPECTRA_APP_MODE ??
+			process.env.ANSPECTRA_APP_MODE,
 		INTERNAL_CRON_SECRET: process.env.INTERNAL_CRON_SECRET,
 		BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
 		GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,

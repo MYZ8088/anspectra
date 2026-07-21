@@ -2,7 +2,7 @@
 
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { Input } from "@aloom/ui";
+import { Input } from "@anspectra/ui";
 import { BookOpenText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -50,10 +50,10 @@ export default function PromptPacksPage() {
 							Prompt Packs
 						</p>
 						<h1 className="mt-2 text-2xl font-semibold">
-							{catalog.data?.name ?? "Aloom GEO Detection Pack"}
+							{catalog.data?.name ?? "Anspectra GEO Detection Pack"}
 						</h1>
 						<p className="mt-2 text-sm text-stone-500">
-							Version {catalog.data?.version ?? "1.1.0"} · fixed and read-only
+							Version {catalog.data?.version ?? "1.2.0"} · fixed and read-only
 						</p>
 					</div>
 					<BookOpenText className="size-6 text-stone-400" />

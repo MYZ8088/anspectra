@@ -1,10 +1,10 @@
 import "./env.js";
-import { GEO_WEB_PROVIDERS } from "@aloom/services";
+import { GEO_WEB_PROVIDERS } from "@anspectra/services";
 import {
 	PROVIDER_MODE_LIST,
 	type Provider,
 	type ProviderMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { createAgent } from "./core/createAgent.js";
 import {
 	applyOfficialWebMode,
@@ -17,7 +17,7 @@ import { detectBotPage } from "./lib/input/response/detectBotPage.js";
 const provider = process.argv[2] as Provider | undefined;
 if (!provider || !GEO_WEB_PROVIDERS.includes(provider as never)) {
 	throw new Error(
-		`Usage: pnpm --filter @aloom/agent inspect:modes <${GEO_WEB_PROVIDERS.join("|")}>`,
+		`Usage: pnpm --filter @anspectra/agent inspect:modes <${GEO_WEB_PROVIDERS.join("|")}>`,
 	);
 }
 

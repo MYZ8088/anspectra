@@ -1,4 +1,4 @@
-import { clickhouse } from "@aloom/db";
+import { clickhouse } from "@anspectra/db";
 
 let sourceKindSchemaPromise: Promise<void> | null = null;
 

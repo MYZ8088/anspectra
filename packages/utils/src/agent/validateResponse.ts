@@ -1,4 +1,4 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 
 // Floor that rejects pure garbage fragments (wrong element, partial capture)
 // while passing genuine short factual answers. 200 was too blunt — it was

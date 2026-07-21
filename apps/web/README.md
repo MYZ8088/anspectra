@@ -1,4 +1,4 @@
-# @aloom/web
+# @anspectra/web
 
 Main authenticated product application built with Next.js App Router and tRPC.
 
@@ -35,19 +35,19 @@ Defined in `src/server/api/root.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @aloom/web dev` | Start Next.js dev server |
-| `pnpm --filter @aloom/web build` | Build production bundle |
-| `pnpm --filter @aloom/web start` | Start built app |
-| `pnpm --filter @aloom/web preview` | Build + start |
-| `pnpm --filter @aloom/web typecheck` | TypeScript checks |
-| `pnpm --filter @aloom/web lint` | Biome lint/check |
-| `pnpm --filter @aloom/web check` | Biome check |
-| `pnpm --filter @aloom/web check:write` | Biome write fixes |
-| `pnpm --filter @aloom/web check:unsafe` | Biome unsafe fixes |
-| `pnpm --filter @aloom/web db:generate` | Drizzle generate |
-| `pnpm --filter @aloom/web db:migrate` | Drizzle migrate |
-| `pnpm --filter @aloom/web db:push` | Drizzle push |
-| `pnpm --filter @aloom/web db:studio` | Drizzle studio |
+| `pnpm --filter @anspectra/web dev` | Start Next.js dev server |
+| `pnpm --filter @anspectra/web build` | Build production bundle |
+| `pnpm --filter @anspectra/web start` | Start built app |
+| `pnpm --filter @anspectra/web preview` | Build + start |
+| `pnpm --filter @anspectra/web typecheck` | TypeScript checks |
+| `pnpm --filter @anspectra/web lint` | Biome lint/check |
+| `pnpm --filter @anspectra/web check` | Biome check |
+| `pnpm --filter @anspectra/web check:write` | Biome write fixes |
+| `pnpm --filter @anspectra/web check:unsafe` | Biome unsafe fixes |
+| `pnpm --filter @anspectra/web db:generate` | Drizzle generate |
+| `pnpm --filter @anspectra/web db:migrate` | Drizzle migrate |
+| `pnpm --filter @anspectra/web db:push` | Drizzle push |
+| `pnpm --filter @anspectra/web db:studio` | Drizzle studio |
 
 ## Environment Variables
 
@@ -78,21 +78,21 @@ pnpm db:migrate
 3. Start the app:
 
 ```bash
-pnpm --filter @aloom/web dev
+pnpm --filter @anspectra/web dev
 ```
 
 ## Dependencies
 
 This app relies on workspace packages:
-- `@aloom/services`: domain/business operations
-- `@aloom/db`: schema and DB clients
-- `@aloom/types`: shared contracts
-- `@aloom/ui`: shared UI components
-- `@aloom/utils`: shared helpers
-- `@aloom/errors`: typed errors
+- `@anspectra/services`: domain/business operations
+- `@anspectra/db`: schema and DB clients
+- `@anspectra/types`: shared contracts
+- `@anspectra/ui`: shared UI components
+- `@anspectra/utils`: shared helpers
+- `@anspectra/errors`: typed errors
 
 ## Development Boundaries
 
-- Keep route handlers/procedures thin; move business logic to `@aloom/services`.
+- Keep route handlers/procedures thin; move business logic to `@anspectra/services`.
 - Use `authorizedWorkspaceProcedure` for workspace-scoped actions.
 - Use `createRateLimiter` middleware for write-heavy mutations.

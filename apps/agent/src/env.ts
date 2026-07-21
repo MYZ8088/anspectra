@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_MODE_LIST } from "@aloom/types";
+import { APP_MODE_LIST } from "@anspectra/types";
 import dotenv from "dotenv";
 import { z } from "zod";
 
@@ -42,7 +42,7 @@ const AgentEnvSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "test", "production"])
 		.default("development"),
-	ALOOM_APP_MODE: z.enum(APP_MODE_LIST).default("local"),
+	ANSPECTRA_APP_MODE: z.enum(APP_MODE_LIST).default("local"),
 	COLLECTOR_API_URL: z.string().trim().url().optional(),
 	COLLECTOR_DEVICE_TOKEN: z.string().trim().optional(),
 	DEBUG_ENABLED: asBoolean(false).default(false),
@@ -59,5 +59,5 @@ const AgentEnvSchema = z.object({
 
 export const env = AgentEnvSchema.parse({
 	...process.env,
-	ALOOM_APP_MODE: process.env.ALOOM_APP_MODE,
+	ANSPECTRA_APP_MODE: process.env.ANSPECTRA_APP_MODE,
 });

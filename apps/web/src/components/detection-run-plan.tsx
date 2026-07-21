@@ -1,8 +1,8 @@
 "use client";
 
-import type { DetectionRunPlan } from "@aloom/types";
-import { Input } from "@aloom/ui";
-import { cn } from "@aloom/utils";
+import type { DetectionRunPlan } from "@anspectra/types";
+import { Input } from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import { CalendarClock, Minus, Plus } from "lucide-react";
 
 const WEEKDAYS = [

@@ -8,6 +8,7 @@
 			".next",
 			".turbo",
 			".vercel",
+			"out",
 			"coverage"
 		]
 	}

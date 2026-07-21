@@ -39,7 +39,7 @@ const allowlistedTechnicalFiles = [
 	/^packages\/services\/src\/geo\/(?:content|opportunities|publisher|experimentCohorts)\.ts$/u,
 	/^packages\/utils\/src\/agent\/(?:constants|validateResponse)\.ts$/u,
 	/^scripts\/download_yaojingang_geo_resources\.py$/u,
-	/^scripts\/generate-aloom-social-assets\.mjs$/u,
+	/^scripts\/generate-anspectra-social-assets\.mjs$/u,
 ];
 
 function isAllowedTechnicalFile(file) {

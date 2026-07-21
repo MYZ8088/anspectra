@@ -1,6 +1,6 @@
 ---
 title: Self-Hosted Setup
-description: Host the Aloom control plane while official Web sessions remain on a paired user computer.
+description: Host the Anspectra control plane while official Web sessions remain on a paired user computer.
 ---
 
 ## Architecture
@@ -20,8 +20,8 @@ tasks locally, and uploads only sample results and task events.
 ## 1. Clone and configure
 
 ```bash
-git clone https://github.com/MYZ8088/aloom.git /opt/aloom
-cd /opt/aloom
+git clone https://github.com/MYZ8088/anspectra.git /opt/anspectra
+cd /opt/anspectra
 cp .env.example .env
 ```
 
@@ -36,7 +36,7 @@ pnpm install
 pnpm self-host:build
 ```
 
-The default Compose project is `aloom`. The collector service is not part of
+The default Compose project is `anspectra`. The collector service is not part of
 the default production stack.
 
 Place `http://127.0.0.1:3000` behind your HTTPS reverse proxy. Only SSH and
@@ -49,8 +49,8 @@ In the Providers screen, create a collector pairing. Copy the one-time device
 token to the user's computer and configure:
 
 ```bash
-COLLECTOR_API_URL=https://aloom.example.com
-COLLECTOR_DEVICE_TOKEN=aloom_collector_replace-with-the-one-time-token
+COLLECTOR_API_URL=https://anspectra.example.com
+COLLECTOR_DEVICE_TOKEN=anspectra_collector_replace-with-the-one-time-token
 ```
 
 Then run on the user's macOS or Windows machine:
@@ -75,10 +75,10 @@ provider. If the machine sleeps or goes offline, scheduled work remains in
 ## Updates
 
 ```bash
-cd /opt/aloom
+cd /opt/anspectra
 git pull
 pnpm self-host:build
 ```
 
-Database migrations are non-destructive. Back up the Aloom PostgreSQL and
+Database migrations are non-destructive. Back up the Anspectra PostgreSQL and
 ClickHouse volumes before production upgrades.

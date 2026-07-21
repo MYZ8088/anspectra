@@ -1,5 +1,5 @@
-import type { Provider } from "@aloom/types";
-import { logger } from "@aloom/utils";
+import type { Provider } from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import { env } from "../env.js";
 import { createConcurrencyGate } from "./concurrency.js";
 import {

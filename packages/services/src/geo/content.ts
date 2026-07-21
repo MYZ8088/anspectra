@@ -1,5 +1,5 @@
-import { db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -422,7 +422,7 @@ export async function createContentDraft(args: {
 				...draftRevision,
 				qualityReport,
 				model: generation.model,
-				templateVersion: "aloom-12x8-content-refiner-v1",
+				templateVersion: "anspectra-12x8-content-refiner-v1",
 				createdBy: args.createdBy ?? null,
 			})
 			.returning();

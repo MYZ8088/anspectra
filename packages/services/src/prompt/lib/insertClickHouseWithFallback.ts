@@ -1,5 +1,5 @@
-import { clickhouse } from "@aloom/db";
-import { DatabaseError, toErrorMessage } from "@aloom/errors";
+import { clickhouse } from "@anspectra/db";
+import { DatabaseError, toErrorMessage } from "@anspectra/errors";
 
 type InsertFallbackOptions<T extends Record<string, unknown>> = {
 	throwOnAllFailed?: boolean;

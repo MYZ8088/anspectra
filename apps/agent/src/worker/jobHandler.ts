@@ -3,7 +3,7 @@ import {
 	ValidationError,
 	classifyError,
 	toErrorMessage,
-} from "@aloom/errors";
+} from "@anspectra/errors";
 import {
 	buildProviderCancelKey,
 	buildProviderJobId,
@@ -18,7 +18,7 @@ import {
 	updateProviderProgress,
 	validateGeoConversationIsolation,
 	writeProviderAuthStatus,
-} from "@aloom/services";
+} from "@anspectra/services";
 import type {
 	AgentResult,
 	AuthProvider,
@@ -26,9 +26,9 @@ import type {
 	PromptPayload,
 	Provider,
 	ProviderMode,
-} from "@aloom/types";
-import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@aloom/types";
-import { createProviderLogger, logger } from "@aloom/utils";
+} from "@anspectra/types";
+import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@anspectra/types";
+import { createProviderLogger, logger } from "@anspectra/utils";
 import type { Job } from "bullmq";
 import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";

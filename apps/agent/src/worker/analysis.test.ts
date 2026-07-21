@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({
 	markGeoAnalysisRunning: vi.fn(),
 }));
 
-vi.mock("@aloom/services", () => mocks);
-vi.mock("@aloom/utils", () => ({
+vi.mock("@anspectra/services", () => mocks);
+vi.mock("@anspectra/utils", () => ({
 	createProviderLogger: () => ({
 		log: vi.fn(),
 		success: vi.fn(),

@@ -9,7 +9,7 @@
 		"composite": true,
 		"baseUrl": "../../",
 		"paths": {
-			"@aloom/utils": [
+			"@anspectra/utils": [
 				"packages/utils/src/index.ts",
 				"packages/utils/dist/index.d.ts"
 			]

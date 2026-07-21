@@ -1,6 +1,6 @@
-import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
-import type { Provider } from "@aloom/types";
-import { logger, withTimeout } from "@aloom/utils";
+import { ExternalServiceError, toErrorMessage } from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
+import { logger, withTimeout } from "@anspectra/utils";
 import type { Locator, Page } from "playwright";
 import {
 	clickLocatorLikeUser,

@@ -10,8 +10,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@aloom/ui";
-import { getFaviconUrls, getModelFavicon } from "@aloom/utils";
+} from "@anspectra/ui";
+import { getFaviconUrls, getModelFavicon } from "@anspectra/utils";
 
 export function VisibilityScoreboardSection(): React.JSX.Element {
 	return (

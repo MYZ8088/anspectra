@@ -1,4 +1,4 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import { AI_OVERVIEW_RAW_SOURCES_DOM_EXTRACTOR } from "../ai-overview/lib/extractSources.js";
 import { CHATGPT_RAW_SOURCES_DOM_EXTRACTOR } from "../chatgpt/lib/extractSources.js";
 import { CLAUDE_RAW_SOURCES_DOM_EXTRACTOR } from "../claude/lib/extractSources.js";

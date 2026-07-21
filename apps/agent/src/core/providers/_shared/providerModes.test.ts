@@ -3,7 +3,7 @@ import path from "node:path";
 import {
 	GEO_PROVIDER_MODE_CAPABILITIES,
 	getProviderModeLabel,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { JSDOM } from "jsdom";
 import type { Page } from "playwright";
 import { describe, expect, it } from "vitest";

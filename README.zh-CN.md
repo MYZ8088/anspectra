@@ -1,29 +1,27 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/aloom-mark-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/brand/aloom-mark.svg" />
-    <img src="./assets/brand/aloom-mark.svg" alt="Aloom 标志" width="92" />
-  </picture>
+  <img src="./docs/images/anspectra-mark.png" alt="Anspectra 标志" width="128" />
 </p>
 
-<h1 align="center">Aloom</h1>
+<h1 align="center">Anspectra</h1>
 
 <p align="center">
   <strong>衡量产品在官方 AI Web 回答中的可见性。</strong>
 </p>
 
 <p align="center">
-  固定提示词套件 · 可复现的浏览器采集 · 平台级检测报告
+  固定提示词套件 · 官方 Web 采集 · 可比较的平台报告
 </p>
 
 <p align="center">
-  <a href="./README.md">English</a> · <strong>简体中文</strong>
+  <a href="https://anspectra.pages.dev/">官方网站</a> ·
+  <a href="https://anspectra.pages.dev/docs/">使用文档</a> ·
+  <a href="./README.md">English</a>
 </p>
 
-Aloom 是一个面向豆包、DeepSeek、元宝和千问的可自托管 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
+Anspectra 是一个面向豆包、DeepSeek、元宝和千问的可自托管 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
 
 <p align="center">
-  <img src="./docs/images/aloom-detection.zh-CN.png" alt="Aloom 中文检测报告" width="100%" />
+  <img src="./docs/images/anspectra-detection.zh-CN.png" alt="Anspectra 中文检测报告" width="100%" />
 </p>
 
 ### 检测指标
@@ -40,10 +38,10 @@ Aloom 是一个面向豆包、DeepSeek、元宝和千问的可自托管 GEO 检�
 
 ### 评分模型
 
-Aloom 明确区分两层评分：
+Anspectra 明确区分两层评分：
 
 - **单回答表现分（Answer Performance Score）**：每条已分析回答分别计算可见性、排名、情感和推荐度，四项各占 25%；正式计划中未完成或分析失败的样本在 series 平均分中按零计入。
-- **Aloom GEO Score v1**：面向整次检测的六维加权分。系统会分别计算总报告分数以及豆包、DeepSeek、元宝、千问各自的独立分数。
+- **Anspectra GEO Score v1**：面向整次检测的六维加权分。系统会分别计算总报告分数以及豆包、DeepSeek、元宝、千问各自的独立分数。
 
 | 检测维度 | 权重 | 衡量内容 |
 | --- | ---: | --- |
@@ -54,7 +52,7 @@ Aloom 明确区分两层评分：
 | 稳定性 | 10% | 相同模式、相同提示词的多轮回答一致性。 |
 | 治理完整性 | 10% | 采集、分析和必需检测维度的完成情况。 |
 
-无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重由 Aloom 独立设计和版本化。
+无法评估的维度不会被悄悄计为零。系统会在已有维度上归一化总分，单独展示已评估权重形成的**评分覆盖率**；覆盖率不足 100% 或正式 series 未完整完成时，报告会明确标记为暂定结果。这套权重由 Anspectra 独立设计和版本化。
 
 每个平台报告均包含独立总分、六维明细、单回答表现分、采集与分析完成率、出现率、推荐率、绝对排名、情感、可见信源曝光、目标份额、竞品份额、模式 cohort、失败分类、实际提示词、原始回答、引用和对话证据。
 
@@ -64,13 +62,13 @@ Aloom 明确区分两层评分：
 2. 确认品牌、品类、产品、受众、地区和竞品。
 3. 选择检测套件、语言、平台、官方 Web 模式和采样深度。
 4. 预览实际提示词、总样本数、执行次数和周期，然后点击 **Start detection**。
-5. Aloom 自动记录本次配置，并在独立的新对话中执行每条提示词。
+5. Anspectra 自动记录本次配置，并在独立的新对话中执行每条提示词。
 6. 按平台、模式、语言、意图、阶段、品牌暴露方式、实体或单条提示词查看报告。
 7. 在 New Detection 中设置总执行次数以及每日、每周或每月周期；所有计划轮次保存在同一个可比较的检测 series 中。
 
 正式检测不接受任意自定义提示词。历史 custom 与 legacy 提示词仍与原始样本关联，但不会进入新的正式检测和报告。
 
-### Aloom GEO Detection Pack v1.1
+### Anspectra GEO Detection Pack v1.2
 
 每种语言内置 54 条固定模板，由 9 类意图和 6 个决策阶段组成。
 
@@ -89,7 +87,7 @@ Aloom 明确区分两层评分：
 
 ### 官方 Web 模式与联网搜索
 
-Aloom 会分别保存请求模式和页面验证后的实际模式。联网与非联网 cohort 不会混合统计。
+Anspectra 会分别保存请求模式和页面验证后的实际模式。联网与非联网 cohort 不会混合统计。
 
 | 平台 | 支持的文本检测 cohort | 联网规则 |
 | --- | --- | --- |
@@ -109,10 +107,10 @@ Aloom 会分别保存请求模式和页面验证后的实际模式。联网与�
 - 每条正式提示词都创建独立的新对话。
 - 已确认发送的提示词不会因为抽取失败而重复提交。
 - 登录失效、扫码、验证码、滑块和安全确认会进入 `waiting_human`。
-- 人工处理会使用同一持久 profile 打开可见窗口；Aloom 不破解或绕过验证。
+- 人工处理会使用同一持久 profile 打开可见窗口；Anspectra 不破解或绕过验证。
 - 浏览器、采集器或验证流程恢复后会继续使用 checkpoint，不重复已完成样本。
 
-AIHubMix 只负责分析已经采集到的 Web 回答。Full Matrix 不会把 54 个回答放进同一个模型上下文：每个回答分别执行一次受 Schema 约束的分析，再由代码确定性聚合报告。
+用户配置的 OpenAI-compatible 模型只负责分析已经采集到的 Web 回答。Full Matrix 不会把 54 个回答放进同一个模型上下文：每个回答分别执行一次受 Schema 约束的分析，再由代码确定性聚合报告。
 
 ### 系统架构
 
@@ -127,7 +125,7 @@ flowchart LR
   C --> Y["元宝 Web"]
   C --> Q["千问 Web"]
   C --> CH
-  CH --> A["AIHubMix 结构化分析"]
+  CH --> A["OpenAI-compatible 结构化分析"]
 ```
 
 ### 本地安装
@@ -135,8 +133,8 @@ flowchart LR
 环境要求：macOS 或 Windows、Node.js 20+、pnpm 10+、Docker Desktop 和 Python 3.12。
 
 ```bash
-git clone https://github.com/MYZ8088/aloom.git
-cd aloom
+git clone https://github.com/MYZ8088/anspectra.git
+cd anspectra
 cp .env.example .env
 pnpm install
 pnpm camoufox:setup
@@ -144,7 +142,15 @@ pnpm camoufox:doctor
 pnpm local:background
 ```
 
-打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。后台运行进程不会随启动终端关闭而退出。持久 profile 保存在 `.aloom-storage/` 中，该目录已排除在 Git 之外。
+打开 `http://localhost:3000`，然后在 `Providers` 页面连接各个平台。后台运行进程不会随启动终端关闭而退出。持久 profile 保存在 `.anspectra-storage/` 中，该目录已排除在 Git 之外。
+
+如需在本机加载 README 展示的两轮报告，可执行：
+
+```bash
+pnpm demo:two-cycle -- --owner-email=you@example.com
+```
+
+该命令只允许连接本机 PostgreSQL 与 ClickHouse，并且可重复执行。生成的 144 条模拟样本会始终标记为 `Demo data`，不代表平台真实输出，也不会混入正式趋势。
 
 如果安装来自项目的早期命名版本，请在首次执行 `pnpm local` 前运行一次 `pnpm brand:migrate-runtime`。该命令会复制旧 Docker volume 和本机浏览器状态、核验 volume 大小、保留旧 volume，并备份不完整的目标 volume。
 
@@ -163,7 +169,7 @@ pnpm build            # 执行语言、隐私检查与生产构建
 pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 ```
 
-后台日志保存在 `.aloom-storage/logs/local-daemon.log`。BullMQ 任务意外中断后会依据 PostgreSQL checkpoint 跳过已经终结的样本，只恢复未完成 Prompt。
+后台日志保存在 `.anspectra-storage/logs/local-daemon.log`。BullMQ 任务意外中断后会依据 PostgreSQL checkpoint 跳过已经终结的样本，只恢复未完成 Prompt。
 
 ### 可靠性规则
 
@@ -172,7 +178,7 @@ pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 - 结构化分析使用独立的后台有限并发通道，由 `COLLECTOR_ANALYSIS_CONCURRENCY` 控制（默认 `2`），不会阻塞官方 Web 采集。
 - 浏览器重启后继续使用同一个持久身份和 profile。
 - Prompt 回显、登录页、验证页、平台错误页和空回答会被拒绝。
-- 已提交的回答会先在原会话重新读取；若结构仍不完整，Aloom 最多在已验证的新会话中重发一次。单纯抽取失败不会触发无上限或盲目重发。
+- 已提交的回答会先在原会话重新读取；若结构仍不完整，Anspectra 最多在已验证的新会话中重发一次。单纯抽取失败不会触发无上限或盲目重发。
 - 采集状态与分析状态分开保存。
 - 结构化分析使用严格 JSON Schema、平衡 JSON 提取、本地修复、Zod 校验、备用模型和一次定向修复。
 - 趋势只比较 Prompt hash、平台、模式、语言和采样定义完全一致的 series。
@@ -181,11 +187,11 @@ pnpm test:soak:same-day -- --workspace=<id> --user=<id> # 当天定时验收
 
 ### 项目来源与许可证
 
-Aloom 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
+Anspectra 是独立项目，不是 OneGlanse 或 Yao GEO Skills 的官方版本。
 
-- 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Aloom 在此基础上重构为纯检测产品，并新增持久化本机采集器、版本化运行 manifest、模式分 cohort、样本 checkpoint 和完整报告。
-- Aloom 借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Aloom 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
-- Aloom 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
+- 初始代码和部分自托管架构借鉴并衍生自 [OneGlanse](https://github.com/aryamantodkar/oneglanse)，原作者 Aryaman Todkar，Copyright 2025，MIT License。Anspectra 在此基础上重构为纯检测产品，并新增持久化本机采集器、版本化运行 manifest、模式分 cohort、样本 checkpoint 和完整报告。
+- Anspectra 借鉴了 [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills) 中部分提示词分类、意图挖掘和 Web 采样质量思路，Copyright 2026 Yao，MIT License。Anspectra 并不是对该 Skill 的完整实现；提示词包、采集器、数据模型、评分和报告均由本项目独立维护，运行时也不依赖 Skill、Codex、OpenCLI 或远程仓库。
+- Anspectra 本项目使用 Apache-2.0，Copyright 2026 MYZ8088。
 
 完整声明见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
 

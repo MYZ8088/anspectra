@@ -1,4 +1,4 @@
-import { ValidationError } from "@aloom/errors";
+import { ValidationError } from "@anspectra/errors";
 import { CronExpressionParser } from "cron-parser";
 
 export function parseCronExpressionOrThrow(cronExpression: string) {

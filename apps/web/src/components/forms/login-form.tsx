@@ -22,7 +22,7 @@ import {
 	Input,
 	toast,
 	useForm,
-} from "@aloom/ui";
+} from "@anspectra/ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";

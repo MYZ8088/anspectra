@@ -7,7 +7,7 @@ export function SiteFooter(): React.JSX.Element {
 			<div className="section-shell flex flex-col gap-4 text-center text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:text-left">
 				<div className="flex items-center gap-2">
 					<BrandLogo className="h-5 w-5" />
-					<p>© {new Date().getFullYear()} Aloom</p>
+					<p>© {new Date().getFullYear()} Anspectra</p>
 				</div>
 				<nav aria-label="Footer links">
 					<ul className="flex flex-wrap items-center justify-center gap-4 sm:justify-end">

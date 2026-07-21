@@ -2,9 +2,9 @@ import {
 	BaseError,
 	ExternalServiceError,
 	toErrorMessage,
-} from "@aloom/errors";
-import type { Provider } from "@aloom/types";
-import { logger, withTimeout } from "@aloom/utils";
+} from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
+import { logger, withTimeout } from "@anspectra/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { launchContext } from "../lib/browser/launch.js";
 import { navigateWithRetry } from "../lib/browser/navigate.js";

@@ -1,5 +1,5 @@
-import type { AuthProvider, Provider } from "@aloom/types";
-import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@aloom/types";
+import type { AuthProvider, Provider } from "@anspectra/types";
+import { AUTH_PROVIDER_LIST, PROVIDER_LIST } from "@anspectra/types";
 
 interface ProviderDisplayConfig {
 	displayName: string;

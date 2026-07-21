@@ -1,5 +1,5 @@
-import { PROVIDER_EDITOR_SELECTORS } from "@aloom/utils";
-import { logger } from "@aloom/utils";
+import { PROVIDER_EDITOR_SELECTORS } from "@anspectra/utils";
+import { logger } from "@anspectra/utils";
 import { navigateWithRetry } from "../../../lib/browser/navigate.js";
 import { findActiveEditorCandidateFromSelectors } from "../../../lib/input/editor/findEditor.js";
 import { insertPromptIntoEditor } from "../../../lib/input/editor/promptInput.js";

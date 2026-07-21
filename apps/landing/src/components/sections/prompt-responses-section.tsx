@@ -1,5 +1,5 @@
 import { PREVIEW_PROMPT_RESPONSES } from "@/lib/preview-data";
-import { PromptResponsesPreview } from "@aloom/ui";
+import { PromptResponsesPreview } from "@anspectra/ui";
 
 export function PromptResponsesSection(): React.JSX.Element {
 	return (

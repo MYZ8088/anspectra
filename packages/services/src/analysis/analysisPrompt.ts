@@ -1,4 +1,4 @@
-import type { AnalysisInputSingle } from "@aloom/types";
+import type { AnalysisInputSingle } from "@anspectra/types";
 import { targetEntities } from "./targetEntities.js";
 
 export function analysisPrompt(input: AnalysisInputSingle): string {

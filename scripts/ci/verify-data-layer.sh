@@ -10,7 +10,7 @@ fail() {
 postgres_query() {
 	docker compose exec -T db psql \
 		-U "${POSTGRES_USER:-postgres}" \
-		-d "${POSTGRES_DB:-aloom}" \
+		-d "${POSTGRES_DB:-anspectra}" \
 		-Atqc "$1"
 }
 

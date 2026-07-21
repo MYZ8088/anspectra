@@ -4,7 +4,7 @@ import {
 	PREVIEW_COMPETITORS,
 	PREVIEW_TOTAL_RESPONSES,
 } from "@/lib/preview-data";
-import { BrandComparisonChart } from "@aloom/ui";
+import { BrandComparisonChart } from "@anspectra/ui";
 
 export function AiVisibilityPreview(): React.JSX.Element {
 	return (

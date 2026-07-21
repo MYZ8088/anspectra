@@ -18,7 +18,7 @@ const profile = {
 	locale: "zh-CN",
 };
 
-describe("Aloom GEO Detection Pack", () => {
+describe("Anspectra GEO Detection Pack", () => {
 	it("keeps sampling depth independent while respecting temporal minimums", () => {
 		expect([
 			samplingDepthRoundCount("single"),
@@ -35,8 +35,8 @@ describe("Aloom GEO Detection Pack", () => {
 		"ships all 54 intent-stage cells for %s",
 		(locale) => {
 			const pack = getDetectionPresetPack(locale);
-			expect(pack.packKey).toBe("aloom-geo-detection-v1");
-			expect(pack.version).toBe("1.1.0");
+			expect(pack.packKey).toBe("anspectra-geo-detection-v1");
+			expect(pack.version).toBe("1.2.0");
 			expect(pack.entries).toHaveLength(54);
 			expect(new Set(pack.entries.map((entry) => entry.key))).toHaveLength(54);
 			expect(
@@ -52,14 +52,14 @@ describe("Aloom GEO Detection Pack", () => {
 	);
 
 	it.each(["zh-CN", "en-US"])(
-		"resolves every v1.1 variable without vague required-field fallbacks for %s",
+		"resolves every v1.2 variable without vague required-field fallbacks for %s",
 		(locale) => {
 			const plan = planMonitorPrompts(
 				{
-					brandName: "Aloom",
+					brandName: "Anspectra",
 					category: "GEO monitoring software",
 					industry: "B2B software",
-					products: ["Aloom Monitor"],
+					products: ["Anspectra Monitor"],
 					competitors: ["Competitor Atlas"],
 					audiences: ["growth teams"],
 					regions: ["APAC"],

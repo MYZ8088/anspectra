@@ -28,8 +28,8 @@ import {
 	TableHeader,
 	TableRow,
 	toast,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import {
 	Building2,
 	Loader2,

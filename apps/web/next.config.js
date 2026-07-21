@@ -31,12 +31,12 @@ const config = {
 		SKIP_ENV_VALIDATION: process.env.SKIP_ENV_VALIDATION,
 	},
 	transpilePackages: [
-		"@aloom/ui",
-		"@aloom/utils",
-		"@aloom/db",
-		"@aloom/errors",
-		"@aloom/services",
-		"@aloom/types",
+		"@anspectra/ui",
+		"@anspectra/utils",
+		"@anspectra/db",
+		"@anspectra/errors",
+		"@anspectra/services",
+		"@anspectra/types",
 	],
 	logging: {
 		incomingRequests: {

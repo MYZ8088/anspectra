@@ -5,8 +5,8 @@ import { authClient } from "@/lib/auth/auth-client";
 import { signOutAndRedirect } from "@/lib/auth/logout";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import type { Workspace } from "@aloom/db";
-import type { AppMode } from "@aloom/types";
+import type { Workspace } from "@anspectra/db";
+import type { AppMode } from "@anspectra/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -25,8 +25,8 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	toast,
-} from "@aloom/ui";
-import { cn, getFaviconUrls } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn, getFaviconUrls } from "@anspectra/utils";
 import {
 	BookOpenText,
 	Check,

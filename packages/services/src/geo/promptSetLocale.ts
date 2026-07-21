@@ -1,4 +1,4 @@
-import { ValidationError } from "@aloom/errors";
+import { ValidationError } from "@anspectra/errors";
 
 export function normalizePromptLocales(
 	locales: ReadonlyArray<string | null | undefined>,

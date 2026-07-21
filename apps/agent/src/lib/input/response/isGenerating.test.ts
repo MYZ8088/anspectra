@@ -119,12 +119,12 @@ describe("Doubao generation state", () => {
 		const page = pageFor(`
 			<div data-message-id="assistant" class="relative grid">
 				<div class="md-box-root">
-					我将从功能、成本、数据、集成、实施难度五个维度系统对比 Aloom 与 Profound。
+					我将从功能、成本、数据、集成、实施难度五个维度系统对比 Anspectra 与 Profound。
 				</div>
 				<div data-plugin-identifier="block_type:10030 | artifact_block.resource_type:10">
 					<div data-status="finished">
 						<div data-feishu-office-current-doc-old-card="true">
-							Aloom与Profound平台五维度对比分析 创建时间：23:04
+							Anspectra与Profound平台五维度对比分析 创建时间：23:04
 						</div>
 					</div>
 				</div>

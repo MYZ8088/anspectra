@@ -1,5 +1,5 @@
 {
-	"name": "@aloom/landing",
+	"name": "@anspectra/landing",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -11,9 +11,8 @@
 		"lint": "biome check ."
 	},
 	"dependencies": {
-		"@aloom/ui": "workspace:*",
-		"@aloom/utils": "workspace:*",
-		"@vercel/analytics": "^2.0.1",
+		"@anspectra/ui": "workspace:*",
+		"@anspectra/utils": "workspace:*",
 		"lucide-react": "^0.544.0",
 		"next": "^15.5.5",
 		"react": "^19.0.0",

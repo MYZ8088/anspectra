@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@aloom/ui/styles/shared.css";
+@import "@anspectra/ui/styles/shared.css";
 
 @plugin "@tailwindcss/typography";
 

@@ -1,4 +1,4 @@
-import { clickhouse } from "@aloom/db";
+import { clickhouse } from "@anspectra/db";
 
 /**
  * Clears derived analysis data for a workspace while preserving raw prompt responses.

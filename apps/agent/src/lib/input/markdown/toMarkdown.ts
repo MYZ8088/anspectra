@@ -1,8 +1,8 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import {
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	normalizeProviderMarkdown,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 import type { Page } from "playwright";
 import { turndown } from "./converter.js";
 

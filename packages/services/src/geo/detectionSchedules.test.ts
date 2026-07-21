@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 process.env.DATABASE_URL ??=
-	"postgresql://postgres:postgres@127.0.0.1:5432/aloom";
+	"postgresql://postgres:postgres@127.0.0.1:5432/anspectra";
 
 const {
 	nextDetectionScheduleAfterInitialRun,

@@ -1,5 +1,4 @@
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
@@ -8,14 +7,15 @@ const geist = Geist({
 	variable: "--font-geist-sans",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
+const siteUrl =
+	process.env.NEXT_PUBLIC_SITE_URL ?? "https://anspectra.pages.dev";
 const repositoryUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteUrl),
-	title: "Aloom | Official Web GEO Detection",
+	title: "Anspectra | Official Web GEO Detection",
 	description:
-		"Aloom measures product visibility across Doubao, DeepSeek, Yuanbao, and Qwen using preset prompt suites and official Web interfaces.",
+		"Anspectra measures product visibility across Doubao, DeepSeek, Yuanbao, and Qwen using preset prompt suites and official Web interfaces.",
 	keywords: [
 		"GEO",
 		"generative engine optimization",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 		"LLM visibility",
 		"AI search detection",
 		"AI mention tracking",
-		"aloom",
+		"anspectra",
 	],
 	alternates: {
 		canonical: siteUrl,
@@ -63,24 +63,24 @@ export const metadata: Metadata = {
 		],
 	},
 	openGraph: {
-		title: "Aloom | Official Web GEO Detection",
+		title: "Anspectra | Official Web GEO Detection",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		url: siteUrl,
-		siteName: "Aloom",
+		siteName: "Anspectra",
 		type: "website",
 		images: [
 			{
 				url: "/opengraph-image",
 				width: 1200,
 				height: 630,
-				alt: "Aloom official Web GEO detection report",
+				alt: "Anspectra official Web GEO detection report",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Aloom | Official Web GEO Detection",
+		title: "Anspectra | Official Web GEO Detection",
 		description:
 			"Measure product visibility across Doubao, DeepSeek, Yuanbao, and Qwen through their official Web interfaces.",
 		images: ["/twitter-image"],
@@ -90,7 +90,7 @@ export const metadata: Metadata = {
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
-	name: "Aloom",
+	name: "Anspectra",
 	url: siteUrl,
 	description:
 		"Open-source GEO detection for Doubao, DeepSeek, Yuanbao, and Qwen using persistent local browser profiles and official Web interfaces.",
@@ -105,7 +105,7 @@ const jsonLd = {
 	...(repositoryUrl ? { codeRepository: repositoryUrl } : {}),
 	author: {
 		"@type": "Organization",
-		name: "Aloom",
+		name: "Anspectra",
 		url: siteUrl,
 		...(repositoryUrl ? { sameAs: [repositoryUrl] } : {}),
 	},
@@ -125,7 +125,6 @@ export default function RootLayout({
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
 				{children}
-				<Analytics />
 			</body>
 		</html>
 	);

@@ -20,7 +20,7 @@ vi.mock("../providers/index.js", () => ({
 }));
 
 vi.mock("../../env.js", () => ({
-	env: { ALOOM_APP_MODE: "local" },
+	env: { ANSPECTRA_APP_MODE: "local" },
 }));
 
 import { executePromptWithRetry } from "./retryPolicy.js";

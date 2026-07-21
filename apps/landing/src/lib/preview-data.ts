@@ -1,4 +1,4 @@
-import type { DashboardCompetitorData } from "@aloom/ui";
+import type { DashboardCompetitorData } from "@anspectra/ui";
 
 export const PREVIEW_BRAND = {
 	name: "PostHog",

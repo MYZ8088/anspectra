@@ -11,7 +11,7 @@ import {
 	FormLabel,
 	FormMessage,
 	Input,
-} from "@aloom/ui";
+} from "@anspectra/ui";
 import type { Control, FieldValues, Path } from "react-hook-form";
 
 type PasswordFieldProps<T extends FieldValues> = {

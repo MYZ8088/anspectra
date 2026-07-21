@@ -1,12 +1,12 @@
-import { HumanChallengeError, toErrorMessage } from "@aloom/errors";
-import { readAuthenticatedRuntimeProviders } from "@aloom/services/agent-auth";
+import { HumanChallengeError, toErrorMessage } from "@anspectra/errors";
+import { readAuthenticatedRuntimeProviders } from "@anspectra/services/agent-auth";
 import type {
 	AskPromptResult,
 	PromptPayload,
 	Provider,
 	ProviderMode,
-} from "@aloom/types";
-import { createProviderLogger, logger } from "@aloom/utils";
+} from "@anspectra/types";
+import { createProviderLogger, logger } from "@anspectra/utils";
 import { agentHandler } from "../core/agentHandler.js";
 import { createAgent } from "../core/createAgent.js";
 import { PROVIDER_CONFIGS } from "../core/providers/index.js";

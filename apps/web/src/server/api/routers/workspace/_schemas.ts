@@ -1,4 +1,4 @@
-import { AUTH_PROVIDER_LIST } from "@aloom/types";
+import { AUTH_PROVIDER_LIST } from "@anspectra/types";
 import { z } from "zod";
 
 export const createWorkspaceInputSchema = z.object({

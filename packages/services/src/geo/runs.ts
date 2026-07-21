@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { clickhouse, db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { clickhouse, db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	AskPromptResult,
 	BrandAnalysisResult,
@@ -9,9 +9,9 @@ import type {
 	SampleAttemptEvent,
 	SamplingDepth,
 	UserPrompt,
-} from "@aloom/types";
-import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
-import { formatDateToClickHouse } from "@aloom/utils";
+} from "@anspectra/types";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@anspectra/types";
+import { formatDateToClickHouse } from "@anspectra/utils";
 import {
 	and,
 	asc,
@@ -59,7 +59,7 @@ export const GEO_WEB_PROVIDERS = [
 ] as const satisfies readonly Provider[];
 
 const DAILY_PROVIDER_SAMPLE_LIMIT = 30;
-const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
+const PROVIDER_WINDOW_CHANNEL = "anspectra:agent:provider-window";
 
 function promptSetSamplingDepth(promptSet: {
 	tier: string;
@@ -806,7 +806,11 @@ export async function startGeoCollectionRun(args: {
 			locales?: string[];
 		};
 		if (
-			!["aloom-geo-detection-v1", "yao-full-geo-v1"].includes(
+			![
+				"anspectra-geo-detection-v1",
+				"aloom-geo-detection-v1",
+				"yao-full-geo-v1",
+			].includes(
 				promptSet.packKey ?? "",
 			) ||
 			formalManifest.completePreset !== true ||
@@ -831,7 +835,7 @@ export async function startGeoCollectionRun(args: {
 		args.providers?.length ? args.providers : [...GEO_WEB_PROVIDERS]
 	).filter((provider) => GEO_WEB_PROVIDERS.includes(provider as never));
 	const [localHeartbeat, collectors, connectedProfiles] = await Promise.all([
-		redis.get("aloom:agent:heartbeat").catch(() => null),
+		redis.get("anspectra:agent:heartbeat").catch(() => null),
 		db.query.collectorNodes.findMany({
 			where: eq(schema.collectorNodes.workspaceId, args.workspaceId),
 			orderBy: [desc(schema.collectorNodes.lastHeartbeatAt)],
@@ -2296,7 +2300,7 @@ export async function getGeoOverview(workspaceId: string) {
 					eq(schema.detectionSchedules.enabled, true),
 				),
 			}),
-			redis.get("aloom:agent:heartbeat").catch(() => null),
+			redis.get("anspectra:agent:heartbeat").catch(() => null),
 		]);
 	return {
 		runnerOnline:

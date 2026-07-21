@@ -1,8 +1,8 @@
-import { db, schema } from "@aloom/db";
-import type { Workspace } from "@aloom/db";
-import { ValidationError } from "@aloom/errors";
-import type { CreateWorkspaceForTenantArgs } from "@aloom/types";
-import { newId } from "@aloom/utils";
+import { db, schema } from "@anspectra/db";
+import type { Workspace } from "@anspectra/db";
+import { ValidationError } from "@anspectra/errors";
+import type { CreateWorkspaceForTenantArgs } from "@anspectra/types";
+import { newId } from "@anspectra/utils";
 import { and, eq, isNull } from "drizzle-orm";
 
 export async function createWorkspaceForTenant(
@@ -20,6 +20,7 @@ export async function createWorkspaceForTenant(
 		enabledProviders: null,
 		selectedPromptIds: null,
 		createdAt: new Date(),
+		archivedAt: null,
 		deletedAt: null,
 	};
 
@@ -87,6 +88,7 @@ export async function checkSlugExistsForUser(args: {
 		.where(
 			and(
 				eq(schema.workspaces.slug, slug),
+				isNull(schema.workspaces.archivedAt),
 				isNull(schema.workspaces.deletedAt),
 			),
 		)

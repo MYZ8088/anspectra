@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@aloom/errors";
-import type { Provider } from "@aloom/types";
-import { logger, withTimeout } from "@aloom/utils";
+import { ExternalServiceError } from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
+import { logger, withTimeout } from "@anspectra/utils";
 import type { Page } from "playwright";
 import {
 	moveMouseToElement,

@@ -1,8 +1,8 @@
-import { db, schema } from "@aloom/db";
+import { db, schema } from "@anspectra/db";
 import type {
 	FetchUserPromptsForWorkspaceArgs,
 	UserPrompt,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, eq } from "drizzle-orm";
 
 /** PostgreSQL compatibility facade. ClickHouse user_prompts remains read-only history. */

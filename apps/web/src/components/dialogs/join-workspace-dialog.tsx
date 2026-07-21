@@ -10,8 +10,8 @@ import {
 } from "@/components/forms/auth-form-chrome";
 import { authClient } from "@/lib/auth/auth-client";
 import { api } from "@/trpc/react";
-import { Button, Input, Label, toast } from "@aloom/ui";
-import { cn } from "@aloom/utils";
+import { Button, Input, Label, toast } from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

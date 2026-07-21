@@ -1,32 +1,30 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/aloom-mark-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/brand/aloom-mark.svg" />
-    <img src="./assets/brand/aloom-mark.svg" alt="Aloom mark" width="92" />
-  </picture>
+  <img src="./docs/images/anspectra-mark.png" alt="Anspectra mark" width="128" />
 </p>
 
-<h1 align="center">Aloom</h1>
+<h1 align="center">Anspectra</h1>
 
 <p align="center">
   <strong>Measure product visibility in official AI Web answers.</strong>
 </p>
 
 <p align="center">
-  Fixed prompt suites · Repeatable browser collection · Provider-level reports
+  Fixed prompt suites · Official-Web collection · Comparable provider reports
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a>
+  <a href="https://anspectra.pages.dev/">Website</a> ·
+  <a href="https://anspectra.pages.dev/docs/">Documentation</a> ·
+  <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
-Aloom is a self-hosted GEO detection and recurring monitoring tool for Doubao, DeepSeek, Yuanbao, and Qwen. It uses fixed, versioned prompt suites, real official-Web collection, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official-Web monitoring samples.
+Anspectra is a self-hosted GEO detection and recurring monitoring tool for Doubao, DeepSeek, Yuanbao, and Qwen. It uses fixed, versioned prompt suites, real official-Web collection, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official-Web monitoring samples.
 
 <p align="center">
-  <img src="./docs/images/aloom-detection.png" alt="Aloom detection dashboard" width="100%" />
+  <img src="./docs/images/anspectra-detection.png" alt="Anspectra detection dashboard" width="100%" />
 </p>
 
-### What Aloom measures
+### What Anspectra measures
 
 - Product mention, candidate, and recommendation rates.
 - Absolute rank, sentiment, target share, and competitor share.
@@ -40,10 +38,10 @@ Every failed, blocked, or unattempted checkpoint remains in the report denominat
 
 ### Scoring model
 
-Aloom reports two explicit score levels:
+Anspectra reports two explicit score levels:
 
 - **Answer Performance Score**: the mean of each analysed answer's visibility, rank, sentiment, and recommendation scores, weighted 25% each. Missing or failed planned samples contribute zero to the series mean.
-- **Aloom GEO Score v1**: a series-level score that combines six independent measurement layers and is calculated separately for the overall series and for each provider.
+- **Anspectra GEO Score v1**: a series-level score that combines six independent measurement layers and is calculated separately for the overall series and for each provider.
 
 | Series layer | Weight | What it measures |
 | --- | ---: | --- |
@@ -54,7 +52,7 @@ Aloom reports two explicit score levels:
 | Stability | 10% | Agreement across repeated, mode-matched samples. |
 | Governance | 10% | Collection, analysis, and required-dimension completeness. |
 
-An unavailable layer is not silently scored as zero. Aloom normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Aloom's independently versioned product weights.
+An unavailable layer is not silently scored as zero. Anspectra normalizes the score across assessed layers, displays the assessed weight as **scoring coverage**, and marks the result provisional whenever coverage is below 100% or the formal series is incomplete. These are Anspectra's independently versioned product weights.
 
 Every provider report includes its own weighted score, layer breakdown, Answer Performance Score, completion, analysis rate, mention, recommendation, absolute rank, sentiment, visible-source exposure, target share, competitor share, mode cohorts, failures, prompts, raw answers, citations, and conversation evidence.
 
@@ -64,13 +62,13 @@ Every provider report includes its own weighted score, layer breakdown, Answer P
 2. Confirm the brand, category, products, audiences, regions, and competitors.
 3. Select a detection suite, language, providers, official-Web modes, and sampling depth.
 4. Review every rendered prompt, total sample count, run count, and cadence, then click **Start detection**.
-5. Aloom records the selected configuration and runs each prompt in a fresh official-Web conversation.
+5. Anspectra records the selected configuration and runs each prompt in a fresh official-Web conversation.
 6. Inspect the report by provider, mode, locale, intent, stage, exposure, entity, or individual prompt.
 7. Choose the total run count and a daily, weekly, or monthly cadence in New Detection. Every planned run stays in the same comparable series.
 
 Formal detection does not accept arbitrary custom prompts. Historical custom and legacy prompts remain linked to their original samples but are excluded from new formal series and reports.
 
-### Aloom GEO Detection Pack v1.1
+### Anspectra GEO Detection Pack v1.2
 
 The built-in pack contains 54 fixed templates per language: nine intents across six decision stages.
 
@@ -89,14 +87,14 @@ The run plan is independent from prompt coverage. Choose 1–30 total runs and, 
 
 ### Official-Web modes
 
-Aloom records requested and verified modes separately. Search-enabled cohorts are never merged with non-search cohorts.
+Anspectra records requested and verified modes separately. Search-enabled cohorts are never merged with non-search cohorts.
 
 | Provider | Supported text cohorts | Search rule |
 | --- | --- | --- |
 | Doubao | Fast, Expert | Office-agent modes are excluded from GEO text baselines. |
 | DeepSeek | Fast, Expert, DeepThink, Fast + Search | Search is only valid with Instant/Fast. DeepThink + Search is rejected. |
 | Yuanbao | Default, Deep Thinking, Search, Deep Thinking + Search | Search must be explicitly selected from `Tool > Search`. |
-| Qwen | Auto, Fast, Thinking, plus search-enabled variants | Search is selected through `+ > More > Web search`; Aloom verifies the separate composer marker and never treats the general `Tools` switch as proof of search. |
+| Qwen | Auto, Fast, Thinking, plus search-enabled variants | Search is selected through `+ > More > Web search`; Anspectra verifies the separate composer marker and never treats the general `Tools` switch as proof of search. |
 
 If a platform changes or a switch cannot be verified, the sample fails with a mode-specific error instead of being mislabeled.
 
@@ -109,10 +107,10 @@ The local collector runs task-bound headless Camoufox with one persistent profil
 - Every baseline prompt starts a fresh conversation.
 - A confirmed submission is never sent again merely because extraction failed.
 - Login expiry, QR confirmation, CAPTCHA, sliders, and security checks enter `waiting_human`.
-- Human handling opens the same persistent profile in a visible window; Aloom does not bypass verification.
+- Human handling opens the same persistent profile in a visible window; Anspectra does not bypass verification.
 - Completed samples and checkpoints survive browser, collector, and challenge recovery.
 
-AIHubMix is used only after collection to structure observed answers. A Full Matrix never places 54 answers into one model context: each answer receives one schema-constrained analysis call, and reports aggregate validated records deterministically.
+A configured OpenAI-compatible model is used only after collection to structure observed answers. A Full Matrix never places 54 answers into one model context: each answer receives one schema-constrained analysis call, and reports aggregate validated records deterministically.
 
 ### Architecture
 
@@ -127,7 +125,7 @@ flowchart LR
   C --> Y["Yuanbao Web"]
   C --> Q["Qwen Web"]
   C --> CH
-  CH --> A["AIHubMix structured analysis"]
+  CH --> A["OpenAI-compatible structured analysis"]
 ```
 
 ### Local setup
@@ -135,8 +133,8 @@ flowchart LR
 Requirements: macOS or Windows, Node.js 20+, pnpm 10+, Docker Desktop, and Python 3.12.
 
 ```bash
-git clone https://github.com/MYZ8088/aloom.git
-cd aloom
+git clone https://github.com/MYZ8088/anspectra.git
+cd anspectra
 cp .env.example .env
 pnpm install
 pnpm camoufox:setup
@@ -144,9 +142,17 @@ pnpm camoufox:doctor
 pnpm local:background
 ```
 
-Open `http://localhost:3000`, then connect each provider under `Providers`. The background runtime remains active after the launching terminal closes. Persistent profiles are stored under `.aloom-storage/` and are excluded from Git.
+Open `http://localhost:3000`, then connect each provider under `Providers`. The background runtime remains active after the launching terminal closes. Persistent profiles are stored under `.anspectra-storage/` and are excluded from Git.
 
-For an installation created under an earlier project name, run `pnpm brand:migrate-runtime` once before `pnpm local`. The migration copies legacy Docker volumes and local browser state into Aloom names, verifies volume sizes, keeps the legacy volumes, and backs up incomplete target volumes.
+To load the deterministic two-cycle report shown above into local PostgreSQL and ClickHouse, run:
+
+```bash
+pnpm demo:two-cycle -- --owner-email=you@example.com
+```
+
+The command refuses non-local databases and is idempotent. Its 144 synthetic samples are permanently marked as `Demo data`; they never represent live provider output or enter formal trends.
+
+For an installation created under an earlier project name, run `pnpm brand:migrate-runtime` once before `pnpm local`. The compatibility migration verifies and preserves existing Docker volumes and local browser state without deleting the legacy data.
 
 Useful commands:
 
@@ -163,7 +169,7 @@ pnpm build            # language/privacy gates plus production builds
 pnpm test:soak:same-day -- --workspace=<id> --user=<id> # scheduled acceptance smoke
 ```
 
-Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. Interrupted BullMQ jobs use PostgreSQL checkpoints to skip terminal samples and resume only unfinished prompts.
+Background runtime logs are written to `.anspectra-storage/logs/local-daemon.log`. Interrupted BullMQ jobs use PostgreSQL checkpoints to skip terminal samples and resume only unfinished prompts.
 
 ### Reliability rules
 
@@ -172,7 +178,7 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 - Structured analysis runs in a separate bounded background lane controlled by `COLLECTOR_ANALYSIS_CONCURRENCY` (default `2`) and never blocks official-Web collection.
 - Browser restarts reuse the same persistent identity and profile.
 - Prompt echoes, login pages, challenge pages, provider errors, and empty answers are rejected.
-- A submitted answer is re-read before any resend. If it remains structurally incomplete, Aloom may retry it once in a verified fresh conversation; extraction failures never trigger an unbounded or blind resend loop.
+- A submitted answer is re-read before any resend. If it remains structurally incomplete, Anspectra may retry it once in a verified fresh conversation; extraction failures never trigger an unbounded or blind resend loop.
 - Collection and analysis statuses are stored independently.
 - Strict JSON Schema, balanced JSON extraction, local repair, Zod validation, a fallback model, and one targeted repair pass stabilize structured analysis.
 - Trends compare only matching prompt hashes, providers, modes, languages, and sampling definitions.
@@ -181,11 +187,11 @@ Background runtime logs are written to `.aloom-storage/logs/local-daemon.log`. I
 
 ### Project lineage and licenses
 
-Aloom is an independent project, not an official OneGlanse or Yao GEO Skills release.
+Anspectra is an independent project, not an official OneGlanse or Yao GEO Skills release.
 
-- Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Aloom substantially reworks that foundation into a detection-only product with persistent local collectors, versioned run manifests, mode-aware sampling, and report-level checkpoints.
-- Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills), copyright 2026 Yao, under the MIT License. Aloom is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
-- Aloom itself is licensed under Apache-2.0 and is copyright 2026 MYZ8088.
+- Parts of the original codebase and self-hosted architecture are derived from [OneGlanse](https://github.com/aryamantodkar/oneglanse), copyright 2025 Aryaman Todkar, under the MIT License. Anspectra substantially reworks that foundation into a detection-only product with persistent local collectors, versioned run manifests, mode-aware sampling, and report-level checkpoints.
+- Selected prompt-taxonomy, intent-mining, and Web-sampling quality concepts were informed by [Yao GEO Skills](https://github.com/yaojingang/yao-geo-skills), copyright 2026 Yao, under the MIT License. Anspectra is not a complete implementation of that Skill: its prompt pack, runner, data model, scoring, and reports are maintained independently, and it does not depend on the Skill, Codex, OpenCLI, or the remote repository at runtime.
+- Anspectra itself is licensed under Apache-2.0 and is copyright 2026 MYZ8088.
 
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the complete notices.
 

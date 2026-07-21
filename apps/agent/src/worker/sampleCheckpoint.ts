@@ -1,6 +1,6 @@
-import { storePromptResponses } from "@aloom/services";
-import type { AskPromptResult, ModelResult, Provider } from "@aloom/types";
-import { PROVIDER_LIST } from "@aloom/types";
+import { storePromptResponses } from "@anspectra/services";
+import type { AskPromptResult, ModelResult, Provider } from "@anspectra/types";
+import { PROVIDER_LIST } from "@anspectra/types";
 import { writePromptSampleToOutbox } from "./sampleOutbox.js";
 
 function buildSingleSampleResult(

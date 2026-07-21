@@ -3,15 +3,15 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
-import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
+import { ExternalServiceError, toErrorMessage } from "@anspectra/errors";
 import {
 	getProviderProfileDir,
 	getRuntimeProfileSeedPlan,
 	markRuntimeProfileSeeded,
 	prepareRuntimeProfileBootstrap,
-} from "@aloom/services/agent-auth";
-import type { Provider, ProviderIdentityManifest } from "@aloom/types";
-import { logger } from "@aloom/utils";
+} from "@anspectra/services/agent-auth";
+import type { Provider, ProviderIdentityManifest } from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import { firefox } from "playwright-core";
 import type { BrowserContext as RawBrowserContext } from "playwright-core";
 import { resolveCamoufoxLaunchOptions } from "./camoufox.js";

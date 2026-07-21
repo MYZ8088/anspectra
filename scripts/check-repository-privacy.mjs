@@ -14,7 +14,7 @@ const listed = execFileSync(
 
 const forbiddenPaths = [
 	/^PRODUCT\.md$/i,
-	/(^|\/)\.(?:aloom|answerloom|oneglanse|prismetra)-storage(?:\/|$)/i,
+	/(^|\/)\.(?:anspectra|answerloom|oneglanse|prismetra)-storage(?:\/|$)/i,
 	/(^|\/)(?:cookies?|profiles?|sessions?|storage-state|storage_state)(?:\/|$)/i,
 	/(^|\/)(?:provider-adapter|provider-modes)(?:\/|$)/i,
 	/(?:^|\/)(?:raw|runs|results)\/(?:doubao|deepseek|hunyuan|qwen)(?:\/|$)/i,

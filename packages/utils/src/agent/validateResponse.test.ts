@@ -35,8 +35,8 @@ describe("validateResponse", () => {
 	});
 
 	it("rejects a Doubao document-card summary without its document body", () => {
-		const response = `我将从功能、成本、数据、集成、实施难度五个维度系统对比 Aloom 与 Profound，全程标注可核验公开来源、明确无法确认的信息，保证内容严谨合规、信息完整。
-		Aloom与Profound平台五维度对比分析（功能、成本、数据、集成、实施难度）
+		const response = `我将从功能、成本、数据、集成、实施难度五个维度系统对比 Anspectra 与 Profound，全程标注可核验公开来源、明确无法确认的信息，保证内容严谨合规、信息完整。
+		Anspectra与Profound平台五维度对比分析（功能、成本、数据、集成、实施难度）
 		创建时间：23:04
 		需要我帮你整理一份极简对比总表，方便你快速查阅核心差异吗？`;
 

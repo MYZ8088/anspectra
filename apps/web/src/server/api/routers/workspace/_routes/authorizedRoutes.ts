@@ -1,4 +1,4 @@
-import { AuthError, ValidationError } from "@aloom/errors";
+import { AuthError, ValidationError } from "@anspectra/errors";
 import {
 	addMemberToWorkspaceByEmail,
 	getWorkspaceById,
@@ -8,7 +8,7 @@ import {
 	updateOrganizationName,
 	updateWorkspaceDetails,
 	updateWorkspaceEnabledProviders,
-} from "@aloom/services";
+} from "@anspectra/services";
 import { authorizedWorkspaceProcedure } from "../../../procedures";
 import {
 	addMemberInputSchema,

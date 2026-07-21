@@ -1,5 +1,5 @@
-import type { Provider } from "@aloom/types";
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
+import type { Provider } from "@anspectra/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@anspectra/utils";
 import type { Page } from "playwright";
 
 export async function getText(page: Page, provider: Provider): Promise<string> {

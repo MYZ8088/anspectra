@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { clickhouse, db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { clickhouse, db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	DetectionDimensionFilter,
 	DetectionRunPlan,
@@ -11,7 +11,7 @@ import type {
 	PromptOrigin,
 	PromptRelevance,
 	SamplingDepth,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -50,8 +50,8 @@ export type CustomPromptInput = {
 	tags?: string[];
 };
 
-const ALOOM_PACK_KEY = "aloom-geo-detection-v1";
-const ALOOM_PACK_VERSION = "1.1.0";
+const ANSPECTRA_PACK_KEY = "anspectra-geo-detection-v1";
+const ANSPECTRA_PACK_VERSION = "1.2.0";
 const DEFAULT_PROVIDERS = ["doubao", "deepseek", "hunyuan", "qwen"];
 
 function normalizeLocale(locale?: string | null): "zh-CN" | "en-US" {
@@ -393,8 +393,8 @@ export async function previewDetection(args: {
 	const providerCount = args.providerCount ?? DEFAULT_PROVIDERS.length;
 	const profileCompleteness = getProfileCompleteness(profile);
 	return {
-		packKey: ALOOM_PACK_KEY,
-		packVersion: ALOOM_PACK_VERSION,
+		packKey: ANSPECTRA_PACK_KEY,
+		packVersion: ANSPECTRA_PACK_VERSION,
 		suiteKey: plans.some((plan) => plan.manifest.isFiltered)
 			? "filtered"
 			: args.suiteKey,
@@ -785,7 +785,7 @@ export async function migrateLegacyPrompts(workspaceId: string) {
 			active: false,
 			locked: true,
 			archivedAt,
-			archivedReason: "Archived Aloom onboarding/test prompt",
+			archivedReason: "Archived Anspectra onboarding/test prompt",
 			updatedAt: archivedAt,
 		})
 		.where(
@@ -927,8 +927,8 @@ export async function listWorkspacePromptLibraryV2(workspaceId: string) {
 	const [systemTemplates, rows] = await Promise.all([
 		db.query.promptTemplates.findMany({
 			where: and(
-				eq(schema.promptTemplates.packKey, ALOOM_PACK_KEY),
-				eq(schema.promptTemplates.version, ALOOM_PACK_VERSION),
+				eq(schema.promptTemplates.packKey, ANSPECTRA_PACK_KEY),
+				eq(schema.promptTemplates.version, ANSPECTRA_PACK_VERSION),
 				eq(schema.promptTemplates.active, true),
 			),
 			orderBy: [

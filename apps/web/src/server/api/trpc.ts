@@ -1,7 +1,7 @@
 import "server-only";
 
-import { db } from "@aloom/db";
-import { BaseError } from "@aloom/errors";
+import { db } from "@anspectra/db";
+import { BaseError } from "@anspectra/errors";
 import { auth } from "@lib/auth/auth";
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";

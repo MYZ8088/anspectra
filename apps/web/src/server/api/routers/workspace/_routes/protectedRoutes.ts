@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/auth";
-import { ValidationError } from "@aloom/errors";
+import { ValidationError } from "@anspectra/errors";
 import {
 	addWorkspaceToExistingOrg,
 	checkIsFirstWorkspace,
@@ -9,7 +9,7 @@ import {
 	getAllWorkspacesForUser,
 	getWorkspacesForUser,
 	joinWorkspaceByCode,
-} from "@aloom/services";
+} from "@anspectra/services";
 import { createRateLimiter } from "../../../middleware/rateLimit";
 import { protectedProcedure } from "../../../procedures";
 import {

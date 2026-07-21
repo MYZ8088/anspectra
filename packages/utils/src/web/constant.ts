@@ -1,4 +1,4 @@
-import { PROVIDER_LIST } from "@aloom/types";
+import { PROVIDER_LIST } from "@anspectra/types";
 import { PROVIDER_DISPLAY } from "../agent/providers.js";
 
 export const modelSelectors = [

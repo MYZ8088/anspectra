@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { toErrorMessage } from "@aloom/errors";
-import type { Provider, ProviderMode, UserPrompt } from "@aloom/types";
-import { PROVIDER_LIST } from "@aloom/types";
+import { toErrorMessage } from "@anspectra/errors";
+import type { Provider, ProviderMode, UserPrompt } from "@anspectra/types";
+import { PROVIDER_LIST } from "@anspectra/types";
 import { fetchUserPromptsForWorkspace } from "../prompt/index.js";
 import { getWorkspaceById } from "../workspace/index.js";
 import {
@@ -14,7 +14,7 @@ import { getProviderQueue } from "./queue.js";
 import { redis, waitForRedis } from "./redis.js";
 
 const AGENT_PROGRESS_TTL_SECONDS = 24 * 60 * 60;
-const PROVIDER_STOP_CHANNEL = "aloom:agent:provider-stop";
+const PROVIDER_STOP_CHANNEL = "anspectra:agent:provider-stop";
 
 type ProviderJobPayload = {
 	jobGroupId: string;

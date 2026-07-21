@@ -1,6 +1,6 @@
-import { db, schema } from "@aloom/db";
-import type { Workspace } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { db, schema } from "@anspectra/db";
+import type { Workspace } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	GetAllWorkspacesForUserArgs,
 	GetWorkspaceByIdArgs,
@@ -8,7 +8,7 @@ import type {
 	GetWorkspacesForUserArgs,
 	WorkspaceJoinInfo,
 	WorkspaceMemberWithUser,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, eq, isNull } from "drizzle-orm";
 import type {
 	JoinByCodeOrganization,
@@ -63,6 +63,7 @@ export async function getWorkspacesForUser(
 			enabledProviders: schema.workspaces.enabledProviders,
 			selectedPromptIds: schema.workspaces.selectedPromptIds,
 			createdAt: schema.workspaces.createdAt,
+			archivedAt: schema.workspaces.archivedAt,
 			deletedAt: schema.workspaces.deletedAt,
 		})
 		.from(schema.workspaces)
@@ -77,6 +78,7 @@ export async function getWorkspacesForUser(
 		.where(
 			and(
 				eq(schema.workspaces.tenantId, tenantId),
+				isNull(schema.workspaces.archivedAt),
 				isNull(schema.workspaces.deletedAt),
 			),
 		)
@@ -134,6 +136,7 @@ export async function getAllWorkspacesForUser(
 				enabledProviders: schema.workspaces.enabledProviders,
 				selectedPromptIds: schema.workspaces.selectedPromptIds,
 				createdAt: schema.workspaces.createdAt,
+				archivedAt: schema.workspaces.archivedAt,
 				deletedAt: schema.workspaces.deletedAt,
 			},
 			organization: {
@@ -147,6 +150,7 @@ export async function getAllWorkspacesForUser(
 			schema.workspaces,
 			and(
 				eq(schema.workspaces.id, schema.workspaceMembers.workspaceId),
+				isNull(schema.workspaces.archivedAt),
 				isNull(schema.workspaces.deletedAt),
 			),
 		)

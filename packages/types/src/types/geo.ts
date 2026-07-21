@@ -94,7 +94,7 @@ export type DetectionWeightedLayer = {
 };
 
 export type DetectionWeightedScore = {
-	modelVersion: "aloom-geo-score-v1";
+	modelVersion: "anspectra-geo-score-v1";
 	overall: number;
 	coverage: number;
 	provisional: boolean;
@@ -131,6 +131,7 @@ export type DetectionSliceMetrics = {
 export type DetectionReport = {
 	seriesId: string;
 	promptSetId: string;
+	dataOrigin: "live_web" | "synthetic_demo";
 	seriesStatus: string;
 	provisional: boolean;
 	suiteKey: DetectionSuiteKey;
@@ -160,8 +161,21 @@ export type DetectionReport = {
 		mentions: number;
 		recommendations: number;
 	}>;
+	cycles: Array<{
+		runId: string;
+		roundIndex: number;
+		status: string;
+		scheduledAt: Date | null;
+		startedAt: Date | null;
+		completedAt: Date | null;
+		provisional: boolean;
+		overall: DetectionSliceMetrics;
+		providers: DetectionSliceMetrics[];
+	}>;
 	samples: Array<{
 		checkpointId: string;
+		runId: string;
+		roundIndex: number;
 		provider: string;
 		status: string;
 		analysisStatus: string;

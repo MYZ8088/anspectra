@@ -6,9 +6,9 @@ import {
 	reconcileStaleGeoCollectionRuns,
 	redis,
 	waitForRedis,
-} from "@aloom/services";
-import type { Provider } from "@aloom/types";
-import { logger } from "@aloom/utils";
+} from "@anspectra/services";
+import type { Provider } from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import { Worker } from "bullmq";
 import { env } from "./env.js";
 import { focusProviderSession } from "./lib/browser/providerSessionManager.js";
@@ -29,14 +29,14 @@ export let workers: Worker[] = [];
 // BullMQ renews live locks automatically. A shorter lock lets another local
 // collector recover promptly after an ungraceful process or machine shutdown.
 const WORKER_LOCK_DURATION_MS = 5 * 60 * 1000;
-const PROVIDER_STOP_CHANNEL = "aloom:agent:provider-stop";
-const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
+const PROVIDER_STOP_CHANNEL = "anspectra:agent:provider-stop";
+const PROVIDER_WINDOW_CHANNEL = "anspectra:agent:provider-window";
 
 async function startWorkers() {
 	await waitForRedis();
 	const writeHeartbeat = async () => {
 		await redis.set(
-			"aloom:agent:heartbeat",
+			"anspectra:agent:heartbeat",
 			new Date().toISOString(),
 			"EX",
 			90,

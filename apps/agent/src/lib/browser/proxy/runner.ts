@@ -3,7 +3,7 @@ import {
 	IPRefreshNeededError,
 	classifyError,
 	toErrorMessage,
-} from "@aloom/errors";
+} from "@anspectra/errors";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,8 +11,8 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@aloom/types";
-import { createProviderLogger, exponentialBackoff, logger } from "@aloom/utils";
+} from "@anspectra/types";
+import { createProviderLogger, exponentialBackoff, logger } from "@anspectra/utils";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { runAgents } from "../../../core/runAgents.js";
 
@@ -226,7 +226,7 @@ async function runRetryCycle(
 	completedByPromptId?: Map<string, AskPromptResult>,
 ): Promise<{ done: true } | { done: false; updatedPayload: PromptPayload }> {
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(process.env.ALOOM_APP_MODE),
+		resolveAppMode(process.env.ANSPECTRA_APP_MODE),
 	);
 	let nextPayload = currentPayload;
 
@@ -430,7 +430,7 @@ export async function runWithRetryCycles(
 ): Promise<AskPromptResult[]> {
 	const plog = createProviderLogger(provider);
 	const useProxy = shouldUseProxyInMode(
-		resolveAppMode(process.env.ALOOM_APP_MODE),
+		resolveAppMode(process.env.ANSPECTRA_APP_MODE),
 	);
 	const attemptsPerCycle = useProxy ? ATTEMPTS_PER_CYCLE : 2;
 	const maxCycles = useProxy ? MAX_CYCLES : 1;

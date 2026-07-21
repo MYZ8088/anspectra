@@ -1,4 +1,4 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import type { Page } from "playwright";
 import { turndown } from "../../../lib/input/markdown/converter.js";
 import { extractLatestDoubaoArtifact } from "../doubao/lib/extractArtifact.js";

@@ -1,5 +1,5 @@
-import { clickhouse, db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { clickhouse, db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	BrandAnalysisResult,
 	DetectedAnswerLanguage,
@@ -12,7 +12,7 @@ import type {
 	SamplingDepth,
 	SearchSourceCoverage,
 	SourceKind,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { ensureSourceKindSchema } from "../prompt/lib/ensureSourceKindSchema.js";
 import {
@@ -30,6 +30,7 @@ type RawSource = {
 };
 
 type ReportSample = ScorecardSample & {
+	runId: string;
 	dimensions: Record<string, unknown>;
 	response: string | null;
 	responseLanguage: DetectedAnswerLanguage;
@@ -451,7 +452,7 @@ export function buildDetectionExecutiveSummary(args: {
 	const topCompetitor = args.competitors[0];
 	return [
 		`${overall.completed} of ${args.plannedSamples} planned samples were collected (${overall.completionRate}%).`,
-		`The Aloom GEO Score is ${overall.weightedScore.overall}/100 with ${overall.weightedScore.coverage}% of scoring dimensions currently assessable${overall.weightedScore.provisional ? "; treat it as provisional" : ""}.`,
+		`The Anspectra GEO Score is ${overall.weightedScore.overall}/100 with ${overall.weightedScore.coverage}% of scoring dimensions currently assessable${overall.weightedScore.provisional ? "; treat it as provisional" : ""}.`,
 		`Across all planned samples, the target appeared in ${overall.mentionRate.value}% and was recommended in ${overall.recommendationRate.value}%.`,
 		`${overall.answerLanguageMatchRate.numerator} of ${overall.answerLanguageMatchRate.denominator} collected answers matched the requested prompt language (${overall.answerLanguageMatchRate.value}%).`,
 		`Provider search sources were exposed in ${overall.searchSourceExposureRate.value}% of collected answers; answer-body links appeared in ${overall.answerLinkExposureRate.value}%.`,
@@ -540,6 +541,7 @@ export async function getDetectionReport(args: {
 		const responseLanguage = detectAnswerLanguage(response);
 		return {
 			id: checkpoint.id,
+			runId: checkpoint.runId,
 			provider: checkpoint.provider,
 			status: checkpoint.status,
 			analysisStatus: checkpoint.analysisStatus,
@@ -626,12 +628,46 @@ export async function getDetectionReport(args: {
 		tier: series.tier,
 		requiredProviders: series.requiredProviders ?? [],
 	});
+	const rowsByRun = groupRows(rows, (row) => row.runId);
+	const cycles = runs.map((run) => {
+		const cycleSlices = buildDetectionSlices({
+			rows: rowsByRun.get(run.id) ?? [],
+			tier: series.tier,
+			requiredProviders: series.requiredProviders ?? [],
+		});
+		const cycleOverall = cycleSlices.overall[0];
+		if (!cycleOverall) {
+			throw new Error(`Detection cycle ${run.id} has no overall slice`);
+		}
+		return {
+			runId: run.id,
+			roundIndex: run.roundIndex,
+			status: run.status,
+			scheduledAt: run.scheduledAt,
+			startedAt: run.startedAt,
+			completedAt: run.completedAt,
+			provisional: cycleOverall.weightedScore.provisional,
+			overall: cycleOverall,
+			providers: cycleSlices.provider,
+		};
+	});
+	const runById = new Map(runs.map((run) => [run.id, run]));
 	const competitors = [...competitorMap.values()].sort(
 		(left, right) => right.mentions - left.mentions,
 	);
+	const seriesManifest = (series.manifest ?? {}) as {
+		dataOrigin?: unknown;
+		sampleSource?: unknown;
+	};
+	const dataOrigin =
+		seriesManifest.dataOrigin === "synthetic_demo" ||
+		seriesManifest.sampleSource === "synthetic_demo"
+			? "synthetic_demo"
+			: "live_web";
 	return {
 		seriesId: series.id,
 		promptSetId: promptSet.id,
+		dataOrigin,
 		seriesStatus: series.status,
 		provisional: slices.overall[0]?.weightedScore.provisional ?? true,
 		suiteKey,
@@ -666,8 +702,11 @@ export async function getDetectionReport(args: {
 		failures: buildDetectionFailureBreakdown(rows),
 		slices,
 		competitors,
+		cycles,
 		samples: rows.map((row) => ({
 			checkpointId: row.id,
+			runId: row.runId,
+			roundIndex: runById.get(row.runId)?.roundIndex ?? 1,
 			provider: row.provider,
 			status: row.status,
 			analysisStatus: row.analysisStatus,

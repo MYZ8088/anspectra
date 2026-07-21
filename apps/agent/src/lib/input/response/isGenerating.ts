@@ -1,8 +1,8 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import {
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	PROVIDER_RESPONSE_GENERATION_SELECTORS,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 import type { Page } from "playwright";
 import { isProvisionalResponse } from "./provisionalResponse.js";
 

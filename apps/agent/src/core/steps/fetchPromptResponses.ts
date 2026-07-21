@@ -1,6 +1,6 @@
-import { ExternalServiceError } from "@aloom/errors";
-import type { Provider } from "@aloom/types";
-import { exponentialBackoff, logger } from "@aloom/utils";
+import { ExternalServiceError } from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
+import { exponentialBackoff, logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { getText } from "../../lib/input/response/getText.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";

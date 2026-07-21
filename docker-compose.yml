@@ -1,4 +1,4 @@
-name: aloom
+name: anspectra
 
 services:
   # ----------------------------
@@ -13,8 +13,8 @@ services:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
         CAMOUFOX_PIP_SPEC: "${CAMOUFOX_PIP_SPEC:-cloverlabs-camoufox[geoip]==0.5.5}"
         CAMOUFOX_BROWSER_CHANNEL: "${CAMOUFOX_BROWSER_CHANNEL:-official/stable/135.0.1-beta.24}"
-    image: ${ALOOM_AGENT_IMAGE:-aloom/collector:local}
-    container_name: aloom-collector
+    image: ${ANSPECTRA_AGENT_IMAGE:-anspectra/collector:local}
+    container_name: anspectra-collector
     restart: unless-stopped
     stop_grace_period: 16m
     shm_size: "2gb"
@@ -22,11 +22,11 @@ services:
       - .env
     environment:
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-anspectra}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ALOOM_STORAGE_ROOT:-/opt/aloom/storage}:/storage
+      - ${ANSPECTRA_STORAGE_ROOT:-/opt/anspectra/storage}:/storage
     depends_on:
       redis:
         condition: service_healthy
@@ -60,7 +60,7 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
-    container_name: aloom-redis
+    container_name: anspectra-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -88,15 +88,15 @@ services:
     build:
       context: .
       dockerfile: ./packages/db/Dockerfile
-    image: ${ALOOM_POSTGRES_IMAGE:-aloom/postgres:local}
-    container_name: aloom-postgres
+    image: ${ANSPECTRA_POSTGRES_IMAGE:-anspectra/postgres:local}
+    container_name: anspectra-postgres
     restart: always
     command:
       - postgres
       - -c
       - shared_preload_libraries=pg_cron
       - -c
-      - cron.database_name=${POSTGRES_DB:-aloom}
+      - cron.database_name=${POSTGRES_DB:-anspectra}
     env_file:
       - .env
     volumes:
@@ -115,7 +115,7 @@ services:
           cpus: '0.25'
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-aloom}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-anspectra}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -125,7 +125,7 @@ services:
   # ----------------------------
   clickhouse:
     image: clickhouse/clickhouse-server:latest
-    container_name: aloom-clickhouse
+    container_name: anspectra-clickhouse
     restart: unless-stopped
     env_file:
       - .env
@@ -160,8 +160,8 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ALOOM_WEB_IMAGE:-aloom/web:local}
-    container_name: aloom-web
+    image: ${ANSPECTRA_WEB_IMAGE:-anspectra/web:local}
+    container_name: anspectra-web
     restart: unless-stopped
     env_file:
       - .env
@@ -169,11 +169,11 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       AGENT_AUTH_ROOT_DIR: /storage/auth
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-anspectra}
       CLICKHOUSE_URL: http://clickhouse:8123
       REDIS_HOST: redis
     volumes:
-      - ${ALOOM_STORAGE_ROOT:-/opt/aloom/storage}:/storage:ro
+      - ${ANSPECTRA_STORAGE_ROOT:-/opt/anspectra/storage}:/storage:ro
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -208,12 +208,12 @@ services:
       dockerfile: ./apps/web/Dockerfile
       args:
         PNPM_VERSION: "${PNPM_VERSION:-10.16.0}"
-    image: ${ALOOM_WEB_IMAGE:-aloom/web:local}
-    container_name: aloom-migrate
+    image: ${ANSPECTRA_WEB_IMAGE:-anspectra/web:local}
+    container_name: anspectra-migrate
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-aloom}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-anspectra}
     depends_on:
       db:
         condition: service_healthy
@@ -221,23 +221,23 @@ services:
     working_dir: /workspace
     networks:
       - data
-    command: pnpm --filter @aloom/db db:migrate
+    command: pnpm --filter @anspectra/db db:migrate
 
 # ----------------------------
 # Volumes
 # ----------------------------
 volumes:
   db_data:
-    name: aloom-db-data
+    name: anspectra-db-data
   clickhouse_data:
-    name: aloom-clickhouse-data
+    name: anspectra-clickhouse-data
   redis_data:
-    name: aloom-redis-data
+    name: anspectra-redis-data
 
 networks:
   edge:
     external: true
-    name: aloom-edge
+    name: anspectra-edge
   frontend:
     driver: bridge
   backend:

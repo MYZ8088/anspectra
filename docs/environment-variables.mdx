@@ -1,6 +1,6 @@
 ---
 title: Environment Variables
-description: Current Aloom control-plane, analysis, and local-collector configuration.
+description: Current Anspectra control-plane, analysis, and local-collector configuration.
 ---
 
 ## Core services
@@ -20,13 +20,9 @@ description: Current Aloom control-plane, analysis, and local-collector configur
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ANALYSIS_LLM_PROVIDER` | `aihubmix` | `aihubmix`, `openai`, or `claude` |
-| `AIHUBMIX_API_KEY` | none | Default structured answer analysis |
-| `AIHUBMIX_BASE_URL` | `https://aihubmix.com/v1` | OpenAI-compatible AIHubMix endpoint |
-| `AIHUBMIX_ANALYSIS_MODEL` | configured model | Primary analysis model |
-| `AIHUBMIX_ANALYSIS_FALLBACK_MODEL` | configured model | Schema-recovery fallback |
-| `OPENAI_API_KEY` | none | Optional OpenAI analysis backend |
-| `ANTHROPIC_API_KEY` | none | Optional Anthropic analysis backend |
+| `LLM_BASE_URL` | none | OpenAI-compatible endpoint, including the version path |
+| `LLM_API_KEY` | none | Structured answer analysis credential |
+| `LLM_MODEL` | none | Model name sent to the configured endpoint |
 
 Analysis keys are not used to collect official Web samples.
 
@@ -43,14 +39,14 @@ Analysis keys are not used to collect official Web samples.
 
 Provider cookies, local storage, and browser profiles are intentionally not
 represented by environment variables and are never uploadable. They remain in
-the ignored `.aloom-storage/` directory on the collector machine.
+the ignored `.anspectra-storage/` directory on the collector machine.
 
 ## Docker
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `POSTGRES_DB` | `aloom` | PostgreSQL database name |
-| `CLICKHOUSE_DB` | `aloom` | ClickHouse database name |
-| `ALOOM_STORAGE_ROOT` | `/opt/aloom/storage` | Control-plane storage root |
-| `ALOOM_WEB_IMAGE` | local build | Optional Web image override |
-| `ALOOM_POSTGRES_IMAGE` | local build | Optional PostgreSQL image override |
+| `POSTGRES_DB` | `anspectra` | PostgreSQL database name |
+| `CLICKHOUSE_DB` | `analytics` | ClickHouse database name |
+| `ANSPECTRA_STORAGE_ROOT` | `/opt/anspectra/storage` | Control-plane storage root |
+| `ANSPECTRA_WEB_IMAGE` | local build | Optional Web image override |
+| `ANSPECTRA_POSTGRES_IMAGE` | local build | Optional PostgreSQL image override |

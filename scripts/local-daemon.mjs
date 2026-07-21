@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
 const repoRoot = path.resolve(scriptDir, "..");
-const runtimeDir = path.join(repoRoot, ".aloom-storage", "runtime");
-const logDir = path.join(repoRoot, ".aloom-storage", "logs");
+const runtimeDir = path.join(repoRoot, ".anspectra-storage", "runtime");
+const logDir = path.join(repoRoot, ".anspectra-storage", "logs");
 const stateFile = path.join(runtimeDir, "local-daemon.json");
 const logFile = path.join(logDir, "local-daemon.log");
 const runLocalScript = path.join(scriptDir, "run-local.mjs");
@@ -89,7 +89,7 @@ export function signalProcessTree(pid, signal) {
 async function start() {
 	const existing = await clearStaleState();
 	if (existing) {
-		console.log(`Aloom is already running (PID ${existing.pid}).`);
+		console.log(`Anspectra is already running (PID ${existing.pid}).`);
 		console.log(`Open ${appUrl}`);
 		return;
 	}
@@ -105,12 +105,12 @@ async function start() {
 		stdio: ["ignore", logFd, logFd],
 		env: {
 			...process.env,
-			ALOOM_OPEN_BROWSER: "0",
+			ANSPECTRA_OPEN_BROWSER: "0",
 		},
 	});
 	closeSync(logFd);
 	if (!child.pid)
-		throw new Error("Failed to start the Aloom background process.");
+		throw new Error("Failed to start the Anspectra background process.");
 
 	await writeFile(
 		stateFile,
@@ -130,10 +130,10 @@ async function start() {
 	await new Promise((resolve) => setTimeout(resolve, 750));
 	if (!isProcessAlive(child.pid)) {
 		await rm(stateFile, { force: true });
-		throw new Error(`Aloom exited during startup. Check ${logFile}.`);
+		throw new Error(`Anspectra exited during startup. Check ${logFile}.`);
 	}
 
-	console.log(`Aloom is starting in the background (PID ${child.pid}).`);
+	console.log(`Anspectra is starting in the background (PID ${child.pid}).`);
 	console.log(`Open ${appUrl}`);
 	console.log(`Logs: ${logFile}`);
 }
@@ -141,7 +141,7 @@ async function start() {
 async function status() {
 	const state = await clearStaleState();
 	if (!state) {
-		console.log("Aloom is not running.");
+		console.log("Anspectra is not running.");
 		process.exitCode = 1;
 		return;
 	}
@@ -151,7 +151,7 @@ async function status() {
 		const response = await fetch(appUrl, { cache: "no-store" });
 		webReady = response.ok;
 	} catch {}
-	console.log(`Aloom is running (PID ${state.pid}).`);
+	console.log(`Anspectra is running (PID ${state.pid}).`);
 	console.log(`Web: ${webReady ? "ready" : "starting"} at ${appUrl}`);
 	console.log(`Logs: ${state.logFile ?? logFile}`);
 }
@@ -159,20 +159,20 @@ async function status() {
 async function stop() {
 	const state = await clearStaleState();
 	if (!state) {
-		console.log("Aloom is not running.");
+		console.log("Anspectra is not running.");
 		return;
 	}
 
-	console.log(`Stopping Aloom (PID ${state.pid})...`);
+	console.log(`Stopping Anspectra (PID ${state.pid})...`);
 	signalProcessTree(state.pid, "SIGTERM");
 	if (!(await waitForManagedRuntimeExit(state.pid, 30_000))) {
 		signalProcessTree(state.pid, "SIGKILL");
 		if (!(await waitForManagedRuntimeExit(state.pid, 5_000))) {
-			throw new Error(`Failed to stop the Aloom process group ${state.pid}.`);
+			throw new Error(`Failed to stop the Anspectra process group ${state.pid}.`);
 		}
 	}
 	await rm(stateFile, { force: true });
-	console.log("Aloom stopped.");
+	console.log("Anspectra stopped.");
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {

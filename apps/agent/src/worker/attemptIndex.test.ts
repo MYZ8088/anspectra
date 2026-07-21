@@ -1,4 +1,4 @@
-import type { PromptAttemptUpdate } from "@aloom/types";
+import type { PromptAttemptUpdate } from "@anspectra/types";
 import { describe, expect, it } from "vitest";
 import { offsetPromptAttempt } from "./attemptIndex.js";
 

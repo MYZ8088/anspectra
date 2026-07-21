@@ -1,6 +1,6 @@
-import { db, schema } from "@aloom/db";
-import type { Workspace } from "@aloom/db";
-import type { AuthProvider } from "@aloom/types";
+import { db, schema } from "@anspectra/db";
+import type { Workspace } from "@anspectra/db";
+import type { AuthProvider } from "@anspectra/types";
 import { and, eq, isNull } from "drizzle-orm";
 import { resetWorkspaceAnalysis } from "../analysis/analysis.js";
 import {

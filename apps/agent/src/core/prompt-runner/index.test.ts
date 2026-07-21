@@ -1,4 +1,4 @@
-import { HumanChallengeError } from "@aloom/errors";
+import { HumanChallengeError } from "@anspectra/errors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 	saveRuntimeProviderAuthSession: vi.fn(),
 }));
 
-vi.mock("@aloom/services", () => ({
+vi.mock("@anspectra/services", () => ({
 	saveRuntimeProviderAuthSession: mocks.saveRuntimeProviderAuthSession,
 }));
 
@@ -43,7 +43,7 @@ vi.mock("./retryPolicy.js", () => ({
 }));
 
 vi.mock("../../env.js", () => ({
-	env: { ALOOM_APP_MODE: "local" },
+	env: { ANSPECTRA_APP_MODE: "local" },
 }));
 
 import { runPrompts } from "./index.js";

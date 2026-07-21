@@ -1,4 +1,4 @@
-import { db, schema } from "@aloom/db";
+import { db, schema } from "@anspectra/db";
 import { and, count, eq, isNull } from "drizzle-orm";
 
 export async function deleteUserAccount(args: {

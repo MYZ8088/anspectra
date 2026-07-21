@@ -1,6 +1,6 @@
-# @aloom/services
+# @anspectra/services
 
-Business/service layer for Aloom.
+Business/service layer for Anspectra.
 
 This package is the domain boundary between app routers/components and raw data/storage/queue operations.
 
@@ -33,8 +33,8 @@ From `src/index.ts`:
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @aloom/services build` | Compile TypeScript |
-| `pnpm --filter @aloom/services typecheck` | TypeScript checks |
+| `pnpm --filter @anspectra/services build` | Compile TypeScript |
+| `pnpm --filter @anspectra/services typecheck` | TypeScript checks |
 
 ## Environment Variables
 
@@ -51,10 +51,10 @@ Validated in `src/env.ts`:
 
 - `apps/web` routers should call this package for business operations.
 - `apps/agent` worker should call this package for persistence and queue contracts.
-- Avoid importing `@aloom/db` directly from UI/page layers when a service API exists.
+- Avoid importing `@anspectra/db` directly from UI/page layers when a service API exists.
 
 ## Example
 
 ```ts
-import { submitAgentJobGroup, fetchAnalysedPrompts } from "@aloom/services";
+import { submitAgentJobGroup, fetchAnalysedPrompts } from "@anspectra/services";
 ```

@@ -1,5 +1,5 @@
 import { AiVisibilityPreview } from "@/components/previews/ai-visibility-preview";
-import { SectionHeading } from "@aloom/ui";
+import { SectionHeading } from "@anspectra/ui";
 
 export function AiVisibilitySection(): React.JSX.Element {
 	return (

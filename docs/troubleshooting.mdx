@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Diagnose Aloom local collectors, provider sessions, and data services.
+description: Diagnose Anspectra local collectors, provider sessions, and data services.
 ---
 
 ## Camoufox fails to start
@@ -17,7 +17,7 @@ persistent provider profiles.
 
 ## Provider window is cropped
 
-Aloom uses a stable 1360 by 760 content area for collection and a larger login
+Anspectra uses a stable 1360 by 760 content area for collection and a larger login
 window. If macOS cannot verify the requested frame while the screen is locked,
 unlock the machine and reopen the provider from Providers.
 
@@ -25,23 +25,23 @@ unlock the machine and reopen the provider from Providers.
 
 Open Runs, select the affected series, and choose **Open window**. Complete the
 official provider login, QR, CAPTCHA, or security confirmation yourself, then
-choose **I completed it**. Aloom rechecks the original page and resumes the
+choose **I completed it**. Anspectra rechecks the original page and resumes the
 unfinished checkpoint without rerunning completed samples.
 
 ## Provider mode is unavailable
 
 The provider changed its official Web controls or the selected account does
-not expose that mode. Aloom fails the checkpoint with `mode_unavailable`
+not expose that mode. Anspectra fails the checkpoint with `mode_unavailable`
 instead of silently using another mode. Use the explicit mode inspector during
 adapter development or select a currently exposed mode.
 
 ## A provider answer was not captured
 
-Aloom rejects prompt echoes, empty answers, login pages, challenge pages, and
+Anspectra rejects prompt echoes, empty answers, login pages, challenge pages, and
 provider error surfaces. Open the run detail to see whether the failure happened
 during navigation, input, submission, generation, extraction, or validation.
 
-If the prompt was already sent, Aloom keeps the same conversation and retries
+If the prompt was already sent, Anspectra keeps the same conversation and retries
 only answer waiting and extraction. It does not submit the prompt a second time.
 Provider DOM changes should be reproduced with redacted fixtures and local
 adapter diagnostics before changing selectors.
@@ -66,6 +66,6 @@ after Docker Desktop is healthy.
 ## Analysis failed after collection succeeded
 
 Runs and reports separate collection from analysis. Inspect the stored analysis
-error code. Aloom tries strict JSON Schema output, local extraction and repair,
+error code. Anspectra tries strict JSON Schema output, local extraction and repair,
 a configured fallback model, and one targeted repair pass. The raw provider
 answer remains available even when analysis is still failed.

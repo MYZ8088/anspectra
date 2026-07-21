@@ -1,5 +1,5 @@
-import { ValidationError } from "@aloom/errors";
-import type { AnalysisInputSingle, BrandAnalysisResult } from "@aloom/types";
+import { ValidationError } from "@anspectra/errors";
+import type { AnalysisInputSingle, BrandAnalysisResult } from "@anspectra/types";
 import { z } from "zod";
 import {
 	getLlmModel,

@@ -6,8 +6,8 @@ import {
 	recordCollectorSampleAttempt,
 	reportCollectorChallenge,
 	uploadCollectorSample,
-} from "@aloom/services";
-import { GEO_WEB_PROVIDERS } from "@aloom/services";
+} from "@anspectra/services";
+import { GEO_WEB_PROVIDERS } from "@anspectra/services";
 import {
 	COLLECTION_PHASE_LIST,
 	FAILURE_CATEGORY_LIST,
@@ -15,7 +15,7 @@ import {
 	PROVIDER_MODE_LIST,
 	SEARCH_SOURCE_COVERAGE_LIST,
 	SOURCE_KIND_LIST,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

@@ -20,8 +20,8 @@ import {
 	Input,
 	Label,
 	toast,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

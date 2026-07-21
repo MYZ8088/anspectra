@@ -21,6 +21,9 @@ importers:
       knip:
         specifier: ^5.85.0
         version: 5.85.0(@types/node@25.3.3)(typescript@5.9.3)
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
       turbo:
         specifier: ^2.3.3
         version: 2.8.12
@@ -33,16 +36,16 @@ importers:
 
   apps/agent:
     dependencies:
-      '@aloom/errors':
+      '@anspectra/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@aloom/services':
+      '@anspectra/services':
         specifier: workspace:*
         version: link:../../packages/services
-      '@aloom/types':
+      '@anspectra/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@aloom/utils':
+      '@anspectra/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       bullmq:
@@ -76,15 +79,12 @@ importers:
 
   apps/landing:
     dependencies:
-      '@aloom/ui':
+      '@anspectra/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@aloom/utils':
+      '@anspectra/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@vercel/analytics':
-        specifier: ^2.0.1
-        version: 2.0.1(next@15.5.12(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.4)
@@ -131,22 +131,22 @@ importers:
 
   apps/web:
     dependencies:
-      '@aloom/db':
+      '@anspectra/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@aloom/errors':
+      '@anspectra/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@aloom/services':
+      '@anspectra/services':
         specifier: workspace:*
         version: link:../../packages/services
-      '@aloom/types':
+      '@anspectra/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@aloom/ui':
+      '@anspectra/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@aloom/utils':
+      '@anspectra/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@hookform/resolvers':
@@ -277,7 +277,7 @@ importers:
 
   packages/errors:
     dependencies:
-      '@aloom/types':
+      '@anspectra/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -290,16 +290,16 @@ importers:
 
   packages/services:
     dependencies:
-      '@aloom/db':
+      '@anspectra/db':
         specifier: workspace:*
         version: link:../db
-      '@aloom/errors':
+      '@anspectra/errors':
         specifier: workspace:*
         version: link:../errors
-      '@aloom/types':
+      '@anspectra/types':
         specifier: workspace:*
         version: link:../types
-      '@aloom/utils':
+      '@anspectra/utils':
         specifier: workspace:*
         version: link:../utils
       '@anthropic-ai/sdk':
@@ -354,7 +354,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@aloom/utils':
+      '@anspectra/utils':
         specifier: workspace:*
         version: link:../utils
       '@radix-ui/react-checkbox':
@@ -424,7 +424,7 @@ importers:
 
   packages/utils:
     dependencies:
-      '@aloom/types':
+      '@anspectra/types':
         specifier: workspace:*
         version: link:../types
       clsx:
@@ -673,11 +673,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.19.12':
     resolution: {integrity: sha512-bmoCYyWdEL3wDQIVbcyzRyeKLgk2WtWLTWz1ZIAZF/EGbNOwSA6ew3PftJ1PqMiOOGu0OyFMzG53L0zqIpPeNA==}
@@ -2387,35 +2387,6 @@ packages:
 
   '@types/whatwg-url@13.0.0':
     resolution: {integrity: sha512-N8WXpbE6Wgri7KUSvrmQcqrMllKZ9uxkYWMt+mCSGwNc0Hsw9VQTW7ApqI4XNrx6/SaM2QQJCzMPDEXE058s+Q==}
-
-  '@vercel/analytics@2.0.1':
-    resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
-    peerDependencies:
-      '@remix-run/react': ^2
-      '@sveltejs/kit': ^1 || ^2
-      next: '>= 13'
-      nuxt: '>= 3'
-      react: ^18 || ^19 || ^19.0.0-rc
-      svelte: '>= 4'
-      vue: ^3
-      vue-router: ^4
-    peerDependenciesMeta:
-      '@remix-run/react':
-        optional: true
-      '@sveltejs/kit':
-        optional: true
-      next:
-        optional: true
-      nuxt:
-        optional: true
-      react:
-        optional: true
-      svelte:
-        optional: true
-      vue:
-        optional: true
-      vue-router:
-        optional: true
 
   '@vitest/expect@3.2.7':
     resolution: {integrity: sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==}
@@ -4543,8 +4514,7 @@ snapshots:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.71.2(react@19.2.4)
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -5588,11 +5558,6 @@ snapshots:
   '@types/whatwg-url@13.0.0':
     dependencies:
       '@types/webidl-conversions': 7.0.3
-
-  '@vercel/analytics@2.0.1(next@15.5.12(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
-    optionalDependencies:
-      next: 15.5.12(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      react: 19.2.4
 
   '@vitest/expect@3.2.7':
     dependencies:
@@ -6831,7 +6796,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

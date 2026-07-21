@@ -1,9 +1,9 @@
 {
 	"$schema": "https://mintlify.com/docs.json",
 	"theme": "mint",
-	"name": "Aloom",
-	"favicon": "/images/logo-dark.png",
-	"thumbnail": "/images/aloom-detection.png",
+	"name": "Anspectra",
+	"favicon": "/images/anspectra-mark.png",
+	"thumbnail": "/images/anspectra-detection.png",
 	"colors": {
 		"primary": "#111827"
 	},

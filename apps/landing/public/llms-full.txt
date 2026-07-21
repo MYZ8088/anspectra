@@ -1,14 +1,14 @@
-# Aloom GEO Detection
+# Anspectra GEO Detection
 
 > Apache-2.0 | Self-hostable | Official Web collection | Local provider sessions
 
-Aloom measures how an existing product appears in the official Doubao,
+Anspectra measures how an existing product appears in the official Doubao,
 DeepSeek, Yuanbao, and Qwen Web interfaces. It is a detection and monitoring
 product, not a content optimization or publishing system.
 
 ## Prompt coverage
 
-The Aloom GEO Detection Pack v1.1 contains 54 templates per language: nine
+The Anspectra GEO Detection Pack v1.2 contains 54 templates per language: nine
 intents across awareness, screening, evaluation, purchase, implementation, and
 review. Fixed suites contain 18, 12, 9, 9, 36, or 54 core prompts. Advanced
 filters select deterministic matrix cells and a coverage planner adds only the
@@ -32,10 +32,10 @@ device token.
 
 ## Analysis and reports
 
-AIHubMix is the default analysis provider. It is never a monitoring source.
+The configured OpenAI-compatible endpoint analyses captured answers. It is never a monitoring source.
 Each answer is analyzed in an independent strict-Schema call with extraction,
 local JSON repair, a configured fallback model, and one conservative repair
-pass. Aloom then aggregates validated records deterministically.
+pass. Anspectra then aggregates validated records deterministically.
 
 Reports slice completion, mention, candidate, recommendation, absolute rank,
 sentiment, source exposure, stability, and competitor share by provider, mode,
@@ -45,6 +45,6 @@ shown separately and remain in the denominator.
 
 ## Privacy and licensing
 
-Aloom is copyright 2026 MYZ8088 and licensed under Apache-2.0. Project
+Anspectra is copyright 2026 MYZ8088 and licensed under Apache-2.0. Project
 lineage and third-party acknowledgements are documented in the repository
 README and NOTICE.

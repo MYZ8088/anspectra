@@ -31,14 +31,14 @@ import {
 	saveDetectionSchedule,
 	startGeoCollectionRun,
 	suggestProfileFromSite,
-} from "@aloom/services";
+} from "@anspectra/services";
 import {
 	DETECTION_SCHEDULE_CADENCE_LIST,
 	GEO_DECISION_STAGE_LIST,
 	GEO_INTENT_LIST,
 	PROVIDER_MODE_LIST,
 	SAMPLING_DEPTH_LIST,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { z } from "zod";
 import { createRateLimiter } from "../../middleware/rateLimit";
 import { authorizedWorkspaceProcedure } from "../../procedures";

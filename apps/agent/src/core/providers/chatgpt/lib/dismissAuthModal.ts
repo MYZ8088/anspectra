@@ -1,4 +1,4 @@
-import { logger } from "@aloom/utils";
+import { logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import {
 	canUseOsLevelInput,

@@ -14,18 +14,15 @@ export function AuthPageShell({
 			<div className="flex w-full min-w-0 max-w-[21.25rem] flex-col gap-5 sm:max-w-[22.5rem] sm:gap-6 lg:max-w-[23.5rem] xl:max-w-[25rem] xl:gap-7">
 				<div className="flex flex-col items-center gap-2">
 					<div className="flex items-center gap-2.5">
-						<img
-							src="/logo.png"
-							alt="Aloom"
-							className="h-8 w-8 object-contain dark:hidden sm:h-9 sm:w-9"
-						/>
-						<img
-							src="/logo-dark.png"
-							alt="Aloom"
-							className="hidden h-8 w-8 object-contain dark:block sm:h-9 sm:w-9"
-						/>
-						<div className="text-[1.4rem] font-semibold tracking-[-0.05em] text-gray-950 sm:text-[1.75rem] lg:text-[1.9rem] xl:text-[2rem] dark:text-gray-50">
-							Aloom
+						<span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white p-0.5 sm:h-10 sm:w-10 dark:border-white/15">
+							<img
+								src="/logo.png"
+								alt="Anspectra"
+								className="h-full w-full object-contain"
+							/>
+						</span>
+						<div className="text-[1.4rem] font-semibold tracking-normal text-gray-950 sm:text-[1.75rem] lg:text-[1.9rem] xl:text-[2rem] dark:text-gray-50">
+							Anspectra
 						</div>
 					</div>
 					{subtitle ? (

@@ -1,5 +1,5 @@
-import { ExternalServiceError } from "@aloom/errors";
-import { logger } from "@aloom/utils";
+import { ExternalServiceError } from "@anspectra/errors";
+import { logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { navigateWithRetry } from "../../../../lib/browser/navigate.js";
 

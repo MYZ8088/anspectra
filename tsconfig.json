@@ -9,7 +9,7 @@
 		"noEmit": true,
 		"baseUrl": ".",
 		"paths": {
-			"@aloom/*": ["packages/*/src", "packages/*/dist"],
+			"@anspectra/*": ["packages/*/src", "packages/*/dist"],
 			"playwright": ["apps/agent/src/lib/browser/runtimeTypes.ts"]
 		}
 	},

@@ -7,7 +7,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@aloom/ui";
+} from "@anspectra/ui";
 import { Download } from "lucide-react";
 
 export function ExportMenu({

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { db } from "@aloom/db";
-import type { Workspace } from "@aloom/db";
+import { db } from "@anspectra/db";
+import type { Workspace } from "@anspectra/db";
 import { auth } from "@lib/auth/auth";
 import { inArray } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -22,7 +22,11 @@ export async function getWorkspace(): Promise<Workspace | null> {
 	if (orgId) {
 		const workspace = await db.query.workspaces.findFirst({
 			where: (table, { and, eq, isNull }) =>
-				and(eq(table.tenantId, orgId), isNull(table.deletedAt)),
+				and(
+					eq(table.tenantId, orgId),
+					isNull(table.archivedAt),
+					isNull(table.deletedAt),
+				),
 			orderBy: (table, { desc }) => [desc(table.createdAt)],
 		});
 
@@ -49,7 +53,11 @@ export async function getWorkspace(): Promise<Workspace | null> {
 
 	const workspace = await db.query.workspaces.findFirst({
 		where: (table, { and, isNull }) =>
-			and(inArray(table.id, workspaceIds), isNull(table.deletedAt)),
+			and(
+				inArray(table.id, workspaceIds),
+				isNull(table.archivedAt),
+				isNull(table.deletedAt),
+			),
 		orderBy: (table, { desc }) => [desc(table.createdAt)],
 	});
 

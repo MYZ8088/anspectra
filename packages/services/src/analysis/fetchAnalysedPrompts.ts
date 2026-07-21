@@ -1,9 +1,9 @@
-import { clickhouse } from "@aloom/db";
+import { clickhouse } from "@anspectra/db";
 import type {
 	AnalysisRecord,
 	BrandAnalysisResult,
 	PromptResponse,
-} from "@aloom/types";
+} from "@anspectra/types";
 
 /**
  * Fetch ALL responses (analyzed and unanalyzed) with metadata

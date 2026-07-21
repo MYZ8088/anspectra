@@ -2,17 +2,17 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { db, schema } from "@aloom/db";
+import { db, schema } from "@anspectra/db";
 import type {
 	CamoufoxRuntimeManifest,
 	Provider,
 	ProviderIdentityManifest,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, eq } from "drizzle-orm";
 import { getProviderProfileDir } from "../agent/auth.js";
 import { GEO_WEB_PROVIDERS, startGeoCollectionRun } from "./runs.js";
 
-const DIAGNOSTIC_PACK_KEY = "aloom-provider-diagnostic";
+const DIAGNOSTIC_PACK_KEY = "anspectra-provider-diagnostic";
 const DIAGNOSTIC_VERSION = "1.0.0";
 
 const DIAGNOSTIC_PROMPTS = [
@@ -157,9 +157,9 @@ export async function getCamoufoxDiagnostics(workspaceId: string) {
 	const workspaceRoot = resolveWorkspaceRoot();
 	const manifestPath = path.join(
 		workspaceRoot,
-		".aloom-storage",
+		".anspectra-storage",
 		"camoufox-venv",
-		"aloom-runtime.json",
+		"anspectra-runtime.json",
 	);
 	const runtime = await readJson<CamoufoxRuntimeManifest>(manifestPath);
 	const identities = await Promise.all(

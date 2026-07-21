@@ -18,14 +18,14 @@ RUN --mount=type=cache,id=pnpm-store-agent,target=/root/.local/share/pnpm/store 
     pnpm install --frozen-lockfile
 
 FROM deps AS builder
-RUN pnpm turbo build --filter=@aloom/agent...
-RUN pnpm deploy --filter @aloom/agent --prod /app/out
+RUN pnpm turbo build --filter=@anspectra/agent...
+RUN pnpm deploy --filter @anspectra/agent --prod /app/out
 
 FROM node:20-bookworm-slim AS runner
 ARG PNPM_VERSION=10.16.0
 ARG CAMOUFOX_PIP_SPEC
 ARG CAMOUFOX_BROWSER_CHANNEL
-ENV CAMOUFOX_VENV=/opt/aloom/camoufox-venv
+ENV CAMOUFOX_VENV=/opt/anspectra/camoufox-venv
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -60,8 +60,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV CAMOUFOX_PYTHON_BIN=/opt/aloom/camoufox-venv/bin/python
-ENV PATH=/opt/aloom/camoufox-venv/bin:${PATH}
+ENV CAMOUFOX_PYTHON_BIN=/opt/anspectra/camoufox-venv/bin/python
+ENV PATH=/opt/anspectra/camoufox-venv/bin:${PATH}
 
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 

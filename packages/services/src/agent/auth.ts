@@ -13,12 +13,12 @@ import {
 	type ProviderAuthStatus,
 	isInteractiveAuthAllowedInMode,
 	resolveAppMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import {
 	AUTH_PROVIDER_CONFIG,
 	AUTH_PROVIDER_DISPLAY,
 	getAuthProviderForProvider,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 
 type PersistedAuthStatus = {
 	connecting: ProviderAuthStatus["connecting"];
@@ -63,7 +63,7 @@ type RuntimeProfileSeedPlan = {
 
 type ReusableIdentityProvider = "google" | "apple" | "facebook";
 
-const DEFAULT_LOCAL_STORAGE_ROOT = ".aloom-storage";
+const DEFAULT_LOCAL_STORAGE_ROOT = ".anspectra-storage";
 const LEGACY_LOCAL_STORAGE_ROOTS = [
 	".answerloom-storage",
 	".oneglanse-storage",
@@ -76,7 +76,7 @@ const PERSISTENT_PROFILE_AUTH_PROVIDERS = new Set<AuthProvider>([
 	"hunyuan",
 	"qwen",
 ]);
-const PROVIDER_WINDOW_CHANNEL = "aloom:agent:provider-window";
+const PROVIDER_WINDOW_CHANNEL = "anspectra:agent:provider-window";
 const REUSABLE_IDENTITY_PROVIDER_CONFIG: Record<
 	ReusableIdentityProvider,
 	{
@@ -136,7 +136,7 @@ function getStorageRootDir(): string {
 }
 
 export function getAppMode(): AppMode {
-	return resolveAppMode(process.env.ALOOM_APP_MODE);
+	return resolveAppMode(process.env.ANSPECTRA_APP_MODE);
 }
 
 export function isInteractiveAuthLaunchAllowed(): boolean {
@@ -515,7 +515,7 @@ function clearRuntimeProfileDirectory(provider: Provider): void {
 async function getSpawnEnv(): Promise<NodeJS.ProcessEnv> {
 	const spawnEnv: NodeJS.ProcessEnv = {
 		...process.env,
-		ALOOM_APP_MODE: getAppMode(),
+		ANSPECTRA_APP_MODE: getAppMode(),
 		AGENT_AUTH_ROOT_DIR: getAgentAuthRootDir(),
 	};
 

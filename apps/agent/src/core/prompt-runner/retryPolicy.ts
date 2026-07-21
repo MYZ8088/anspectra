@@ -3,7 +3,7 @@ import {
 	ValidationError,
 	classifyError,
 	toErrorMessage,
-} from "@aloom/errors";
+} from "@anspectra/errors";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,8 +11,8 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@aloom/types";
-import { exponentialBackoff, logger } from "@aloom/utils";
+} from "@anspectra/types";
+import { exponentialBackoff, logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { PROVIDER_CONFIGS } from "../providers/index.js";
@@ -89,7 +89,7 @@ export async function executePromptWithRetry(
 	onFreshConversationRetry?: () => Promise<void>,
 ): Promise<{ result: AskPromptResult; proxyNowProven: boolean }> {
 	const config = PROVIDER_CONFIGS[provider];
-	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ALOOM_APP_MODE));
+	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ANSPECTRA_APP_MODE));
 	let maxAttempts = useProxy ? MAX_RETRIES : 2;
 	let lastError: unknown = null;
 	let recoverSubmitted = false;

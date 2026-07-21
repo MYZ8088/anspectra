@@ -2,7 +2,7 @@ import { ProvidersScreen } from "@/components/providers-screen";
 import { env } from "@/env";
 import { getPostProvidersContinuePath } from "@/lib/auth/redirect";
 import { getWorkspace } from "@/lib/workspace/getWorkspace";
-import { resolveAppMode } from "@aloom/types";
+import { resolveAppMode } from "@anspectra/types";
 
 export default async function ProvidersPage({
 	searchParams,
@@ -23,7 +23,7 @@ export default async function ProvidersPage({
 				workspaceId: workspace?.id ?? null,
 			})
 		: null;
-	const appMode = resolveAppMode(env.NEXT_PUBLIC_ALOOM_APP_MODE);
+	const appMode = resolveAppMode(env.NEXT_PUBLIC_ANSPECTRA_APP_MODE);
 	const isSelfHost = appMode === "self-host";
 
 	return (

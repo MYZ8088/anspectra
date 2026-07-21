@@ -1,5 +1,5 @@
-import { db, schema } from "@aloom/db";
-import { ValidationError } from "@aloom/errors";
+import { db, schema } from "@anspectra/db";
+import { ValidationError } from "@anspectra/errors";
 import { desc, eq } from "drizzle-orm";
 import type { GeoDetectionTier } from "./promptEngine.js";
 import {

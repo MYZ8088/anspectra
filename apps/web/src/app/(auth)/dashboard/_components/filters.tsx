@@ -5,8 +5,8 @@ import {
 	ProviderModelSelect,
 	Separator,
 	TimeRangeSelect,
-} from "@aloom/ui";
-import { cn, getFaviconUrls } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn, getFaviconUrls } from "@anspectra/utils";
 import { FilterX } from "lucide-react";
 import { useRouter } from "next/navigation";
 

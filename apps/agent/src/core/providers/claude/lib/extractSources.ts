@@ -1,6 +1,6 @@
-import { toErrorMessage } from "@aloom/errors";
-import type { Source } from "@aloom/types";
-import { PROVIDER_MODEL_RESPONSE_SELECTORS, logger } from "@aloom/utils";
+import { toErrorMessage } from "@anspectra/errors";
+import type { Source } from "@anspectra/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS, logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { type RawSource, buildSources } from "../../_shared/sourceUtils.js";
 

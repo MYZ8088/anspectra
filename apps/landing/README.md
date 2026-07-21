@@ -1,6 +1,6 @@
-# @aloom/landing
+# @anspectra/landing
 
-Public marketing site for Aloom, deployed separately on Vercel.
+Public marketing site for Anspectra, deployed separately on Vercel.
 
 ## Responsibilities
 
@@ -20,11 +20,11 @@ Public marketing site for Aloom, deployed separately on Vercel.
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @aloom/landing dev` | Start Next.js dev server |
-| `pnpm --filter @aloom/landing build` | Build production bundle |
-| `pnpm --filter @aloom/landing start` | Start built app |
-| `pnpm --filter @aloom/landing typecheck` | TypeScript checks |
-| `pnpm --filter @aloom/landing lint` | Biome lint/check |
+| `pnpm --filter @anspectra/landing dev` | Start Next.js dev server |
+| `pnpm --filter @anspectra/landing build` | Build production bundle |
+| `pnpm --filter @anspectra/landing start` | Start built app |
+| `pnpm --filter @anspectra/landing typecheck` | TypeScript checks |
+| `pnpm --filter @anspectra/landing lint` | Biome lint/check |
 
 ## Environment Variables
 
@@ -34,15 +34,15 @@ Public marketing site for Aloom, deployed separately on Vercel.
 ## Local Development
 
 ```bash
-pnpm --filter @aloom/landing dev
+pnpm --filter @anspectra/landing dev
 ```
 
 If port `3000` is already used by another app, run with a custom `PORT`.
 
 ## Dependencies
 
-- `@aloom/ui`
-- `@aloom/types`
-- `@aloom/utils`
+- `@anspectra/ui`
+- `@anspectra/types`
+- `@anspectra/utils`
 
 These ensure landing previews stay aligned with product domain and shared components.

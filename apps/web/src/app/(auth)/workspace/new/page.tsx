@@ -10,7 +10,7 @@ import {
 import { env } from "@/env";
 import { authClient } from "@/lib/auth/auth-client";
 import { api } from "@/trpc/react";
-import { resolveAppMode } from "@aloom/types";
+import { resolveAppMode } from "@anspectra/types";
 import {
 	Button,
 	Card,
@@ -22,8 +22,8 @@ import {
 	Input,
 	Label,
 	toast,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -95,7 +95,7 @@ export default function NewWorkspace() {
 			toast.success("Workspace created successfully!");
 			router.refresh();
 			if (isFirstWorkspace) {
-				const appMode = resolveAppMode(env.NEXT_PUBLIC_ALOOM_APP_MODE);
+				const appMode = resolveAppMode(env.NEXT_PUBLIC_ANSPECTRA_APP_MODE);
 				if (appMode === "local") {
 					router.replace(
 						`/providers?next=/onboarding?workspace=${workspace.id}`,

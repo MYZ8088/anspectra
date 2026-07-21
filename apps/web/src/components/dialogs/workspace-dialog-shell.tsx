@@ -15,8 +15,8 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import type { ReactNode } from "react";
 
 type WorkspaceDialogShellProps = {

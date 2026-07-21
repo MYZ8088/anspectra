@@ -37,6 +37,7 @@ export const workspaces = pgTable("workspaces", {
 	enabledProviders: workspaceEnabledProviderEnum("enabled_providers").array(),
 	selectedPromptIds: text("selected_prompt_ids").array(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
+	archivedAt: timestamp("archived_at"),
 	deletedAt: timestamp("deleted_at"),
 });
 

@@ -1,5 +1,5 @@
 {
-	"name": "@aloom/agent",
+	"name": "@anspectra/agent",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
@@ -12,10 +12,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@aloom/errors": "workspace:*",
-		"@aloom/services": "workspace:*",
-		"@aloom/types": "workspace:*",
-		"@aloom/utils": "workspace:*",
+		"@anspectra/errors": "workspace:*",
+		"@anspectra/services": "workspace:*",
+		"@anspectra/types": "workspace:*",
+		"@anspectra/utils": "workspace:*",
 		"bullmq": "^5.66.4",
 		"dotenv": "^17.2.3",
 		"playwright-core": "^1.51.1",

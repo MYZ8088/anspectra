@@ -1,10 +1,10 @@
-import { clickhouse, db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { clickhouse, db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import type {
 	BrandAnalysisResult,
 	DetectionScoreLayerKey,
 	DetectionWeightedScore,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { parseAnalysisOutput } from "../analysis/runAnalysis.js";
 
@@ -36,7 +36,7 @@ type AggregateInput = {
 	samples: ScorecardSample[];
 };
 
-export const ALOOM_GEO_SCORE_WEIGHTS: Record<DetectionScoreLayerKey, number> = {
+export const ANSPECTRA_GEO_SCORE_WEIGHTS: Record<DetectionScoreLayerKey, number> = {
 	visibility: 25,
 	evidence: 20,
 	factuality: 15,
@@ -67,26 +67,26 @@ export function calculateWeightedDetectionScore(
 			total +
 			(score === null
 				? 0
-				: ALOOM_GEO_SCORE_WEIGHTS[key as DetectionScoreLayerKey]),
+				: ANSPECTRA_GEO_SCORE_WEIGHTS[key as DetectionScoreLayerKey]),
 		0,
 	);
 	const layers = (
-		Object.keys(ALOOM_GEO_SCORE_WEIGHTS) as DetectionScoreLayerKey[]
+		Object.keys(ANSPECTRA_GEO_SCORE_WEIGHTS) as DetectionScoreLayerKey[]
 	).map((key) => {
 		const score = scores[key];
 		return {
 			key,
 			label: SCORE_LAYER_LABELS[key],
 			score,
-			weight: ALOOM_GEO_SCORE_WEIGHTS[key],
+			weight: ANSPECTRA_GEO_SCORE_WEIGHTS[key],
 			contribution:
 				score === null || availableWeight === 0
 					? null
-					: round((score * ALOOM_GEO_SCORE_WEIGHTS[key]) / availableWeight),
+					: round((score * ANSPECTRA_GEO_SCORE_WEIGHTS[key]) / availableWeight),
 		};
 	});
 	return {
-		modelVersion: "aloom-geo-score-v1",
+		modelVersion: "anspectra-geo-score-v1",
 		overall: round(
 			layers.reduce((total, layer) => total + (layer.contribution ?? 0), 0),
 		),

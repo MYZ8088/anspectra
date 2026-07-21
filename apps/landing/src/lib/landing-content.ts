@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-const githubRepoUrl = process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() || null;
+const githubRepoUrl =
+	process.env.NEXT_PUBLIC_GITHUB_REPO_URL?.trim() ||
+	"https://github.com/MYZ8088/anspectra";
 const landingUrl =
-	process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3001";
+	process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://anspectra.pages.dev";
 const appUrl =
 	process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
 
@@ -79,12 +81,12 @@ export const FEATURE_ITEMS: FeatureItem[] = [
 	},
 ];
 
-export const STORAGE_KEY = "aloom-landing-theme" as const;
+export const STORAGE_KEY = "anspectra-landing-theme" as const;
 
 export const METHOD_POINTS = [
 	"Doubao, DeepSeek, Yuanbao, and Qwen are monitored through their official Web interfaces, never through model APIs.",
 	"You log in to each provider with your own account. Sessions are stored locally on your machine and never leave your infrastructure.",
-	"AIHubMix analyses captured answers after collection; it is never used as the monitoring data source.",
+	"A configured OpenAI-compatible model analyses captured answers after collection; it is never used as the monitoring data source.",
 	"UI responses can differ from API responses in ranking, wording, and citation behavior for the same prompt.",
 	"Every formal series freezes prompt hashes, providers, modes, sampling depth, and collection checkpoints.",
 ] as const;

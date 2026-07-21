@@ -1,4 +1,4 @@
-import type { BrandAnalysisResult } from "@aloom/types";
+import type { BrandAnalysisResult } from "@anspectra/types";
 import { describe, expect, it, vi } from "vitest";
 import {
 	answerMatchesPromptLocale,
@@ -9,7 +9,7 @@ import {
 } from "./detectionReport.js";
 import { planDetectionPrompts } from "./promptEngine.js";
 
-vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
+vi.mock("@anspectra/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
 
 function analysis(args: {
@@ -135,10 +135,10 @@ describe("buildDetectionSlices", () => {
 	it("aggregates a complete 54-cell matrix without combining answer contexts", () => {
 		const plan = planDetectionPrompts(
 			{
-				brandName: "Aloom",
+				brandName: "Anspectra",
 				category: "GEO detection software",
 				industry: "B2B software",
-				products: ["Aloom Monitor"],
+				products: ["Anspectra Monitor"],
 				competitors: ["Competitor Atlas"],
 				audiences: ["growth teams"],
 				regions: ["APAC"],
@@ -243,7 +243,7 @@ describe("buildDetectionSlices", () => {
 		expect(
 			slices.provider.every(
 				(row) =>
-					row.weightedScore.modelVersion === "aloom-geo-score-v1" &&
+					row.weightedScore.modelVersion === "anspectra-geo-score-v1" &&
 					typeof row.answerPerformanceScore === "number",
 			),
 		).toBe(true);

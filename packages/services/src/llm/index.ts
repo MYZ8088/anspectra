@@ -1,4 +1,4 @@
-import { EnvError } from "@aloom/errors";
+import { EnvError } from "@anspectra/errors";
 import ChatGptClient from "openai";
 import { env } from "../env.js";
 

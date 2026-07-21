@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
-import { db, schema } from "@aloom/db";
+import { db, schema } from "@anspectra/db";
 import { load } from "cheerio";
 import { and, desc, eq } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import robotsParser from "robots-parser";
 
-const USER_AGENT = "Aloom-GEO-Audit/1.0";
+const USER_AGENT = "Anspectra-GEO-Audit/1.0";
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 const parseRobots = robotsParser as unknown as (

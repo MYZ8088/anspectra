@@ -1,6 +1,6 @@
-# @aloom/agent
+# @anspectra/agent
 
-The Aloom collector executes official Web detection tasks on a user's macOS or
+The Anspectra collector executes official Web detection tasks on a user's macOS or
 Windows computer.
 
 ## Runtime contract
@@ -13,7 +13,7 @@ Windows computer.
   through a resource-aware global gate; completed checkpoints are never repeated.
 - Structured analysis runs in a separate bounded background gate and cannot
   hold a provider browser slot.
-- Cookies, local storage, and profiles remain under `.aloom-storage/`.
+- Cookies, local storage, and profiles remain under `.anspectra-storage/`.
 - A paired collector communicates with the control plane only through outbound
   HTTPS requests authenticated with a workspace-scoped device token.
 
@@ -27,8 +27,8 @@ product.
 pnpm camoufox:setup
 pnpm camoufox:doctor
 pnpm collector
-pnpm --filter @aloom/agent inspect:modes qwen 180 --watch
-pnpm --filter @aloom/agent inspect:modes qwen 10 --headless --apply=web_search
+pnpm --filter @anspectra/agent inspect:modes qwen 180 --watch
+pnpm --filter @anspectra/agent inspect:modes qwen 10 --headless --apply=web_search
 ```
 
 `inspect:modes` is a development-only, headful inspection tool. It does not

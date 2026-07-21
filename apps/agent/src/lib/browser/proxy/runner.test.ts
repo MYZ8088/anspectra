@@ -1,5 +1,5 @@
-import { HumanChallengeError } from "@aloom/errors";
-import type { AskPromptResult, PromptPayload } from "@aloom/types";
+import { HumanChallengeError } from "@anspectra/errors";
+import type { AskPromptResult, PromptPayload } from "@anspectra/types";
 import type { Browser, BrowserContext, Page } from "playwright";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,7 +27,7 @@ function sample(promptId: string): AskPromptResult {
 
 describe("persistent provider retry checkpoints", () => {
 	beforeEach(() => {
-		process.env.ALOOM_APP_MODE = "local";
+		process.env.ANSPECTRA_APP_MODE = "local";
 		runAgentsMock.mockReset();
 	});
 

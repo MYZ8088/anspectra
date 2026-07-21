@@ -1,5 +1,5 @@
-import { ValidationError } from "@aloom/errors";
-import type { DetectionRunPlan, DetectionScheduleCadence } from "@aloom/types";
+import { ValidationError } from "@anspectra/errors";
+import type { DetectionRunPlan, DetectionScheduleCadence } from "@anspectra/types";
 import { CronExpressionParser } from "cron-parser";
 
 export function parseDetectionRunPlan(value: unknown): DetectionRunPlan | null {

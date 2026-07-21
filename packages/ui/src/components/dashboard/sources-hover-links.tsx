@@ -1,6 +1,6 @@
 "use client";
 
-import { cleanCitedText, getDomain, getFaviconUrls } from "@aloom/utils";
+import { cleanCitedText, getDomain, getFaviconUrls } from "@anspectra/utils";
 import { useMemo, useState } from "react";
 
 export type HoverSourceLink = {

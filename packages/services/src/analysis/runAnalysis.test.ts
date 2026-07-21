@@ -77,19 +77,19 @@ describe("analysis model capabilities", () => {
 describe("configured target entity recognition", () => {
 	it("passes aliases and products to the analysis instructions", () => {
 		const prompt = analysisPrompt({
-			brandName: "Aloom",
-			brandDomain: "aloom.example",
-			brandAliases: ["AnswerLoom"],
-			products: ["Aloom Monitor"],
+			brandName: "Anspectra",
+			brandDomain: "anspectra.example",
+			brandAliases: ["AS"],
+			products: ["Anspectra Monitor"],
 			prompt: "Which GEO tools are recommended?",
-			response: "Aloom Monitor is worth considering.",
+			response: "Anspectra Monitor is worth considering.",
 		});
-		expect(prompt).toContain("Configured Brand Aliases:** AnswerLoom");
+		expect(prompt).toContain("Configured Brand Aliases:** AS");
 		expect(prompt).toContain(
-			"Configured Products / Product Lines:** Aloom Monitor",
+			"Configured Products / Product Lines:** Anspectra Monitor",
 		);
 		expect(prompt).toContain(
-			'Canonical Target Entity Set:** "Aloom", "AnswerLoom", "Aloom Monitor"',
+			'Canonical Target Entity Set:** "Anspectra", "AS", "Anspectra Monitor"',
 		);
 	});
 
@@ -97,13 +97,13 @@ describe("configured target entity recognition", () => {
 		const parsed = parseAnalysisOutput(JSON.stringify(validAnalysis));
 		const result = applyTargetEntitySafeguards({
 			input: {
-				brandName: "Aloom",
-				brandDomain: "aloom.example",
-				brandAliases: ["AnswerLoom"],
-				products: ["Aloom Monitor"],
+				brandName: "Anspectra",
+				brandDomain: "anspectra.example",
+				brandAliases: ["AS"],
+				products: ["Anspectra Monitor"],
 				prompt: "Recommend GEO monitoring tools.",
 				response:
-					"Aloom Monitor is included as a GEO monitoring option for product teams.",
+					"Anspectra Monitor is included as a GEO monitoring option for product teams.",
 			},
 			result: {
 				...parsed,
@@ -115,8 +115,8 @@ describe("configured target entity recognition", () => {
 				competitors: [
 					...parsed.competitors,
 					{
-						name: "Aloom Monitor",
-						domain: "aloom.example",
+						name: "Anspectra Monitor",
+						domain: "anspectra.example",
 						visibility: 30,
 						sentiment: 50,
 						rankPosition: 1,
@@ -128,21 +128,32 @@ describe("configured target entity recognition", () => {
 
 		expect(result.presence.mentioned).toBe(true);
 		expect(result.metadata?.matchedTargetEntities).toEqual([
-			"Aloom",
-			"Aloom Monitor",
+			"Anspectra",
+			"Anspectra Monitor",
 		]);
 		expect(
 			result.competitors.map((competitor) => competitor.name),
-		).not.toContain("Aloom Monitor");
+		).not.toContain("Anspectra Monitor");
 		expect(result.recommendation.type).toBe("mentioned_only");
 	});
 
 	it("does not count a target that appears only inside a raw URL", () => {
 		expect(
 			findMatchedTargetEntities(
-				"Source: https://example.com/aloom-monitor-review",
-				["Aloom Monitor"],
+				"Source: https://example.com/anspectra-monitor-review",
+				["Anspectra Monitor"],
 			),
 		).toEqual([]);
+	});
+
+	it("does not confuse a short uppercase alias with a common lowercase word", () => {
+		expect(
+			findMatchedTargetEntities("The product is included as an option.", ["AS"]),
+		).toEqual([]);
+		expect(
+			findMatchedTargetEntities("The AS platform is included as an option.", [
+				"AS",
+			]),
+		).toEqual(["AS"]);
 	});
 });

@@ -8,15 +8,15 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import { toErrorMessage } from "@aloom/errors";
+import { toErrorMessage } from "@anspectra/errors";
 import {
 	getAgentAuthRootDir,
 	persistGeoSampleCheckpoint,
 	storePromptResponses,
-} from "@aloom/services";
-import type { AskPromptResult, ModelResult, Provider } from "@aloom/types";
-import { PROVIDER_LIST } from "@aloom/types";
-import { logger } from "@aloom/utils";
+} from "@anspectra/services";
+import type { AskPromptResult, ModelResult, Provider } from "@anspectra/types";
+import { PROVIDER_LIST } from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import { runAnalysisInBackground } from "./analysis.js";
 
 type PromptSampleOutboxRecord = {

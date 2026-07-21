@@ -55,7 +55,7 @@
 			"idx": 7,
 			"version": "7",
 			"when": 1783690000000,
-			"tag": "0007_aloom_prompt_provenance",
+			"tag": "0007_anspectra_prompt_provenance",
 			"breakpoints": true
 		},
 		{
@@ -69,7 +69,14 @@
 			"idx": 9,
 			"version": "7",
 			"when": 1783854000000,
-			"tag": "0009_aloom_schedule_modes",
+			"tag": "0009_anspectra_schedule_modes",
+			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1784707200000,
+			"tag": "0010_archive_workspaces",
 			"breakpoints": true
 		}
 	]

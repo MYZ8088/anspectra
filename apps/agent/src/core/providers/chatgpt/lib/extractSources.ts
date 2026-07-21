@@ -1,4 +1,4 @@
-import type { Source } from "@aloom/types";
+import type { Source } from "@anspectra/types";
 import type { Locator, Page } from "playwright";
 import {
 	type RawSource,

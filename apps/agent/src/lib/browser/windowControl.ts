@@ -126,13 +126,13 @@ async function runWindowsWindowCommand(
 	const showCommand = action === "minimize" ? 6 : 9;
 	const focusLine =
 		action === "focus"
-			? "[AloomWindow]::SetForegroundWindow($handle) | Out-Null"
+			? "[AnspectraWindow]::SetForegroundWindow($handle) | Out-Null"
 			: "";
 	const script = [
 		"Add-Type @'",
 		"using System;",
 		"using System.Runtime.InteropServices;",
-		"public static class AloomWindow {",
+		"public static class AnspectraWindow {",
 		'  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);',
 		'  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
 		"}",
@@ -141,7 +141,7 @@ async function runWindowsWindowCommand(
 		"if ($process) {",
 		"  $handle = $process.MainWindowHandle",
 		"  if ($handle -ne [IntPtr]::Zero) {",
-		`    [AloomWindow]::ShowWindowAsync($handle, ${showCommand}) | Out-Null`,
+		`    [AnspectraWindow]::ShowWindowAsync($handle, ${showCommand}) | Out-Null`,
 		`    ${focusLine}`,
 		"  }",
 		"}",
@@ -237,7 +237,7 @@ async function fitWindowsWindow(
 		"Add-Type @'",
 		"using System;",
 		"using System.Runtime.InteropServices;",
-		"public static class AloomWindowFit {",
+		"public static class AnspectraWindowFit {",
 		'  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, bool repaint);',
 		'  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);',
 		"  public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }",
@@ -247,9 +247,9 @@ async function fitWindowsWindow(
 		"if ($process) {",
 		"  $handle = $process.MainWindowHandle",
 		"  if ($handle -ne [IntPtr]::Zero) {",
-		`    [AloomWindowFit]::MoveWindow($handle, ${geometry.x}, ${geometry.y}, ${geometry.width}, ${geometry.height}, $true) | Out-Null`,
-		"    $rect = New-Object AloomWindowFit+RECT",
-		"    [AloomWindowFit]::GetWindowRect($handle, [ref]$rect) | Out-Null",
+		`    [AnspectraWindowFit]::MoveWindow($handle, ${geometry.x}, ${geometry.y}, ${geometry.width}, ${geometry.height}, $true) | Out-Null`,
+		"    $rect = New-Object AnspectraWindowFit+RECT",
+		"    [AnspectraWindowFit]::GetWindowRect($handle, [ref]$rect) | Out-Null",
 		'    Write-Output "$($rect.Left)|$($rect.Top)|$($rect.Right - $rect.Left)|$($rect.Bottom - $rect.Top)"',
 		"  }",
 		"}",

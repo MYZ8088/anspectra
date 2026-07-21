@@ -1,5 +1,5 @@
-import { cancelProviderRun, redis, waitForRedis } from "@aloom/services";
-import { PROVIDER_LIST } from "@aloom/types";
+import { cancelProviderRun, redis, waitForRedis } from "@anspectra/services";
+import { PROVIDER_LIST } from "@anspectra/types";
 import { z } from "zod";
 import { validWorkspace } from "../../middleware/validWorkspace";
 import {

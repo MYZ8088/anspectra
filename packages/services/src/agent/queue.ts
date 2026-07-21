@@ -1,4 +1,4 @@
-import type { Provider } from "@aloom/types";
+import type { Provider } from "@anspectra/types";
 import { Queue } from "bullmq";
 import { env } from "../env.js";
 
@@ -17,7 +17,7 @@ const connection = {
 const queues = new Map<Provider, Queue>();
 
 export function getQueueName(provider: Provider): string {
-	return `aloom-agent-${provider}`;
+	return `anspectra-agent-${provider}`;
 }
 
 export function getProviderQueue(provider: Provider): Queue {

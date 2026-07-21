@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
-import { ValidationError } from "@aloom/errors";
-import type { Provider } from "@aloom/types";
+import { ValidationError } from "@anspectra/errors";
+import type { Provider } from "@anspectra/types";
 import {
 	PROVIDER_EDITOR_SELECTORS,
 	PROVIDER_MODEL_RESPONSE_SELECTORS,
 	logger,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 import type { Page } from "playwright";
 import { navigateWithRetry } from "../../../lib/browser/navigate.js";
 import { waitForEditorReady } from "../../../lib/input/editor/waitForReady.js";
@@ -120,9 +120,9 @@ export async function startFreshProviderConversation(args: {
 	await args.page.evaluate((nonce) => {
 		(
 			window as Window & {
-				__aloomConversationNonce?: string;
+				__anspectraConversationNonce?: string;
 			}
-		).__aloomConversationNonce = nonce;
+		).__anspectraConversationNonce = nonce;
 	}, randomUUID());
 	logger.log(
 		`[${args.provider}] verified fresh conversation (${clicked ? "new-chat control" : "dedicated entry"})`,
@@ -232,9 +232,9 @@ export async function readConversationIdentity(
 		.evaluate((candidateSelectors) => {
 			const values: string[] = [];
 			const nonce = (
-				window as Window & { __aloomConversationNonce?: string }
-			).__aloomConversationNonce;
-			if (nonce) values.push(`aloom-session:${nonce}`);
+				window as Window & { __anspectraConversationNonce?: string }
+			).__anspectraConversationNonce;
+			if (nonce) values.push(`anspectra-session:${nonce}`);
 			for (const selector of candidateSelectors) {
 				for (const element of document.querySelectorAll(selector)) {
 					for (const name of [

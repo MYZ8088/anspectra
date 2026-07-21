@@ -1,10 +1,10 @@
 import { ProvidersScreen } from "@/components/providers-screen";
 import { env } from "@/env";
-import { resolveAppMode } from "@aloom/types";
+import { resolveAppMode } from "@anspectra/types";
 import { redirect } from "next/navigation";
 
 export default function LocalProvidersPage() {
-	if (resolveAppMode(env.NEXT_PUBLIC_ALOOM_APP_MODE) !== "local") {
+	if (resolveAppMode(env.NEXT_PUBLIC_ANSPECTRA_APP_MODE) !== "local") {
 		redirect("/providers");
 	}
 

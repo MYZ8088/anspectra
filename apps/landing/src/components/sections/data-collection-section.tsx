@@ -1,5 +1,5 @@
 import { METHOD_POINTS } from "@/lib/landing-content";
-import { Card } from "@aloom/ui";
+import { Card } from "@anspectra/ui";
 import {
 	ExternalLink,
 	Fingerprint,

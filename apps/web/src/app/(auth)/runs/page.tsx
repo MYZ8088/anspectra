@@ -6,7 +6,7 @@ import {
 } from "@/components/forms/auth-form-chrome";
 import { useSafeSearchParams } from "@/lib/navigation/use-safe-search-params";
 import { api } from "@/trpc/react";
-import { type ProviderMode, getProviderModeLabel } from "@aloom/types";
+import { type ProviderMode, getProviderModeLabel } from "@anspectra/types";
 import {
 	Button,
 	Checkbox,
@@ -16,8 +16,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 	toast,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import {
 	AlertTriangle,
 	ChevronDown,

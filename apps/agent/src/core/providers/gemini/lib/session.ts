@@ -1,4 +1,4 @@
-import { ExternalServiceError } from "@aloom/errors";
+import { ExternalServiceError } from "@anspectra/errors";
 import type { Page } from "playwright";
 import { clickLocatorLikeUser } from "../../../../lib/browser/humanBehavior.js";
 

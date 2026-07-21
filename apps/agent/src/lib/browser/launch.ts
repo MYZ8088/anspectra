@@ -1,5 +1,5 @@
-import { ExternalServiceError } from "@aloom/errors";
-import { type Provider, resolveAppMode } from "@aloom/types";
+import { ExternalServiceError } from "@anspectra/errors";
+import { type Provider, resolveAppMode } from "@anspectra/types";
 import type { Browser, BrowserContext } from "playwright";
 import { env } from "../../env.js";
 import { acquireProviderSession } from "./providerSessionManager.js";
@@ -21,7 +21,7 @@ export async function launchContext(
 	focusWindow?: () => Promise<void>;
 	visibility?: ProviderSessionVisibility;
 }> {
-	if (resolveAppMode(env.ALOOM_APP_MODE) !== "local") {
+	if (resolveAppMode(env.ANSPECTRA_APP_MODE) !== "local") {
 		throw new ExternalServiceError(
 			"browser",
 			"Official Web collection requires a paired local collector. Server-side browser collection is disabled.",

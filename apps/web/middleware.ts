@@ -1,8 +1,8 @@
-import { canAccessPeopleInMode, resolveAppMode } from "@aloom/types";
+import { canAccessPeopleInMode, resolveAppMode } from "@anspectra/types";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-	const appMode = resolveAppMode(process.env.ALOOM_APP_MODE);
+	const appMode = resolveAppMode(process.env.ANSPECTRA_APP_MODE);
 	const { pathname, searchParams } = request.nextUrl;
 
 	// In local mode, /providers is the auth setup page and /api/providers powers
@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
 
 	if (isLocalProvidersPage) {
 		const requestHeaders = new Headers(request.headers);
-		requestHeaders.set("x-aloom-public-providers", "1");
+		requestHeaders.set("x-anspectra-public-providers", "1");
 		return NextResponse.next({
 			request: {
 				headers: requestHeaders,

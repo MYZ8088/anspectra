@@ -1,8 +1,8 @@
-import type { AnalysisRecord } from "@aloom/types";
+import type { AnalysisRecord } from "@anspectra/types";
 import type {
 	DashboardCompetitorData as CompetitorData,
 	DashboardSourceData as SourceData,
-} from "@aloom/ui";
+} from "@anspectra/ui";
 
 export type { CompetitorData, SourceData };
 

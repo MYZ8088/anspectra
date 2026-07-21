@@ -1,4 +1,4 @@
-import type { GroupedSource, Source } from "@aloom/types";
+import type { GroupedSource, Source } from "@anspectra/types";
 
 export function buildSourceOccurrenceKey(
 	source: Pick<Source, "url" | "cited_text"> & { modelProvider?: string },

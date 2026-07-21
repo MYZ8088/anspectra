@@ -1,5 +1,5 @@
-import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
-import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@aloom/utils";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@anspectra/types";
+import { PROVIDER_MODEL_RESPONSE_SELECTORS } from "@anspectra/utils";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	extractLatestChineseChatResponse,

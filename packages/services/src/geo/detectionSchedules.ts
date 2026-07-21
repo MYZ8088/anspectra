@@ -1,11 +1,11 @@
-import { db, schema } from "@aloom/db";
-import { NotFoundError, ValidationError } from "@aloom/errors";
+import { db, schema } from "@anspectra/db";
+import { NotFoundError, ValidationError } from "@anspectra/errors";
 import {
 	type DetectionScheduleCadence,
 	GEO_PROVIDER_MODE_CAPABILITIES,
 	type Provider,
 	type ProviderMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import { and, asc, eq, lte } from "drizzle-orm";
 import {
 	nextDetectionScheduleAfterInitialRun,

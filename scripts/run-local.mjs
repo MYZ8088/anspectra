@@ -14,12 +14,11 @@ import {
 	spawnLocalWorkspacePackageWatchers,
 	terminateLocalProcesses,
 	terminateLocalWorkspacePackageWatchers,
-	waitForChildExit,
 	waitForHttp,
 } from "./lib/runtime.mjs";
 
 const localAppUrl = "http://localhost:3000";
-const dockerPullPolicy = process.env.ALOOM_DOCKER_PULL_POLICY ?? "missing";
+const dockerPullPolicy = process.env.ANSPECTRA_DOCKER_PULL_POLICY ?? "missing";
 const localWarmRoutes = [
 	"/dashboard",
 	"/monitor",
@@ -47,6 +46,19 @@ async function warmLocalWebRoutes() {
 	}
 }
 
+function waitForUnexpectedExit(child, label) {
+	return new Promise((_, reject) => {
+		child.once("error", reject);
+		child.once("exit", (code, signal) => {
+			reject(
+				new Error(
+					`${label} stopped unexpectedly with ${signal ? `signal ${signal}` : `exit code ${code ?? "unknown"}`}.`,
+				),
+			);
+		});
+	});
+}
+
 async function main() {
 	await ensureEnvFiles();
 	await runCommand("pnpm", ["install"]);
@@ -68,7 +80,7 @@ async function main() {
 		"redis",
 	]);
 	await runCommand("pnpm", ["db:migrate"], { env: localEnv });
-	await terminateLocalProcesses([repoRoot, "@aloom/agent", "dev"]);
+	await terminateLocalProcesses([repoRoot, "@anspectra/agent", "dev"]);
 	await terminateLocalWorkspacePackageWatchers();
 
 	const packageWatchers = spawnLocalWorkspacePackageWatchers(localEnv);
@@ -77,7 +89,7 @@ async function main() {
 		"pnpm",
 		[
 			"--filter",
-			"@aloom/web",
+			"@anspectra/web",
 			"exec",
 			"next",
 			"dev",
@@ -91,42 +103,42 @@ async function main() {
 			env: localEnv,
 		},
 	);
-	const agentChild = spawnCommand("pnpm", ["--filter", "@aloom/agent", "dev"], {
-		env: localEnv,
-	});
+	const agentChild = spawnCommand(
+		"pnpm",
+		["--filter", "@anspectra/agent", "dev"],
+		{
+			env: localEnv,
+		},
+	);
 
 	const stopPackageWatchers = packageWatchers.map((child) =>
 		attachTerminationHandler(child),
 	);
 	const stopWeb = attachTerminationHandler(webChild);
 	const stopAgent = attachTerminationHandler(agentChild);
-
-	try {
-		await waitForHttp(localAppUrl);
-		await warmLocalWebRoutes();
-		if (process.env.ALOOM_OPEN_BROWSER !== "0") {
-			openBrowser(localAppUrl);
-		}
-	} catch (error) {
-		for (const stopWatcher of stopPackageWatchers) {
-			stopWatcher();
-		}
-		stopWeb();
-		stopAgent();
-		throw error;
-	}
-
-	try {
-		await Promise.all([
-			...packageWatchers.map((child, index) =>
-				waitForChildExit(
-					child,
-					`Workspace package watch ${LOCAL_WATCH_PACKAGES[index]}`,
-				),
+	const unexpectedExits = [
+		...packageWatchers.map((child, index) =>
+			waitForUnexpectedExit(
+				child,
+				`Workspace package watch ${LOCAL_WATCH_PACKAGES[index]}`,
 			),
-			waitForChildExit(webChild, "Web dev"),
-			waitForChildExit(agentChild, "Agent dev"),
+		),
+		waitForUnexpectedExit(webChild, "Web dev"),
+		waitForUnexpectedExit(agentChild, "Agent dev"),
+	];
+
+	try {
+		await Promise.race([
+			(async () => {
+				await waitForHttp(localAppUrl);
+				await warmLocalWebRoutes();
+				if (process.env.ANSPECTRA_OPEN_BROWSER !== "0") {
+					openBrowser(localAppUrl);
+				}
+			})(),
+			...unexpectedExits,
 		]);
+		await Promise.race(unexpectedExits);
 	} finally {
 		for (const stopWatcher of stopPackageWatchers) {
 			stopWatcher();

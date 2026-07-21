@@ -1,20 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildContentQualityReport } from "./content.js";
 
-vi.mock("@aloom/db", () => ({ db: {}, schema: {} }));
-vi.mock("../env.js", () => ({
-	env: { AIHUBMIX_ANALYSIS_MODEL: "test", AIHUBMIX_ANALYSIS_FALLBACK_MODEL: "" },
+vi.mock("@anspectra/db", () => ({ db: {}, schema: {} }));
+vi.mock("../llm/index.js", () => ({
+	getLlmModel: () => "test",
+	llm: {},
+	llmRequestOverrides: () => undefined,
+	supportsStrictLlmSchema: () => true,
 }));
-vi.mock("../llm/index.js", () => ({ aihubmix: {} }));
 
 const now = new Date("2026-07-10T00:00:00.000Z");
 const baseRevision = {
-	markdown: "## 结论\n这是一段经过核验的产品说明，用于帮助采购团队理解适用范围。",
+	markdown:
+		"## 结论\n这是一段经过核验的产品说明，用于帮助采购团队理解适用范围。",
 	html: "<h2>结论</h2><p>这是一段经过核验的产品说明。</p>",
 	jsonLd: null,
 	factIds: [] as string[],
 	claimMap: [] as Array<Record<string, unknown>>,
-	atomicFacts: [] as Array<{ fact: string; sourceUrl?: string; status: string }>,
+	atomicFacts: [] as Array<{
+		fact: string;
+		sourceUrl?: string;
+		status: string;
+	}>,
 	evidenceGaps: [] as string[],
 	faq: [{ question: "适合谁？", answer: "适合需要核验内容的采购团队。" }],
 	directAnswer: "该产品适合需要核验内容和来源的采购团队。",
@@ -62,7 +69,9 @@ describe("buildContentQualityReport", () => {
 			facts: [fact("unverified")],
 		});
 		expect(report.passed).toBe(false);
-		expect(report.gates.find((gate) => gate.key === "fact_references")?.status).toBe("fail");
+		expect(
+			report.gates.find((gate) => gate.key === "fact_references")?.status,
+		).toBe("fail");
 	});
 
 	it("passes a current verified sensitive claim mapping", () => {

@@ -1,6 +1,6 @@
 ---
 title: Local Setup
-description: Run the Aloom control plane, data services, and local Camoufox collector.
+description: Run the Anspectra control plane, data services, and local Camoufox collector.
 ---
 
 ## Requirements
@@ -14,21 +14,22 @@ description: Run the Aloom control plane, data services, and local Camoufox coll
 ## 1. Configure
 
 ```bash
-git clone https://github.com/MYZ8088/aloom.git
-cd aloom
+git clone https://github.com/MYZ8088/anspectra.git
+cd anspectra
 cp .env.example .env
 pnpm install
 ```
 
-Set an analysis provider in `.env`. AIHubMix is the default:
+Set an OpenAI-compatible analysis endpoint in `.env`:
 
 ```bash
-AIHUBMIX_API_KEY=replace-with-your-key
-ANALYSIS_LLM_PROVIDER=aihubmix
+LLM_BASE_URL=https://your-endpoint.example/v1
+LLM_API_KEY=replace-with-your-key
+LLM_MODEL=your-model-name
 ```
 
-OpenAI and Anthropic remain optional analysis backends. They do not provide
-formal monitoring samples.
+The configured model structures captured answers. It does not provide formal
+monitoring samples.
 
 ## 2. Provision Camoufox
 
@@ -37,10 +38,10 @@ pnpm camoufox:setup
 pnpm camoufox:doctor
 ```
 
-The runtime and persistent provider profiles live under `.aloom-storage/`,
+The runtime and persistent provider profiles live under `.anspectra-storage/`,
 which is excluded from Git and Docker build contexts.
 
-## 3. Start Aloom
+## 3. Start Anspectra
 
 ```bash
 pnpm local
@@ -60,4 +61,4 @@ verification restores that same real provider window.
 
 Use New Detection to scan a product website, confirm its profile, select a
 fixed suite, preview all prompts, and start a versioned detection series. Arbitrary custom
-prompts are not accepted in formal Aloom reports.
+prompts are not accepted in formal Anspectra reports.

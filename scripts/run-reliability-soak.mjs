@@ -155,7 +155,7 @@ async function main() {
 	const singlePass = process.argv.includes("--single-pass");
 	const statePath = path.resolve(
 		readArg("state") ??
-			`.aloom-storage/soak/reliability-${profile}-${workspaceId}.json`,
+			`.anspectra-storage/soak/reliability-${profile}-${workspaceId}.json`,
 	);
 	const expected = {
 		workspaceId,

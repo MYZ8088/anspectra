@@ -23,7 +23,7 @@ ENV SKIP_ENV_VALIDATION=true
 ENV DATABASE_URL=postgres://stub/stub
 ENV BETTER_AUTH_SECRET=docker-build-secret
 ENV INTERNAL_CRON_SECRET=docker-build-secret
-RUN pnpm turbo build --filter=@aloom/web...
+RUN pnpm turbo build --filter=@anspectra/web...
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -41,7 +41,7 @@ WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages/db ./packages/db
 RUN --mount=type=cache,id=pnpm-store-web,target=/root/.local/share/pnpm/store \
-    pnpm install --prod --frozen-lockfile --filter @aloom/db...
+    pnpm install --prod --frozen-lockfile --filter @anspectra/db...
 
 WORKDIR /app
 

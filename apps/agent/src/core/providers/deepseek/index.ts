@@ -1,4 +1,4 @@
-import { GEO_PROVIDER_MODE_CAPABILITIES } from "@aloom/types";
+import { GEO_PROVIDER_MODE_CAPABILITIES } from "@anspectra/types";
 import { waitForAssistantToFinish } from "../../../lib/input/response/waitForFinish.js";
 import {
 	readConversationIdentity,

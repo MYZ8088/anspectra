@@ -4,7 +4,7 @@ import { createTRPCRouter } from "@/server/api/trpc";
 import {
 	fetchPromptSourcesForWorkspace,
 	fetchUserPromptsForWorkspace,
-} from "@aloom/services";
+} from "@anspectra/services";
 import { authorizedWorkspaceProcedure } from "../../procedures";
 
 export const promptRouter = createTRPCRouter({

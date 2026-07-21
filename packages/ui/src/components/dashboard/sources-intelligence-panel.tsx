@@ -7,7 +7,7 @@ import {
 	getFaviconUrls,
 	getModelFavicon,
 	getUrlPath,
-} from "@aloom/utils";
+} from "@anspectra/utils";
 import {
 	BarChart3,
 	ChevronRight,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 process.env.DATABASE_URL ??=
-	"postgresql://postgres:postgres@127.0.0.1:5432/aloom";
+	"postgresql://postgres:postgres@127.0.0.1:5432/anspectra";
 
 const { evaluatePromptRelevance, getProfileCompleteness } = await import(
 	"./promptLibrary.js"
@@ -11,10 +11,10 @@ function profile(overrides: Record<string, unknown> = {}) {
 	return {
 		id: "profile-id",
 		workspaceId: "workspace-id",
-		brandName: "Aloom",
-		officialDomain: "aloom.example",
+		brandName: "Anspectra",
+		officialDomain: "anspectra.example",
 		aliases: ["Answer Loom"],
-		products: ["Aloom Monitor"],
+		products: ["Anspectra Monitor"],
 		category: "GEO monitoring software",
 		industry: "B2B software",
 		market: "enterprise software",
@@ -56,7 +56,7 @@ describe("brand profile gates and custom prompt relevance", () => {
 	it("requires aided prompts to name the brand, alias, or product", () => {
 		expect(
 			evaluatePromptRelevance({
-				prompt: "How does Aloom Monitor compare with alternatives?",
+				prompt: "How does Anspectra Monitor compare with alternatives?",
 				brandExposure: "aided",
 				profile: profile() as never,
 			}).status,

@@ -1,5 +1,5 @@
-import { db, schema } from "@aloom/db";
-import { newId } from "@aloom/utils";
+import { db, schema } from "@anspectra/db";
+import { newId } from "@anspectra/utils";
 
 // Private — ensures a user belongs to an org, inserting a member row if missing.
 export async function ensureOrgMembership(

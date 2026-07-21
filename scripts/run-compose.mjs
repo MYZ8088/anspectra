@@ -8,9 +8,9 @@ import {
 const COMMANDS_REQUIRING_EDGE_NETWORK = new Set(["create", "start", "up"]);
 const COMPOSE_FILE = "docker-compose.yml";
 const DEFAULT_IMAGES = {
-	ALOOM_AGENT_IMAGE: "aloom/collector:local",
-	ALOOM_POSTGRES_IMAGE: "aloom/postgres:local",
-	ALOOM_WEB_IMAGE: "aloom/web:local",
+	ANSPECTRA_AGENT_IMAGE: "anspectra/collector:local",
+	ANSPECTRA_POSTGRES_IMAGE: "anspectra/postgres:local",
+	ANSPECTRA_WEB_IMAGE: "anspectra/web:local",
 };
 const ARCH_MISMATCH_PATTERNS = [
 	"no matching manifest",
@@ -21,23 +21,23 @@ const PULLABLE_SERVICES = [
 	{ service: "clickhouse" },
 	{
 		service: "agent-worker",
-		envKey: "ALOOM_AGENT_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ALOOM_AGENT_IMAGE,
+		envKey: "ANSPECTRA_AGENT_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSPECTRA_AGENT_IMAGE,
 	},
 	{
 		service: "db",
-		envKey: "ALOOM_POSTGRES_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ALOOM_POSTGRES_IMAGE,
+		envKey: "ANSPECTRA_POSTGRES_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSPECTRA_POSTGRES_IMAGE,
 	},
 	{
 		service: "web",
-		envKey: "ALOOM_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ALOOM_WEB_IMAGE,
+		envKey: "ANSPECTRA_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSPECTRA_WEB_IMAGE,
 	},
 	{
 		service: "migrate",
-		envKey: "ALOOM_WEB_IMAGE",
-		defaultImage: DEFAULT_IMAGES.ALOOM_WEB_IMAGE,
+		envKey: "ANSPECTRA_WEB_IMAGE",
+		defaultImage: DEFAULT_IMAGES.ANSPECTRA_WEB_IMAGE,
 	},
 ];
 
@@ -109,7 +109,7 @@ async function runBootstrap() {
 	);
 	if (!hasPublishedAppImages) {
 		await runCompose(["up", "-d", "--build", "--force-recreate"]);
-		console.log("Self-host stack started from Aloom local images.");
+		console.log("Self-host stack started from Anspectra local images.");
 		return;
 	}
 

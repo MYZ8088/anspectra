@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, getFaviconUrls } from "@aloom/utils";
+import { cn, getFaviconUrls } from "@anspectra/utils";
 import { Globe, Link2, Trophy, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 

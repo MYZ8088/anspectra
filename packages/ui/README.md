@@ -1,6 +1,6 @@
-# @aloom/ui
+# @anspectra/ui
 
-Shared React component library for Aloom apps.
+Shared React component library for Anspectra apps.
 
 ## Responsibilities
 
@@ -20,14 +20,14 @@ Shared React component library for Aloom apps.
 Main barrel: `src/index.ts`.
 
 Notable export path:
-- `@aloom/ui/styles/shared.css`
+- `@anspectra/ui/styles/shared.css`
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
-| `pnpm --filter @aloom/ui build` | Compile TypeScript |
-| `pnpm --filter @aloom/ui typecheck` | TypeScript checks |
+| `pnpm --filter @anspectra/ui build` | Compile TypeScript |
+| `pnpm --filter @anspectra/ui typecheck` | TypeScript checks |
 
 ## Dependencies and Peers
 
@@ -39,12 +39,12 @@ Notable export path:
 ## Usage
 
 ```tsx
-import { Button, Table, BrandComparisonChart } from "@aloom/ui";
-import "@aloom/ui/styles/shared.css";
+import { Button, Table, BrandComparisonChart } from "@anspectra/ui";
+import "@anspectra/ui/styles/shared.css";
 ```
 
 ## Contribution Guidance
 
-- Keep components presentation-focused; business logic belongs in `apps/web` or `@aloom/services`.
+- Keep components presentation-focused; business logic belongs in `apps/web` or `@anspectra/services`.
 - Prefer expanding existing primitives over adding one-off variants.
 - Export new components through `src/index.ts` to keep imports consistent.

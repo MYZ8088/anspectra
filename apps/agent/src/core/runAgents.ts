@@ -3,7 +3,7 @@ import type {
 	PromptAttemptUpdate,
 	PromptPayload,
 	Provider,
-} from "@aloom/types";
+} from "@anspectra/types";
 import type { Page } from "playwright";
 import { runPrompts } from "./prompt-runner/index.js";
 

@@ -3,8 +3,8 @@ import { readProviderConnectionsState } from "@/lib/provider-connections/server"
 import {
 	resetProviderAuthData,
 	spawnProviderAuthLogin,
-} from "@aloom/services/agent-auth";
-import { AUTH_PROVIDER_LIST, resolveAppMode } from "@aloom/types";
+} from "@anspectra/services/agent-auth";
+import { AUTH_PROVIDER_LIST, resolveAppMode } from "@anspectra/types";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -17,7 +17,7 @@ const connectProviderSchema = z.object({
 });
 
 function isLocalProvidersMode(): boolean {
-	return resolveAppMode(process.env.ALOOM_APP_MODE) === "local";
+	return resolveAppMode(process.env.ANSPECTRA_APP_MODE) === "local";
 }
 
 async function requireProvidersApiAccess() {

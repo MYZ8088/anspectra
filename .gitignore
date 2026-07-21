@@ -60,6 +60,7 @@ CODEBASE_MEMORY.md
 mockData/
 llm_results.json
 
+.anspectra-storage/
 .aloom-storage/
 
 # Local-only project notes and repository policy drafts

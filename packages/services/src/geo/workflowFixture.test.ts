@@ -1,19 +1,18 @@
-import type { BrandAnalysisResult } from "@aloom/types";
+import type { BrandAnalysisResult } from "@anspectra/types";
 import { describe, expect, it, vi } from "vitest";
 import { buildContentQualityReport } from "./content.js";
 import { buildMatchedPromptCohorts } from "./experimentCohorts.js";
 import { planMonitorPrompts } from "./promptEngine.js";
 import { calculateBaselineScorecard } from "./scorecard.js";
 
-vi.mock("@aloom/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
+vi.mock("@anspectra/db", () => ({ clickhouse: {}, db: {}, schema: {} }));
 vi.mock("../analysis/runAnalysis.js", () => ({ parseAnalysisOutput: vi.fn() }));
-vi.mock("../env.js", () => ({
-	env: {
-		AIHUBMIX_ANALYSIS_MODEL: "test",
-		AIHUBMIX_ANALYSIS_FALLBACK_MODEL: "",
-	},
+vi.mock("../llm/index.js", () => ({
+	getLlmModel: () => "test",
+	llm: {},
+	llmRequestOverrides: () => undefined,
+	supportsStrictLlmSchema: () => true,
 }));
-vi.mock("../llm/index.js", () => ({ aihubmix: {} }));
 
 function visibleAnalysis(): BrandAnalysisResult {
 	return {

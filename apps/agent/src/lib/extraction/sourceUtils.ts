@@ -1,5 +1,5 @@
-import type { Provider, Source, SourceKind } from "@aloom/types";
-import { getDomain, getFaviconUrls } from "@aloom/utils";
+import type { Provider, Source, SourceKind } from "@anspectra/types";
+import { getDomain, getFaviconUrls } from "@anspectra/utils";
 import type { Locator, Page } from "playwright";
 
 /**

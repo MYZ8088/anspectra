@@ -1,4 +1,4 @@
-import type { PromptPayload } from "@aloom/types";
+import type { PromptPayload } from "@anspectra/types";
 
 type ProviderCheckpointState = {
 	totalCount: number;

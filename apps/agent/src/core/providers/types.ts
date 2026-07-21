@@ -1,4 +1,4 @@
-import type { ProviderMode, Source } from "@aloom/types";
+import type { ProviderMode, Source } from "@anspectra/types";
 import type { Page } from "playwright";
 
 export interface SubmitSuccessContext {

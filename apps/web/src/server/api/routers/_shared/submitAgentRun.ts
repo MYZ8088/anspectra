@@ -1,4 +1,4 @@
-import { submitAgentJobGroup } from "@aloom/services";
+import { submitAgentJobGroup } from "@anspectra/services";
 
 type SubmitAgentRunResult =
 	| { jobId: string; status: "queued" }

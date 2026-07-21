@@ -24,7 +24,7 @@ const localProvidersUrl = `${localAppUrl}/providers/local`;
 function getAuthRootDir() {
 	const configured = process.env.AGENT_AUTH_ROOT_DIR?.trim();
 	if (configured) return path.resolve(configured);
-	const storageRoot = path.join(repoRoot, ".aloom-storage");
+	const storageRoot = path.join(repoRoot, ".anspectra-storage");
 	const legacyStorageRoot = path.join(repoRoot, ".oneglanse-storage");
 	if (!existsSync(storageRoot) && existsSync(legacyStorageRoot)) {
 		try {
@@ -74,13 +74,13 @@ async function main() {
 	await ensureLocalCamoufoxRuntime();
 	await buildLocalWorkspacePackages();
 	const localEnv = buildLocalRuntimeEnv(localAppUrl);
-	await terminateLocalProcesses([repoRoot, "@aloom/web", "next dev"]);
+	await terminateLocalProcesses([repoRoot, "@anspectra/web", "next dev"]);
 	const before = await captureSessionSnapshot();
 	const webChild = spawnCommand(
 		"pnpm",
 		[
 			"--filter",
-			"@aloom/web",
+			"@anspectra/web",
 			"exec",
 			"next",
 			"dev",
@@ -111,7 +111,7 @@ async function main() {
 				: "No local provider session files changed.",
 		);
 		console.log(
-			"Provider cookies and profiles remain under .aloom-storage on this machine and are never uploaded.",
+			"Provider cookies and profiles remain under .anspectra-storage on this machine and are never uploaded.",
 		);
 	} finally {
 		stopWeb();

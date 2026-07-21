@@ -1,6 +1,6 @@
-import { ExternalServiceError, toErrorMessage } from "@aloom/errors";
-import type { Provider, ProviderMode } from "@aloom/types";
-import { logger } from "@aloom/utils";
+import { ExternalServiceError, toErrorMessage } from "@anspectra/errors";
+import type { Provider, ProviderMode } from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 
 type VisibleControl = {

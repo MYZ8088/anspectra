@@ -2,8 +2,8 @@ import {
 	IPRefreshNeededError,
 	classifyError,
 	toErrorMessage,
-} from "@aloom/errors";
-import { saveRuntimeProviderAuthSession } from "@aloom/services";
+} from "@anspectra/errors";
+import { saveRuntimeProviderAuthSession } from "@anspectra/services";
 import {
 	type AskPromptResult,
 	type PromptAttemptUpdate,
@@ -11,8 +11,8 @@ import {
 	type Provider,
 	resolveAppMode,
 	shouldUseProxyInMode,
-} from "@aloom/types";
-import { logger } from "@aloom/utils";
+} from "@anspectra/types";
+import { logger } from "@anspectra/utils";
 import type { Page } from "playwright";
 import { env } from "../../env.js";
 import { captureProviderDiagnostics } from "../../lib/browser/providerDiagnostics.js";
@@ -58,7 +58,7 @@ export async function runPrompts(
 	}
 	const results: AskPromptResult[] = [];
 	let lastTerminalError: unknown = null;
-	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ALOOM_APP_MODE));
+	const useProxy = shouldUseProxyInMode(resolveAppMode(env.ANSPECTRA_APP_MODE));
 	let proxyProven = !useProxy;
 	let persistentAuthCaptured = false;
 

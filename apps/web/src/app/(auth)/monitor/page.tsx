@@ -15,13 +15,13 @@ import type {
 	GeoDecisionStage,
 	GeoIntent,
 	ProviderMode,
-} from "@aloom/types";
+} from "@anspectra/types";
 import {
 	GEO_DECISION_STAGE_LIST,
 	GEO_INTENT_LIST,
 	GEO_PROVIDER_MODE_CAPABILITIES,
 	getProviderModeLabel,
-} from "@aloom/types";
+} from "@anspectra/types";
 import {
 	Button,
 	Checkbox,
@@ -32,8 +32,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 	toast,
-} from "@aloom/ui";
-import { cn } from "@aloom/utils";
+} from "@anspectra/ui";
+import { cn } from "@anspectra/utils";
 import {
 	CheckCircle2,
 	ChevronDown,

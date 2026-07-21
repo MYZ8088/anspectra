@@ -1,5 +1,5 @@
-const SKIP_PROVIDER_GATE_STORAGE_KEY = "aloom.skip-provider-gate";
-export const SKIP_PROVIDER_GATE_EVENT = "aloom:skip-provider-gate";
+const SKIP_PROVIDER_GATE_STORAGE_KEY = "anspectra.skip-provider-gate";
+export const SKIP_PROVIDER_GATE_EVENT = "anspectra:skip-provider-gate";
 
 export function readSkipProviderGate(): boolean {
 	if (typeof window === "undefined") {
