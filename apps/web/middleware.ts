@@ -1,7 +1,8 @@
 import { canAccessPeopleInMode, resolveAppMode } from "@anspectra/types";
+import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
 	const appMode = resolveAppMode(process.env.ANSPECTRA_APP_MODE);
 	const { pathname, searchParams } = request.nextUrl;
 
@@ -14,13 +15,12 @@ export async function middleware(request: NextRequest) {
 	const isPublicLocalProvidersRequest =
 		isLocalProvidersPage || isLocalProvidersApi;
 
-	const session = isPublicLocalProvidersRequest
-		? null
-		: await (await import("@/lib/auth/auth")).auth.api.getSession({
-				headers: request.headers,
-			});
+	// Keep middleware Edge-safe; authenticated pages and APIs still validate the
+	// session against the database before returning protected data.
+	const hasSessionCookie =
+		!isPublicLocalProvidersRequest && Boolean(getSessionCookie(request));
 
-	if (!session && !isPublicLocalProvidersRequest) {
+	if (!hasSessionCookie && !isPublicLocalProvidersRequest) {
 		const loginUrl = new URL("/login", request.url);
 		const requestPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
 		loginUrl.searchParams.set("next", requestPath);
