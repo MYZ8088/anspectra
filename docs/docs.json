@@ -2,8 +2,8 @@
 	"$schema": "https://mintlify.com/docs.json",
 	"theme": "mint",
 	"name": "Anspectra",
-	"favicon": "/images/anspectra-mark.png",
-	"thumbnail": "/images/anspectra-detection.png",
+	"favicon": "/images/anspectra-mark-v2.png",
+	"thumbnail": "/images/anspectra-detection-v2.png",
 	"colors": {
 		"primary": "#111827"
 	},

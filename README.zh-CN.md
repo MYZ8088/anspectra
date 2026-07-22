@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/images/anspectra-mark.png" alt="Anspectra 标志" width="128" />
+  <img src="./docs/images/anspectra-mark-v2.png" alt="Anspectra 标志" width="128" />
 </p>
 
 <h1 align="center">Anspectra</h1>
@@ -21,7 +21,7 @@
 Anspectra 是一个面向豆包、DeepSeek、元宝和千问的可自托管 GEO 检测与周期监测工具。它使用固定且可版本化的提示词套件，通过真实官方 Web 页面采集回答，并以样本级 checkpoint、结构化分析和可比报告评估产品的 AI 可见性。模型 API 不会被用来替代官方 Web 监测样本。
 
 <p align="center">
-  <img src="./docs/images/anspectra-detection.zh-CN.png" alt="Anspectra 中文检测报告" width="100%" />
+  <img src="./docs/images/anspectra-detection.zh-CN-v2.png" alt="Anspectra 中文检测报告" width="100%" />
 </p>
 
 ### 检测指标

@@ -26,7 +26,13 @@ if (actualSha256 !== expectedSha256) {
 }
 
 async function createTransparentMark() {
-	const { data, info } = await sharp(sourceBuffer)
+	// Crop the supplied white canvas before removing the background so faint
+	// edge pixels cannot become visible bars in transparent derivatives.
+	const croppedSource = await sharp(sourceBuffer)
+		.trim({ background: "#ffffff", threshold: 10 })
+		.png()
+		.toBuffer();
+	const { data, info } = await sharp(croppedSource)
 		.removeAlpha()
 		.raw()
 		.toBuffer({ resolveWithObject: true });
@@ -69,7 +75,7 @@ async function createTransparentMark() {
 	return sharp(rgba, {
 		raw: { width: info.width, height: info.height, channels: 4 },
 	})
-		.trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 5 })
+		.trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 10 })
 		.png()
 		.toBuffer();
 }
@@ -77,15 +83,15 @@ async function createTransparentMark() {
 const transparentMark = await createTransparentMark();
 
 const targets = [
-	["apps/web/public/logo.png", 512],
-	["apps/web/public/logo-dark.png", 512],
+	["apps/web/public/anspectra-mark-v2.png", 512],
+	["apps/web/public/anspectra-mark-v2-dark.png", 512],
 	["apps/web/src/app/icon.png", 512],
 	["apps/web/src/app/apple-icon.png", 180],
-	["apps/landing/public/logo.png", 512],
-	["apps/landing/public/logo-dark.png", 512],
+	["apps/landing/public/anspectra-mark-v2.png", 512],
+	["apps/landing/public/anspectra-mark-v2-dark.png", 512],
 	["apps/landing/src/app/icon.png", 512],
 	["apps/landing/src/app/apple-icon.png", 180],
-	["docs/images/anspectra-mark.png", 512],
+	["docs/images/anspectra-mark-v2.png", 512],
 ];
 
 for (const [relativePath, size] of targets) {
@@ -93,7 +99,10 @@ for (const [relativePath, size] of targets) {
 	await mkdir(path.dirname(outputPath), { recursive: true });
 	const inset = Math.max(8, Math.round(size * 0.08));
 	await sharp(transparentMark)
-		.resize(size - inset * 2, size - inset * 2, { fit: "contain" })
+		.resize(size - inset * 2, size - inset * 2, {
+			fit: "contain",
+			background: { r: 0, g: 0, b: 0, alpha: 0 },
+		})
 		.extend({
 			top: inset,
 			bottom: inset,

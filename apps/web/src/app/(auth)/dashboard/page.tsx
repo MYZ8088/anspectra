@@ -36,6 +36,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import {
+	type CycleTrendMetric,
+	buildCycleTrendMetrics,
+	formatCycleTrendDelta,
+	formatCycleTrendValue,
+} from "./_utils/cycle-trends";
 
 type ReportData = NonNullable<RouterOutputs["geo"]["detectionReport"]>;
 type ReportSlice = ReportData["slices"]["overall"][number];
@@ -355,6 +361,152 @@ function CycleMetric(props: {
 	);
 }
 
+const CYCLE_TREND_COLORS: Record<CycleTrendMetric["key"], string> = {
+	geo_score: "#171717",
+	mention: "#0891b2",
+	recommendation: "#f97360",
+	source: "#2563eb",
+	stability: "#a16207",
+};
+
+function CycleSparkline(props: {
+	metric: CycleTrendMetric;
+	labels: string[];
+}) {
+	const width = 420;
+	const height = 28;
+	const inset = 4;
+	const plotWidth = width - inset * 2;
+	const plotHeight = height - inset * 2;
+	const knownValues = props.metric.values.filter(
+		(value): value is number => value !== null,
+	);
+	const observedMin = knownValues.length ? Math.min(...knownValues) : 0;
+	const observedMax = knownValues.length ? Math.max(...knownValues) : 100;
+	const observedMidpoint = (observedMin + observedMax) / 2;
+	const domainSpan = Math.max(20, (observedMax - observedMin) * 1.5);
+	const domainMin = Math.max(0, observedMidpoint - domainSpan / 2);
+	const domainMax = Math.min(100, observedMidpoint + domainSpan / 2);
+	const effectiveSpan = Math.max(1, domainMax - domainMin);
+	const xFor = (index: number) =>
+		props.metric.values.length === 1
+			? width / 2
+			: inset + (index / (props.metric.values.length - 1)) * plotWidth;
+	const yFor = (value: number) =>
+		inset +
+		(1 -
+			(Math.max(domainMin, Math.min(domainMax, value)) - domainMin) /
+				effectiveSpan) *
+			plotHeight;
+	const points = props.metric.values.map((value, index) =>
+		value === null ? null : { x: xFor(index), y: yFor(value), value, index },
+	);
+	const color = CYCLE_TREND_COLORS[props.metric.key];
+
+	return (
+		<svg
+			viewBox={`0 0 ${width} ${height}`}
+			role="img"
+			aria-label={`${props.metric.label} across measured cycles`}
+			className="h-6 w-full overflow-visible"
+			preserveAspectRatio="none"
+		>
+			<line
+				x1={inset}
+				x2={width - inset}
+				y1={height / 2}
+				y2={height / 2}
+				stroke="currentColor"
+				className="text-stone-200 dark:text-neutral-800"
+				strokeWidth="1"
+			/>
+			{points.slice(1).map((point, index) => {
+				const previous = points[index];
+				if (!point || !previous) return null;
+				return (
+					<line
+						key={`${props.metric.key}:segment:${index}`}
+						x1={previous.x}
+						y1={previous.y}
+						x2={point.x}
+						y2={point.y}
+						stroke={color}
+						strokeWidth="2.5"
+						strokeLinecap="round"
+					/>
+				);
+			})}
+			{points.map((point) =>
+				point ? (
+					<circle
+						key={`${props.metric.key}:point:${point.index}`}
+						cx={point.x}
+						cy={point.y}
+						r="3"
+						fill="white"
+						stroke={color}
+						strokeWidth="2"
+					>
+						<title>{`${props.labels[point.index]}: ${point.value}${props.metric.unit === "percentage_points" ? "%" : ""}`}</title>
+					</circle>
+				) : null,
+			)}
+		</svg>
+	);
+}
+
+function CompactCycleTrend(props: { cycles: ReportCycle[] }) {
+	const metrics = buildCycleTrendMetrics(props.cycles);
+	const labels = props.cycles.map((cycle) => `Cycle ${cycle.roundIndex}`);
+	const rangeLabel =
+		labels.length > 1 ? `${labels[0]} to ${labels.at(-1)}` : (labels[0] ?? "");
+
+	return (
+		<div className="max-w-5xl border-y border-stone-200 dark:border-neutral-800">
+			<div className="hidden grid-cols-[150px_minmax(240px,1fr)_80px_72px] gap-x-4 border-b border-stone-100 py-2 text-[11px] font-medium text-stone-400 sm:grid dark:border-neutral-900">
+				<span>Metric</span>
+				<span>{rangeLabel}</span>
+				<span className="text-right">Latest</span>
+				<span className="text-right">Change</span>
+			</div>
+			<div className="divide-y divide-stone-100 dark:divide-neutral-900">
+				{metrics.map((metric) => {
+					const deltaClass =
+						metric.delta === null || metric.delta === 0
+							? "text-stone-400"
+							: metric.delta > 0
+								? "text-cyan-700 dark:text-cyan-300"
+								: "text-[#d45b4b] dark:text-[#ff9788]";
+					return (
+						<div
+							key={metric.key}
+							data-trend-metric={metric.key}
+							className="grid grid-cols-[minmax(90px,1.1fr)_minmax(64px,1fr)_72px_36px] items-center gap-x-2 py-1 sm:grid-cols-[150px_minmax(240px,1fr)_80px_72px] sm:gap-x-4"
+						>
+							<div className="min-w-0">
+								<p className="truncate text-[11px] font-medium sm:text-xs">
+									{metric.label}
+								</p>
+							</div>
+							<div className="min-w-0">
+								<CycleSparkline metric={metric} labels={labels} />
+							</div>
+							<p className="text-right text-[11px] font-semibold tabular-nums sm:text-xs">
+								{formatCycleTrendValue(metric)}
+							</p>
+							<p
+								className={`text-right text-[10px] font-medium tabular-nums sm:text-[11px] ${deltaClass}`}
+							>
+								{formatCycleTrendDelta(metric)}
+							</p>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 function ComparableCycleReport(props: {
 	cycles: ReportCycle[];
 	selectedCycle: ReportCycle | undefined;
@@ -362,9 +514,6 @@ function ComparableCycleReport(props: {
 }) {
 	const measuredCycles = props.cycles.filter(
 		(cycle) => cycle.overall.analysed > 0,
-	);
-	const trendLabels = measuredCycles.map(
-		(cycle) => `Cycle ${cycle.roundIndex}`,
 	);
 	const selected = props.selectedCycle;
 
@@ -391,28 +540,15 @@ function ComparableCycleReport(props: {
 				</div>
 			</div>
 
-			<div className="mt-7">
-				<LineChart
-					ariaLabel="Mention and recommendation trend across planned detection cycles"
-					labels={measuredCycles.length > 1 ? trendLabels : []}
-					series={[
-						{
-							label: "Mention rate",
-							color: "#0891b2",
-							values: measuredCycles.map(
-								(cycle) => cycle.overall.mentionRate.value,
-							),
-						},
-						{
-							label: "Recommendation rate",
-							color: "#f97360",
-							values: measuredCycles.map(
-								(cycle) => cycle.overall.recommendationRate.value,
-							),
-						},
-					]}
-					emptyMessage="At least two cycles with analysed answers are needed to draw the comparable trend."
-				/>
+			<div className="mt-6">
+				{measuredCycles.length > 1 ? (
+					<CompactCycleTrend cycles={measuredCycles} />
+				) : (
+					<p className="max-w-5xl border-y border-stone-200 py-6 text-sm text-stone-500 dark:border-neutral-800">
+						At least two cycles with analysed answers are needed to draw the
+						comparable trend.
+					</p>
+				)}
 			</div>
 
 			<div className="mt-7 overflow-x-auto">

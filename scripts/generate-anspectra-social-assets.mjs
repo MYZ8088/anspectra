@@ -7,8 +7,11 @@ const repoRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"..",
 );
-const markPath = path.join(repoRoot, "docs/images/anspectra-mark.png");
-const reportPath = path.join(repoRoot, "docs/images/anspectra-detection.png");
+const markPath = path.join(repoRoot, "docs/images/anspectra-mark-v2.png");
+const reportPath = path.join(
+	repoRoot,
+	"docs/images/anspectra-detection-v2.png",
+);
 const [markBuffer, reportBuffer] = await Promise.all([
 	readFile(markPath),
 	readFile(reportPath),

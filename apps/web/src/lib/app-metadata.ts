@@ -3,25 +3,25 @@ import type { Metadata } from "next";
 export const appIcons: Metadata["icons"] = {
 	icon: [
 		{
-			url: "/logo.png",
+			url: "/anspectra-mark-v2.png",
 			media: "(prefers-color-scheme: light)",
 			type: "image/png",
 		},
 		{
-			url: "/logo-dark.png",
+			url: "/anspectra-mark-v2-dark.png",
 			media: "(prefers-color-scheme: dark)",
 			type: "image/png",
 		},
 	],
 	shortcut: [
 		{
-			url: "/logo.png",
+			url: "/anspectra-mark-v2.png",
 			type: "image/png",
 		},
 	],
 	apple: [
 		{
-			url: "/logo.png",
+			url: "/anspectra-mark-v2.png",
 			type: "image/png",
 		},
 	],

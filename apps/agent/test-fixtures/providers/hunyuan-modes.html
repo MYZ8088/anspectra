@@ -2,11 +2,10 @@
 <button role="switch" data-state="off">Deep Thinking</button>
 <button data-tool-trigger>Tool</button>
 <div data-tool-menu style="display:none">
-  <button data-tool="search">Search</button>
-  <button data-tool="writing">Writing</button>
-  <button data-tool="solve">Solve</button>
+  <div><li class="t-dropdown__item" data-tool="search"><span><span>Search</span></span></li></div>
+  <div><li class="t-dropdown__item" data-tool="writing"><span>Writing</span></li></div>
+  <div><li class="t-dropdown__item" data-tool="solve"><span>Solve</span></li></div>
 </div>
-<button data-selected-tool data-state="off"></button>
 <script>
 document.querySelector('[role=switch]').addEventListener('click', (event) => {
   const button = event.currentTarget;
@@ -16,9 +15,11 @@ document.querySelector('[data-tool-trigger]').addEventListener('click', () => {
   document.querySelector('[data-tool-menu]').style.display = 'block';
 });
 document.querySelector('[data-tool="search"]').addEventListener('click', () => {
-  const selected = document.querySelector('[data-selected-tool]');
-  selected.textContent = 'Search';
-  selected.dataset.state = 'selected';
+	  const selected = document.createElement('span');
+	  selected.dataset.applicationId = 'application_id_web_search';
+	  selected.dataset.value = 'Search';
+	  selected.textContent = 'Search ×';
+	  document.body.appendChild(selected);
   document.querySelector('[data-tool-menu]').style.display = 'none';
 });
 </script>

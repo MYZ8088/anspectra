@@ -403,6 +403,12 @@ async function readHunyuanSearchToolState(page: Page): Promise<boolean | null> {
 			);
 		};
 		const searchLabels = ["Search", "搜索", "联网搜索"];
+		const selectedApplication = Array.from(
+			document.querySelectorAll(
+				"[data-application-id='application_id_web_search'],.quill-application-tag[data-value='Search']",
+			),
+		).some((element) => element instanceof HTMLElement && visible(element));
+		if (selectedApplication) return true;
 		const controls = Array.from(
 			document.querySelectorAll(
 				"button,[role='button'],[role='menuitem'],[role='option'],[data-state]",
@@ -508,7 +514,9 @@ async function selectHunyuanSearchTool(page: Page): Promise<void> {
 			);
 		};
 		const candidates = Array.from(
-			document.querySelectorAll("button,[role='menuitem'],[role='option'],div"),
+			document.querySelectorAll(
+				"li.t-dropdown__item,button,[role='menuitem'],[role='option']",
+			),
 		)
 			.filter(
 				(element): element is HTMLElement => element instanceof HTMLElement,
@@ -528,44 +536,7 @@ async function selectHunyuanSearchTool(page: Page): Promise<void> {
 	if (!selected) throw new Error("Yuanbao Search tool is not available");
 	await page.waitForTimeout(500);
 
-	const verified = await page.evaluate(() => {
-		const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
-		const visible = (element: HTMLElement) => {
-			const rect = element.getBoundingClientRect();
-			const style = window.getComputedStyle(element);
-			return (
-				rect.width > 1 &&
-				rect.height > 1 &&
-				style.display !== "none" &&
-				style.visibility !== "hidden"
-			);
-		};
-		return Array.from(
-			document.querySelectorAll("button,[role='button'],[data-state]"),
-		)
-			.filter(
-				(element): element is HTMLElement => element instanceof HTMLElement,
-			)
-			.some((element) => {
-				if (!visible(element)) return false;
-				const text = normalize(element.innerText || element.textContent || "");
-				const signature = [
-					element.getAttribute("aria-pressed"),
-					element.getAttribute("aria-selected"),
-					element.getAttribute("data-state"),
-					element.className,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLocaleLowerCase();
-				return (
-					["Search", "搜索", "联网搜索"].some((label) =>
-						text.includes(label),
-					) && /(selected|active|checked|on|true)/.test(signature)
-				);
-			});
-	}, undefined);
-	if (!verified) {
+	if ((await readHunyuanSearchToolState(page)) !== true) {
 		throw new Error("Yuanbao Search tool click could not be verified");
 	}
 }

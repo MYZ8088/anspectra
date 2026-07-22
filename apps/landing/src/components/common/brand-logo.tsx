@@ -11,7 +11,7 @@ export function BrandLogo({
 }: BrandLogoProps): React.JSX.Element {
 	return (
 		<img
-			src="/logo.png"
+			src="/anspectra-mark-v2.png"
 			alt={alt}
 			className={cn("object-contain", className)}
 		/>

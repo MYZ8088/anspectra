@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/images/anspectra-mark.png" alt="Anspectra mark" width="128" />
+  <img src="./docs/images/anspectra-mark-v2.png" alt="Anspectra mark" width="128" />
 </p>
 
 <h1 align="center">Anspectra</h1>
@@ -21,7 +21,7 @@
 Anspectra is a self-hosted GEO detection and recurring monitoring tool for Doubao, DeepSeek, Yuanbao, and Qwen. It uses fixed, versioned prompt suites, real official-Web collection, sample-level checkpoints, structured answer analysis, and comparable reports. Model APIs are never substituted for official-Web monitoring samples.
 
 <p align="center">
-  <img src="./docs/images/anspectra-detection.png" alt="Anspectra detection dashboard" width="100%" />
+  <img src="./docs/images/anspectra-detection-v2.png" alt="Anspectra detection dashboard" width="100%" />
 </p>
 
 ### What Anspectra measures
