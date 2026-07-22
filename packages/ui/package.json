@@ -11,6 +11,10 @@
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
 		},
+		"./provider-logo": {
+			"types": "./dist/components/provider-logo.d.ts",
+			"default": "./dist/components/provider-logo.js"
+		},
 		"./styles/shared.css": "./src/styles/shared.css"
 	},
 	"scripts": {

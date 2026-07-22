@@ -10,6 +10,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			url: siteUrl,
 			changeFrequency: "weekly",
 			priority: 1,
+			alternates: {
+				languages: {
+					en: siteUrl,
+					"zh-CN": `${siteUrl}/zh-CN/`,
+				},
+			},
+		},
+		{
+			url: `${siteUrl}/zh-CN/`,
+			changeFrequency: "weekly",
+			priority: 1,
+			alternates: {
+				languages: {
+					en: siteUrl,
+					"zh-CN": `${siteUrl}/zh-CN/`,
+				},
+			},
 		},
 		{
 			url: `${siteUrl}/docs/`,

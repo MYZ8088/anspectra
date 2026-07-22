@@ -27,6 +27,7 @@ export * from "./label.js";
 
 // Provider/time filter controls
 export * from "./provider-model-select.js";
+export * from "./provider-logo.js";
 export * from "./time-range-select.js";
 
 // Popover

@@ -2,7 +2,7 @@
 
 import { persistActiveProviderRun } from "@/components/provider-run-toast";
 import { api } from "@/trpc/react";
-import { Button, toast } from "@anspectra/ui";
+import { Button, ProviderLogo, toast } from "@anspectra/ui";
 import { cn } from "@anspectra/utils";
 import {
 	AlertTriangle,
@@ -87,7 +87,8 @@ export function ProviderDiagnosticsPanel(props: { workspaceId: string }) {
 							)}
 						>
 							<div className="flex items-center justify-between gap-2">
-								<span className="text-sm font-medium">
+								<span className="inline-flex items-center gap-2 text-sm font-medium">
+									<ProviderLogo provider={item.provider} className="size-4" />
 									{PROVIDER_LABELS[item.provider] ?? item.provider}
 								</span>
 								{ready ? (

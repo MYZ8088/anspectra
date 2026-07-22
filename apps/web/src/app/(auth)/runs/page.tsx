@@ -10,6 +10,7 @@ import { type ProviderMode, getProviderModeLabel } from "@anspectra/types";
 import {
 	Button,
 	Checkbox,
+	ProviderLogo,
 	Select,
 	SelectContent,
 	SelectItem,
@@ -29,6 +30,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 const WEB_PROVIDERS = ["doubao", "deepseek", "hunyuan", "qwen"] as const;
+
+const PROVIDER_LABELS: Record<string, string> = {
+	doubao: "Doubao",
+	deepseek: "DeepSeek",
+	hunyuan: "Yuanbao",
+	qwen: "Qwen",
+};
 
 const statusTone: Record<string, string> = {
 	completed:
@@ -228,8 +236,10 @@ export default function RunsPage() {
 			className="flex flex-wrap items-center justify-between gap-4 py-3"
 		>
 			<div>
-				<p className="font-medium capitalize">
-					{challenge.provider} · {challenge.kind.replaceAll("_", " ")}
+				<p className="inline-flex items-center gap-2 font-medium">
+					<ProviderLogo provider={challenge.provider} className="size-4" />
+					{PROVIDER_LABELS[challenge.provider] ?? challenge.provider} ·{" "}
+					{challenge.kind.replaceAll("_", " ")}
 				</p>
 				<p className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/70">
 					Run {challenge.runId.slice(0, 8)} · expires{" "}
@@ -385,7 +395,10 @@ export default function RunsPage() {
 												"border-stone-950 dark:border-white",
 										)}
 									>
-										<p className="font-medium capitalize">{provider}</p>
+										<p className="inline-flex items-center gap-2 font-medium">
+											<ProviderLogo provider={provider} className="size-4" />
+											{PROVIDER_LABELS[provider]}
+										</p>
 										<p className="mt-3 text-lg font-semibold tabular-nums">
 											{summary.completed}/{summary.total}
 										</p>
@@ -443,7 +456,13 @@ export default function RunsPage() {
 										<SelectItem value="all">All providers</SelectItem>
 										{WEB_PROVIDERS.map((provider) => (
 											<SelectItem key={provider} value={provider}>
-												{provider}
+												<span className="inline-flex items-center gap-2">
+													<ProviderLogo
+														provider={provider}
+														className="size-4"
+													/>
+													{PROVIDER_LABELS[provider]}
+												</span>
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -553,8 +572,15 @@ export default function RunsPage() {
 														)}
 													</p>
 												</td>
-												<td className="px-3 py-4 align-top capitalize">
-													{sample.provider}
+												<td className="px-3 py-4 align-top">
+													<span className="inline-flex items-center gap-2">
+														<ProviderLogo
+															provider={sample.provider}
+															className="size-4"
+														/>
+														{PROVIDER_LABELS[sample.provider] ??
+															sample.provider}
+													</span>
 												</td>
 												<td className="px-3 py-4 align-top text-xs capitalize">
 													{sample.prompt?.decisionStage ?? "unknown"}

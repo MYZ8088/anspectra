@@ -17,6 +17,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	Input,
+	ProviderLogo,
 	Tabs,
 	TabsContent,
 	TabsList,
@@ -279,9 +280,16 @@ function ProviderReport(props: { rows: ReportData["slices"]["provider"] }) {
 					className="grid gap-5 py-5 md:grid-cols-[minmax(150px,1fr)_90px_minmax(0,2fr)] md:items-center"
 				>
 					<div>
-						<p className="font-semibold">
-							{PROVIDER_LABELS[row.key] ?? row.label}
-						</p>
+						<div className="flex items-center gap-2.5">
+							<ProviderLogo
+								provider={row.key}
+								title={PROVIDER_LABELS[row.key] ?? row.label}
+								className="size-5 shrink-0"
+							/>
+							<p className="font-semibold">
+								{PROVIDER_LABELS[row.key] ?? row.label}
+							</p>
+						</div>
 						<p className="mt-1 text-xs text-stone-500">
 							{row.completed}/{row.planned} collected, {row.analysed} analysed
 						</p>
@@ -369,105 +377,127 @@ const CYCLE_TREND_COLORS: Record<CycleTrendMetric["key"], string> = {
 	stability: "#a16207",
 };
 
-function CycleSparkline(props: {
-	metric: CycleTrendMetric;
-	labels: string[];
-}) {
-	const width = 420;
-	const height = 28;
-	const inset = 4;
-	const plotWidth = width - inset * 2;
-	const plotHeight = height - inset * 2;
-	const knownValues = props.metric.values.filter(
-		(value): value is number => value !== null,
-	);
-	const observedMin = knownValues.length ? Math.min(...knownValues) : 0;
-	const observedMax = knownValues.length ? Math.max(...knownValues) : 100;
-	const observedMidpoint = (observedMin + observedMax) / 2;
-	const domainSpan = Math.max(20, (observedMax - observedMin) * 1.5);
-	const domainMin = Math.max(0, observedMidpoint - domainSpan / 2);
-	const domainMax = Math.min(100, observedMidpoint + domainSpan / 2);
-	const effectiveSpan = Math.max(1, domainMax - domainMin);
-	const xFor = (index: number) =>
-		props.metric.values.length === 1
-			? width / 2
-			: inset + (index / (props.metric.values.length - 1)) * plotWidth;
-	const yFor = (value: number) =>
-		inset +
-		(1 -
-			(Math.max(domainMin, Math.min(domainMax, value)) - domainMin) /
-				effectiveSpan) *
-			plotHeight;
-	const points = props.metric.values.map((value, index) =>
-		value === null ? null : { x: xFor(index), y: yFor(value), value, index },
-	);
-	const color = CYCLE_TREND_COLORS[props.metric.key];
-
-	return (
-		<svg
-			viewBox={`0 0 ${width} ${height}`}
-			role="img"
-			aria-label={`${props.metric.label} across measured cycles`}
-			className="h-6 w-full overflow-visible"
-			preserveAspectRatio="none"
-		>
-			<line
-				x1={inset}
-				x2={width - inset}
-				y1={height / 2}
-				y2={height / 2}
-				stroke="currentColor"
-				className="text-stone-200 dark:text-neutral-800"
-				strokeWidth="1"
-			/>
-			{points.slice(1).map((point, index) => {
-				const previous = points[index];
-				if (!point || !previous) return null;
-				return (
-					<line
-						key={`${props.metric.key}:segment:${index}`}
-						x1={previous.x}
-						y1={previous.y}
-						x2={point.x}
-						y2={point.y}
-						stroke={color}
-						strokeWidth="2.5"
-						strokeLinecap="round"
-					/>
-				);
-			})}
-			{points.map((point) =>
-				point ? (
-					<circle
-						key={`${props.metric.key}:point:${point.index}`}
-						cx={point.x}
-						cy={point.y}
-						r="3"
-						fill="white"
-						stroke={color}
-						strokeWidth="2"
-					>
-						<title>{`${props.labels[point.index]}: ${point.value}${props.metric.unit === "percentage_points" ? "%" : ""}`}</title>
-					</circle>
-				) : null,
-			)}
-		</svg>
-	);
-}
-
 function CompactCycleTrend(props: { cycles: ReportCycle[] }) {
 	const metrics = buildCycleTrendMetrics(props.cycles);
 	const labels = props.cycles.map((cycle) => `Cycle ${cycle.roundIndex}`);
 	const rangeLabel =
 		labels.length > 1 ? `${labels[0]} to ${labels.at(-1)}` : (labels[0] ?? "");
+	const width = 720;
+	const height = 280;
+	const left = 42;
+	const right = 18;
+	const top = 18;
+	const bottom = 38;
+	const plotWidth = width - left - right;
+	const plotHeight = height - top - bottom;
+	const xFor = (index: number) =>
+		labels.length === 1
+			? left + plotWidth / 2
+			: left + (index / (labels.length - 1)) * plotWidth;
+	const yFor = (value: number) =>
+		top + (1 - Math.max(0, Math.min(100, value)) / 100) * plotHeight;
+	const yTicks = [0, 25, 50, 75, 100];
+	const labelStep = Math.max(1, Math.ceil(labels.length / 6));
 
 	return (
-		<div className="max-w-5xl border-y border-stone-200 dark:border-neutral-800">
-			<div className="hidden grid-cols-[150px_minmax(240px,1fr)_80px_72px] gap-x-4 border-b border-stone-100 py-2 text-[11px] font-medium text-stone-400 sm:grid dark:border-neutral-900">
-				<span>Metric</span>
-				<span>{rangeLabel}</span>
-				<span className="text-right">Latest</span>
-				<span className="text-right">Change</span>
+		<div className="grid max-w-4xl gap-6 border-y border-stone-200 py-5 md:grid-cols-[minmax(0,560px)_minmax(190px,1fr)] md:items-center dark:border-neutral-800">
+			<div className="min-w-0">
+				<p className="mb-2 text-[11px] font-medium text-stone-400">
+					{rangeLabel}
+				</p>
+				<svg
+					viewBox={`0 0 ${width} ${height}`}
+					role="img"
+					aria-label={`Five GEO metrics from ${rangeLabel}`}
+					className="block h-auto w-full max-w-[560px]"
+					preserveAspectRatio="xMidYMid meet"
+				>
+					{yTicks.map((tick) => {
+						const y = yFor(tick);
+						return (
+							<g key={tick}>
+								<line
+									x1={left}
+									x2={width - right}
+									y1={y}
+									y2={y}
+									stroke="currentColor"
+									className="text-stone-200 dark:text-neutral-800"
+									strokeWidth="1"
+								/>
+								<text
+									x={left - 9}
+									y={y + 4}
+									textAnchor="end"
+									className="fill-stone-400 text-[10px]"
+								>
+									{tick}
+								</text>
+							</g>
+						);
+					})}
+					{metrics.map((metric) => {
+						const color = CYCLE_TREND_COLORS[metric.key];
+						const segments: Array<Array<{ x: number; y: number }>> = [];
+						let current: Array<{ x: number; y: number }> = [];
+						metric.values.forEach((value, index) => {
+							if (value === null) {
+								if (current.length) segments.push(current);
+								current = [];
+								return;
+							}
+							current.push({ x: xFor(index), y: yFor(value) });
+						});
+						if (current.length) segments.push(current);
+
+						return (
+							<g key={metric.key} data-trend-metric={metric.key}>
+								{segments.map((segment, segmentIndex) =>
+									segment.length > 1 ? (
+										<path
+											key={`${metric.key}:segment:${segmentIndex}`}
+											d={smoothPath(segment)}
+											fill="none"
+											stroke={color}
+											strokeWidth="3"
+											strokeLinecap="round"
+										/>
+									) : null,
+								)}
+								{metric.values.map((value, index) =>
+									value === null ? null : (
+										<circle
+											key={`${metric.key}:point:${index}`}
+											cx={xFor(index)}
+											cy={yFor(value)}
+											r="4"
+											fill="white"
+											stroke={color}
+											strokeWidth="2.5"
+										>
+											<title>{`${labels[index]}: ${metric.label} ${value}${metric.unit === "percentage_points" ? "%" : ""}`}</title>
+										</circle>
+									),
+								)}
+							</g>
+						);
+					})}
+					{labels.map((label, index) =>
+						index === 0 ||
+						index === labels.length - 1 ||
+						index % labelStep === 0 ? (
+							<text
+								key={label}
+								x={xFor(index)}
+								y={height - 12}
+								textAnchor="middle"
+								className="fill-stone-500 text-[10px]"
+							>
+								{label}
+							</text>
+						) : null,
+					)}
+				</svg>
 			</div>
 			<div className="divide-y divide-stone-100 dark:divide-neutral-900">
 				{metrics.map((metric) => {
@@ -480,22 +510,22 @@ function CompactCycleTrend(props: { cycles: ReportCycle[] }) {
 					return (
 						<div
 							key={metric.key}
-							data-trend-metric={metric.key}
-							className="grid grid-cols-[minmax(90px,1.1fr)_minmax(64px,1fr)_72px_36px] items-center gap-x-2 py-1 sm:grid-cols-[150px_minmax(240px,1fr)_80px_72px] sm:gap-x-4"
+							className="grid grid-cols-[minmax(108px,1fr)_64px_64px] items-center gap-2 py-2.5"
 						>
-							<div className="min-w-0">
-								<p className="truncate text-[11px] font-medium sm:text-xs">
+							<div className="flex min-w-0 items-center gap-2">
+								<span
+									className="h-0.5 w-5 shrink-0"
+									style={{ backgroundColor: CYCLE_TREND_COLORS[metric.key] }}
+								/>
+								<p className="text-[11px] font-medium leading-tight sm:text-xs">
 									{metric.label}
 								</p>
 							</div>
-							<div className="min-w-0">
-								<CycleSparkline metric={metric} labels={labels} />
-							</div>
-							<p className="text-right text-[11px] font-semibold tabular-nums sm:text-xs">
+							<p className="text-right text-xs font-semibold tabular-nums">
 								{formatCycleTrendValue(metric)}
 							</p>
 							<p
-								className={`text-right text-[10px] font-medium tabular-nums sm:text-[11px] ${deltaClass}`}
+								className={`text-right text-[11px] font-medium tabular-nums ${deltaClass}`}
 							>
 								{formatCycleTrendDelta(metric)}
 							</p>
@@ -1340,7 +1370,8 @@ export default function Dashboard() {
 						<div className="mt-6 grid gap-8 lg:grid-cols-2">
 							{providerRows.map((row) => (
 								<div key={row.key}>
-									<p className="mb-4 text-sm font-semibold">
+									<p className="mb-4 inline-flex items-center gap-2 text-sm font-semibold">
+										<ProviderLogo provider={row.key} className="size-4" />
 										{PROVIDER_LABELS[row.key] ?? row.label}
 									</p>
 									<ScoreLayers score={row.weightedScore} />
@@ -1546,7 +1577,11 @@ export default function Dashboard() {
 								className="grid w-full gap-3 py-4 text-left transition-colors hover:bg-stone-50 sm:grid-cols-[130px_minmax(0,1fr)_150px_32px] sm:items-center dark:hover:bg-neutral-900/50"
 							>
 								<div>
-									<p className="text-sm font-medium">
+									<p className="inline-flex items-center gap-2 text-sm font-medium">
+										<ProviderLogo
+											provider={sample.provider}
+											className="size-4"
+										/>
 										{PROVIDER_LABELS[sample.provider] ?? sample.provider}
 									</p>
 									<p className="mt-1 text-xs text-stone-500">

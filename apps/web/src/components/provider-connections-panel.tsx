@@ -25,9 +25,10 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
+	ProviderLogo,
 	toast,
 } from "@anspectra/ui";
-import { cn, getModelFavicon } from "@anspectra/utils";
+import { cn } from "@anspectra/utils";
 import {
 	AlertTriangle,
 	ArrowRight,
@@ -503,10 +504,10 @@ export function ProviderConnectionsPanel(props: {
 									)}
 								>
 									<div className="flex items-center gap-3">
-										<img
-											src={getModelFavicon(primaryProvider)}
-											alt={cardTitle}
-											className="h-6 w-6 shrink-0 rounded-[var(--app-radius)] sm:h-7 sm:w-7"
+										<ProviderLogo
+											provider={primaryProvider}
+											title={cardTitle}
+											className="h-6 w-6 shrink-0 sm:h-7 sm:w-7"
 										/>
 
 										<div className="min-w-0">

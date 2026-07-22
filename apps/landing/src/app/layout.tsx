@@ -35,6 +35,10 @@ export const metadata: Metadata = {
 	],
 	alternates: {
 		canonical: siteUrl,
+		languages: {
+			en: siteUrl,
+			"zh-CN": `${siteUrl}/zh-CN/`,
+		},
 	},
 	icons: {
 		icon: [
@@ -69,6 +73,8 @@ export const metadata: Metadata = {
 		url: siteUrl,
 		siteName: "Anspectra",
 		type: "website",
+		locale: "en_US",
+		alternateLocale: ["zh_CN"],
 		images: [
 			{
 				url: "/opengraph-image",

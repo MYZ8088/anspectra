@@ -25,7 +25,7 @@ const extensions = new Set([
 	".py",
 ]);
 const han = /[\u3400-\u9fff]/u;
-const allowlistedTechnicalFiles = [
+const allowlistedFiles = [
 	/^apps\/agent\/src\/auth\/cli\.ts$/u,
 	/^apps\/agent\/src\/core\/providers\//u,
 	/^apps\/agent\/src\/core\/prompt-runner\/responseCompleteness\.ts$/u,
@@ -34,6 +34,8 @@ const allowlistedTechnicalFiles = [
 	/^apps\/agent\/src\/lib\/browser\/domOps\.ts$/u,
 	/^apps\/agent\/src\/lib\/input\/response\/provisionalResponse\.ts$/u,
 	/^apps\/agent\/src\/run-test\.ts$/u,
+	/^apps\/landing\/src\/app\/zh-CN\//u,
+	/^apps\/landing\/src\/components\/anspectra-landing\.tsx$/u,
 	/^packages\/services\/src\/geo\/presets\//u,
 	/^packages\/services\/src\/geo\/(?:promptEngine|promptLibrary|diagnostics|siteAudit)\.ts$/u,
 	/^packages\/services\/src\/geo\/(?:content|opportunities|publisher|experimentCohorts)\.ts$/u,
@@ -47,7 +49,7 @@ function isAllowedTechnicalFile(file) {
 	return (
 		name.includes("/test-fixtures/") ||
 		name.endsWith(".test.ts") ||
-		allowlistedTechnicalFiles.some((pattern) => pattern.test(name))
+		allowlistedFiles.some((pattern) => pattern.test(name))
 	);
 }
 

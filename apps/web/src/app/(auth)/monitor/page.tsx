@@ -26,6 +26,7 @@ import {
 	Button,
 	Checkbox,
 	Input,
+	ProviderLogo,
 	Select,
 	SelectContent,
 	SelectItem,
@@ -46,7 +47,7 @@ import {
 	ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 type SelectableSuite = Exclude<DetectionSuiteKey, "filtered">;
 
@@ -115,7 +116,7 @@ function ToggleGroup<T extends string>(props: {
 	label: string;
 	values: readonly T[];
 	selected: T[];
-	labelFor: (value: T) => string;
+	labelFor: (value: T) => ReactNode;
 	onChange: (values: T[]) => void;
 }) {
 	return (
@@ -627,9 +628,16 @@ export default function NewDetectionPage() {
 							label="Web providers"
 							values={PROVIDERS.map(([key]) => key)}
 							selected={providers}
-							labelFor={(value) =>
-								PROVIDERS.find(([key]) => key === value)?.[1] ?? value
-							}
+							labelFor={(value) => {
+								const label =
+									PROVIDERS.find(([key]) => key === value)?.[1] ?? value;
+								return (
+									<span className="inline-flex items-center gap-2">
+										<ProviderLogo provider={value} className="size-4" />
+										{label}
+									</span>
+								);
+							}}
 							onChange={(values) => values.length && setProviders(values)}
 						/>
 					</div>
@@ -642,7 +650,10 @@ export default function NewDetectionPage() {
 								providers.includes(provider),
 							).map(([provider, label]) => (
 								<div key={provider} className="grid gap-1.5 text-sm">
-									<span className="font-medium">{label}</span>
+									<span className="inline-flex items-center gap-2 font-medium">
+										<ProviderLogo provider={provider} className="size-4" />
+										{label}
+									</span>
 									<Select
 										value={providerModes[provider]}
 										onValueChange={(value) =>
